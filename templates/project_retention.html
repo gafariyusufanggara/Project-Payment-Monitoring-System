@@ -1,0 +1,243 @@
+{% extends "base.html" %} {% block title %}Retensi {{ project.kode_proyek }} -
+Project Payment Monitoring System{% endblock %}{% block topbar_title %}Retensi — {{ project.kode_proyek }}{% endblock %} {% block content %}
+<!--
+  Retensi Proyek — Ledger Desk world (DESIGN.md).
+  THESIS: retensi adalah turunan POT. RETENSI, bukan entitas input sendiri —
+          halaman ini murni baca, dikelompokkan per rekanan.
+  OWN-WORLD: navy/paper, satu aksen biru, serif hanya angka KPI, mono sel uang.
+  STORY: staf finance lihat total potongan lalu telusuri per rekanan lalu per invoice.
+  FIRST VIEWPORT: header + ringkasan + awal tabel rekanan.
+  FORM: refinement Operate, mirror tokens _dashboard.html.
+-->
+<style>
+  .rt-wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: var(--ds-sp-5, 24px);
+    display: flex;
+    flex-direction: column;
+    gap: var(--ds-sp-4, 16px);
+  }
+  .rt-sub {
+    margin: 2px 0 0;
+    font-size: 0.78rem;
+    color: var(--muted, #667080);
+  }
+  .rt-kpis {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .rt-kpis .ds-kpi {
+    padding: 12px 14px;
+  }
+  .rt-card {
+    background: var(--card-bg, #fff);
+    border: 1px solid var(--border, #e3e5e8);
+    border-radius: 16px;
+    box-shadow: 0 1px 3px rgba(51, 51, 51, 0.05);
+    overflow: hidden;
+  }
+  .rt-card__head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 20px;
+    font-weight: 700;
+    font-size: 1rem;
+    border-bottom: 1px solid var(--border, #e3e5e8);
+  }
+  .rt-card__head i {
+    color: var(--accent, #005691);
+  }
+  .rt-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 20px;
+    font-size: 0.76rem;
+    color: var(--muted, #667080);
+    background: var(--bg-subtle, #f7f8f9);
+    border-bottom: 1px solid var(--border, #e3e5e8);
+  }
+  .rt-note i {
+    color: var(--accent, #005691);
+    margin-top: 1px;
+  }
+  .rt-scroll {
+    overflow-x: auto;
+  }
+  .rt-table {
+    width: 100%;
+    min-width: 720px;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+  .rt-table th {
+    text-align: left;
+    padding: 10px 12px;
+    font-weight: 700;
+    font-size: 0.7rem;
+    color: var(--muted, #667080);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid var(--border, #e3e5e8);
+    background: var(--bg-subtle, #f7f8f9);
+    white-space: nowrap;
+  }
+  .rt-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border, #e3e5e8);
+    vertical-align: middle;
+  }
+  .rt-table tbody tr:hover td {
+    background: var(--hover, #eef0f2);
+  }
+  .rt-table .num {
+    text-align: right;
+    font-family: "JetBrains Mono", "SF Mono", monospace;
+    font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .rt-rekanan {
+    font-weight: 600;
+    color: var(--text, #333333);
+  }
+  .rt-group-row td {
+    background: var(--bg-subtle, #f7f8f9);
+    font-weight: 700;
+  }
+  .rt-mono {
+    font-family: "JetBrains Mono", "SF Mono", monospace;
+    font-size: 0.76rem;
+  }
+  .rt-desc {
+    max-width: 280px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .rt-count {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--muted, #667080);
+  }
+  @media (max-width: 900px) {
+    .rt-kpis {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  @media (max-width: 600px) {
+    .rt-wrap {
+      padding: var(--ds-sp-4, 16px) var(--ds-sp-3, 12px);
+    }
+    .rt-kpis {
+      grid-template-columns: 1fr;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .rt-wrap * {
+      animation: none !important;
+      transition: none !important;
+    }
+  }
+</style>
+<div class="rt-wrap animate-in">
+  <!-- Header -->
+<div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap">
+  <a href="{{ url_for('project.list_projects') }}" class="ds-btn"><i class="bi bi-arrow-left"></i> Proyek</a>
+  <a href="{{ url_for('project.project_dashboard', project_id=project.id) }}" class="ds-btn"><i class="bi bi-bar-chart-fill"></i> Dashboard</a>
+</div>
+<!-- Ringkasan -->
+  <div class="rt-kpis">
+    <div class="ds-kpi ds-kpi--compact" tabindex="0">
+      <div>
+        <div class="ds-kpi__label">Total Retensi Dipotong</div>
+        <div class="ds-kpi__value">{{ total_retensi_hutang|money }}</div>
+      </div>
+    </div>
+    <div class="ds-kpi ds-kpi--compact" tabindex="0">
+      <div>
+        <div class="ds-kpi__label">Jumlah Invoice</div>
+        <div class="ds-kpi__value">{{ total_invoice }}</div>
+      </div>
+    </div>
+    <div class="ds-kpi ds-kpi--compact" tabindex="0">
+      <div>
+        <div class="ds-kpi__label">Rekanan</div>
+        <div class="ds-kpi__value">{{ retensi_groups|length }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabel retensi -->
+  <div class="rt-card">
+    <div class="rt-card__head ds-section-title">
+      <i class="bi bi-list-check"></i> Daftar Retensi per Rekanan
+    </div>
+    <div class="rt-note">
+      <i class="bi bi-info-circle"></i>
+      <span
+        >Dihitung otomatis dari kolom <strong>POT. RETENSI</strong> pada data
+        hutang proyek ini. Untuk mengubah nilai, edit invoice yang
+        bersangkutan.</span
+      >
+    </div>
+
+    {% if retensi_groups %}
+    <div class="rt-scroll">
+      <table class="rt-table">
+        <thead>
+          <tr>
+            <th scope="col">Rekanan</th>
+            <th scope="col">No. Invoice</th>
+            <th scope="col">Tgl Terima</th>
+            <th scope="col">Kode Biaya</th>
+            <th scope="col">Deskripsi</th>
+            <th scope="col" style="text-align: right">Nilai Retensi</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for g in retensi_groups %}
+          <!-- Baris ringkasan rekanan -->
+          <tr class="rt-group-row">
+            <td class="rt-rekanan">
+              {{ g.nama }}
+              <span class="rt-count"
+                >({{ g.jumlah_invoice }} invoice)</span
+              >
+            </td>
+            <td colspan="4"></td>
+            <td class="num">{{ g.total_retensi|money }}</td>
+          </tr>
+          {% for iv in g.invoices %}
+          <tr>
+            <td></td>
+            <td class="rt-mono">{{ iv.no_invoice or '—' }}</td>
+            <td class="rt-mono">{{ iv.tgl_terima or '—' }}</td>
+            <td class="rt-mono">{{ iv.kode_biaya or '—' }}</td>
+            <td class="rt-desc" title="{{ iv.deskripsi }}">
+              {{ iv.deskripsi or '—' }}
+            </td>
+            <td class="num">{{ iv.nilai_retensi|money }}</td>
+          </tr>
+          {% endfor %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="ds-empty">
+      <i class="bi bi-inbox"></i>
+      <div class="ds-empty__title">Belum ada potongan retensi</div>
+      <p class="ds-empty__text">
+        Retensi muncul otomatis begitu invoice proyek ini memiliki nilai pada
+        kolom <strong>POT. RETENSI</strong>.
+      </p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Nomor Kontrak Belum Terdaftar - Project Payment Monitoring System{% endblock %}
+{% block topbar_title %}Belum Terdaftar{% endblock %}
+{% block topbar_icon %}bi-question-circle{% endblock %}
+
+{% block content %}
+<style>
+  .ku-wrap { max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+  .ku-card { background: #fff; border: 1px solid #e3e5e8; border-radius: 16px; box-shadow: 0 1px 3px rgba(51, 51, 51,.05); overflow: hidden; }
+  .ku-table { width: 100%; font-size: .78rem; border-collapse: separate; border-spacing: 0; }
+  .ku-table thead th { background: #f7f8f9; color: #4d5766; font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; padding: 10px 14px; border-bottom: 2px solid #e3e5e8; text-align: left; }
+  .ku-table thead th.num { text-align: right; }
+  .ku-table tbody td { padding: 9px 14px; border-bottom: 1px solid #eef0f2; vertical-align: middle; color: #333333; }
+  .ku-table tbody tr:last-child td { border-bottom: none; }
+  .ku-table tbody tr:hover td { background: #f7f8f9; }
+  .cell-dim { font-family: "JetBrains Mono", "SF Mono", monospace; font-size: .75rem; color: #4d5766; font-variant-numeric: tabular-nums; }
+  .ku-hint { font-size: .74rem; color: #667080; margin: 0; }
+  .ku-ignore-btn { font-size: .7rem; padding: 3px 10px; border-radius: 8px; border: 1px solid #e3e5e8; background: #fff; color: #4d5766; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
+  .ku-ignore-btn:hover { border-color: #E5B800; color: #7a6000; background: #fdf6d8; }
+  .ku-ignored { font-size: .74rem; }
+  .ku-ignored .chip { display: inline-flex; align-items: center; gap: 6px; background: #eef0f2; border: 1px solid #e3e5e8; border-radius: 999px; padding: 4px 6px 4px 10px; margin: 3px 4px 3px 0; }
+  .ku-ignored .chip form { display: inline; margin: 0; }
+  .ku-ignored .chip button { border: none; background: #e3e5e8; color: #4d5766; border-radius: 999px; width: 18px; height: 18px; line-height: 1; cursor: pointer; font-size: .65rem; display: inline-flex; align-items: center; justify-content: center; }
+  .ku-ignored .chip button:hover { background: #e74c3c; color: #fff; }
+</style>
+
+<div class="ku-wrap animate-in">
+
+  <div class="ku-card" style="padding:16px 18px">
+    <h2 class="ku-hint" style="font-weight:700;font-size:.8rem;color:#333333;margin-bottom:6px">
+      Nomor kontrak di invoice yang belum ada di registri
+    </h2>
+    <p class="ku-hint">
+      Daftar ini berasal dari kolom <strong>NO PO / KONTRAK</strong> pada tabel invoice.
+      Jika nomor muncul di sini, berarti belum ada kontrak yang didaftarkan dengan nomor tersebut —
+      bisa karena belum diinput, atau nomor di invoice berbeda dengan dokumen procurement.
+    </p>
+  </div>
+
+  <div class="ku-card">
+    {% if missing %}
+    <table class="ku-table">
+      <thead>
+        <tr><th>No. Kontrak (dari invoice)</th><th>Rekanan</th><th class="num">Jumlah Invoice</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for m in missing %}
+        <tr>
+          <td class="cell-dim">{{ m.no_kontrak }}</td>
+          <td>{{ m.rekanan or '-' }}</td>
+          <td style="text-align:right">{{ m.jumlah }}</td>
+          <td style="text-align:right">
+            {% if m.rekanan %}
+            <form method="post" action="{{ url_for('contract.ignore_vendor') }}"
+                  onsubmit="return confirm('Abaikan semua invoice dari &quot;{{ m.rekanan }}&quot; dari daftar ini?')">
+              <input type="hidden" name="vendor" value="{{ m.rekanan }}">
+              <button type="submit" class="ku-ignore-btn" title="Invoice vendor ini bukan kontrak procurement">
+                <i class="bi bi-eye-slash"></i> Abaikan
+              </button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="ds-empty">
+      <i class="bi bi-shield-check" style="color:#2ECC40"></i>
+      <div class="ds-empty__title">Semua tercocok</div>
+      <p class="ds-empty__text">Setiap nomor kontrak pada invoice sudah terdaftar di registri kontrak.</p>
+    </div>
+    {% endif %}
+  </div>
+
+  {% if ignored_vendors %}
+  <div class="ku-card" style="padding:14px 18px">
+    <p class="ku-hint" style="font-weight:700;color:#333333;margin-bottom:6px">
+      <i class="bi bi-eye-slash"></i> Vendor diabaikan ({{ ignored_vendors|length }})
+    </p>
+    <div class="ku-ignored">
+      {% for v in ignored_vendors %}
+      <span class="chip" title="{{ v.alasan or 'Tanpa alasan' }}">
+        {{ v.vendor }}
+        <form method="post" action="{{ url_for('contract.unignore_vendor') }}">
+          <input type="hidden" name="vendor" value="{{ v.vendor }}">
+          <button type="submit" title="Tampilkan lagi di daftar">&times;</button>
+        </form>
+      </span>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div style="display:flex;gap:8px">
+    <a href="{{ url_for('contract.list_contracts') }}" class="ds-btn"><i class="bi bi-arrow-left"></i> Kembali</a>
+  </div>
+
+</div>
+{% endblock %}

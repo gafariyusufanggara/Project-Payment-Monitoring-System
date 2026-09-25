@@ -1,0 +1,301 @@
+{% extends "base.html" %} {% block title %}Exclude - Project Payment Monitoring System{% endblock %} {% block
+topbar_title %}Exclude{% endblock %} {% block topbar_icon %}bi-slash-circle{% endblock %} {% block topbar_badges %}
+<span class="topbar-badge" id="topbarExcBadge" style="background: #eaf2f9; color: #005691">
+  <i class="bi bi-eye-slash"></i> <span id="topbarExcNum">{{ excluded_categories|length + excluded_rekanan|length }}</span>&nbsp;Excluded
+</span>
+{% endblock %} {% block content %}
+<style>
+  .st-wrap { display: flex; flex-direction: column; gap: 16px; max-width: 1100px; margin: 0 auto; }
+  .st-sub { margin: 2px 0 0; font-size: .78rem; color: #667080; }
+  .st-info {
+    display: flex; align-items: flex-start; gap: 10px;
+    background: #eaf2f9; border: 1px solid #c4ddef; border-radius: 12px;
+    padding: 12px 16px; font-size: .8rem; color: #333333;
+  }
+  .st-info i { color: #005691; font-size: 1rem; margin-top: 1px; }
+  .st-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+  @media (max-width: 900px) { .st-grid { grid-template-columns: 1fr; } }
+  .st-card {
+    background: #fff; border: 1px solid #e3e5e8; border-radius: 16px;
+    box-shadow: 0 1px 3px rgba(51, 51, 51,.05); overflow: hidden;
+  }
+  .st-card__head {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 18px; background: #f7f8f9; border-bottom: 1px solid #e3e5e8;
+  }
+  .st-card__head .ico {
+    width: 34px; height: 34px; min-width: 34px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center; font-size: .95rem;
+  }
+  .st-card__head h5 { margin: 0; font-size: .88rem; font-weight: 700; color: #333333; }
+  .st-card__head small { display: block; font-size: .7rem; color: #667080; font-weight: 400; }
+  .st-body { padding: 14px 18px 18px; }
+  .st-search {
+    display: flex; align-items: center; gap: 8px;
+    border: 1px solid #e3e5e8; border-radius: 8px; padding: 6px 10px; margin-bottom: 12px;
+  }
+  .st-search i { color: #667080; font-size: .8rem; }
+  .st-search input { border: none; outline: none; font-size: .8rem; flex: 1; font-family: inherit; background: transparent; }
+  .st-list { display: flex; flex-direction: column; max-height: 420px; overflow-y: auto; }
+  .st-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 10px; border-radius: 10px; font-size: .82rem; color: #333333; cursor: pointer;
+  }
+  .st-item:hover { background: #f7f8f9; }
+  .st-item input { width: 16px; height: 16px; accent-color: #005691; cursor: pointer; }
+  .st-item input:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 86, 145,.18); border-radius: 4px; }
+  .st-item .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .st-item.on { background: #fdecea; }
+  .st-item .tag {
+    font-size: .62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px;
+    color: #a12a1d; background: #fff; border: 1px solid #f3c3bd; padding: 1px 7px; border-radius: 6px;
+    display: none;
+  }
+  .st-item.on .tag { display: inline-block; }
+  .st-empty { font-size: .78rem; color: #667080; padding: 10px 2px; }
+  .st-sum { background: #fff; border: 1px solid #e3e5e8; border-radius: 16px; padding: 14px 18px; display: flex; flex-direction: column; gap: 10px; }
+  .st-sum__head { font-size: .8rem; font-weight: 700; color: #333333; display: flex; align-items: center; gap: 8px; }
+  .st-sum__head i { color: #005691; }
+  .st-sum__head .n { background: #eaf2f9; color: #005691; border-radius: 20px; padding: 1px 10px; font-size: .72rem; }
+  .st-sum__group { display: flex; flex-direction: column; gap: 6px; }
+  .st-sum__label { font-size: .66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #667080; }
+  .st-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .st-chip { display: inline-flex; align-items: center; gap: 6px; font-size: .74rem; font-weight: 600; padding: 3px 5px 3px 11px; border-radius: 20px; border: 1px solid; max-width: 100%; }
+  .st-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 260px; }
+  .st-chip--cat { background: #e2eff8; border-color: #c4ddef; color: #005691; }
+  .st-chip--rek { background: #ece4f7; border-color: #d5c8ee; color: #6a4fa3; }
+  .st-chip button { border: none; background: rgba(255,255,255,.7); color: inherit; cursor: pointer; border-radius: 50%; width: 18px; height: 18px; font-size: .65rem; line-height: 1; display: inline-flex; align-items: center; justify-content: center; padding: 0; }
+  .st-chip button:hover { background: #fff; }
+  .st-none { font-size: .75rem; color: #667080; font-style: italic; }
+  .st-add { display: flex; gap: 8px; margin-top: 12px; }
+  .st-add input {
+    flex: 1; font-size: .8rem; border: 1px solid #e3e5e8; border-radius: 8px;
+    height: 34px; padding: 0 10px; font-family: inherit;
+  }
+  .st-add input:focus { border-color: #005691; outline: none; box-shadow: 0 0 0 3px rgba(0, 86, 145,.12); }
+  @media (prefers-reduced-motion: reduce) { .st-item { transition: none; } }
+</style>
+
+<div class="st-wrap animate-in">
+
+  <div class="st-info">
+    <i class="bi bi-info-circle-fill"></i>
+    <div>
+      Item yang dicentang <strong>tidak ikut dihitung</strong> di Dashboard dan semua Laporan
+      (DPP Bulanan/Mingguan, PPN, Jatuh Tempo). Barisnya tetap tampil di Data Invoice dengan
+      tanda <i class="bi bi-eye-slash"></i> — datanya tidak diubah.
+    </div>
+  </div>
+
+  <div class="st-sum" id="excSummary">
+    <div class="st-sum__head">
+      <i class="bi bi-eye-slash"></i> Saat ini di-exclude
+      <span class="n" id="sumTotal">{{ excluded_categories|length + excluded_rekanan|length }}</span>
+    </div>
+    <div class="st-sum__group">
+      <div class="st-sum__label">Kategori ({{ excluded_categories|length }})</div>
+      <div class="st-chips" id="sumCat">
+        {% for cat in excluded_categories %}
+        <span class="st-chip st-chip--cat" data-type="kategori" data-name="{{ cat }}"><span>{{ cat }}</span><button type="button" data-unexclude aria-label="Aktifkan kembali {{ cat }}"><i class="bi bi-x"></i></button></span>
+        {% else %}
+        <span class="st-none">Tidak ada kategori di-exclude.</span>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="st-sum__group">
+      <div class="st-sum__label">Levelansir / Rekanan ({{ excluded_rekanan|length }})</div>
+      <div class="st-chips" id="sumRek">
+        {% for rek in excluded_rekanan %}
+        <span class="st-chip st-chip--rek" data-type="rekanan" data-name="{{ rek }}"><span>{{ rek }}</span><button type="button" data-unexclude aria-label="Aktifkan kembali {{ rek }}"><i class="bi bi-x"></i></button></span>
+        {% else %}
+        <span class="st-none">Tidak ada rekanan di-exclude.</span>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="st-grid">
+
+    <!-- ── Exclude Kategori ── -->
+    <div class="st-card">
+      <div class="st-card__head">
+        <div class="ico" style="background:#e2eff8;color:#005691"><i class="bi bi-tag"></i></div>
+        <div>
+          <h5>Exclude Kategori</h5>
+          <small>Invoice dengan kategori ini diabaikan dari perhitungan</small>
+        </div>
+      </div>
+      <div class="st-body">
+        <div class="st-search"><i class="bi bi-search"></i>
+          <input type="text" id="catSearch" placeholder="Cari kategori..." aria-label="Cari kategori" />
+        </div>
+        <div class="st-list" id="catList">
+          {% for cat in categories %}
+          <label class="st-item {{ 'on' if cat in excluded_categories }}" data-name="{{ cat|lower }}">
+            <input type="checkbox" data-type="kategori" data-name="{{ cat }}"
+                   {{ 'checked' if cat in excluded_categories }} />
+            <span class="name">{{ cat }}</span>
+            <span class="tag">Excluded</span>
+          </label>
+          {% else %}
+          <div class="st-empty">Belum ada kategori.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Exclude Rekanan ── -->
+    <div class="st-card">
+      <div class="st-card__head">
+        <div class="ico" style="background:#ece4f7;color:#6a4fa3"><i class="bi bi-person-slash"></i></div>
+        <div>
+          <h5>Exclude Levelansir / Rekanan</h5>
+          <small>Invoice dari rekanan ini diabaikan dari perhitungan</small>
+        </div>
+      </div>
+      <div class="st-body">
+        <div class="st-search"><i class="bi bi-search"></i>
+          <input type="text" id="rekSearch" placeholder="Cari rekanan..." aria-label="Cari rekanan" />
+        </div>
+        <div class="st-list" id="rekList">
+          {% for rek in rekanan_list %}
+          <label class="st-item {{ 'on' if rek in excluded_rekanan }}" data-name="{{ rek|lower }}">
+            <input type="checkbox" data-type="rekanan" data-name="{{ rek }}"
+                   {{ 'checked' if rek in excluded_rekanan }} />
+            <span class="name">{{ rek }}</span>
+            <span class="tag">Excluded</span>
+          </label>
+          {% else %}
+          <div class="st-empty">Belum ada rekanan di database.</div>
+          {% endfor %}
+        </div>
+        <div class="st-add">
+          <input type="text" id="rekNew" placeholder="Tambah nama rekanan yang tidak ada di daftar..." aria-label="Nama rekanan baru" />
+          <button type="button" class="ds-btn ds-btn--primary" id="rekAddBtn" style="height:34px;font-size:.75rem">
+            <i class="bi bi-plus-lg"></i>Exclude
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+<!-- Page script di dalam block content agar ikut di-swap & dieksekusi HTMX. -->
+<script>
+  // Toggle exclusion — satu endpoint untuk kategori & rekanan.
+  function setCheckbox(type, name, checked) {
+    const inp = document.querySelector(`.st-item input[data-type="${type}"][data-name="${CSS.escape(name)}"]`);
+    if (inp) { inp.checked = checked; inp.closest('.st-item').classList.toggle('on', checked); }
+  }
+  function chipEl(type, name, cls) {
+    const s = document.createElement('span');
+    s.className = `st-chip ${cls}`;
+    s.dataset.type = type; s.dataset.name = name;
+    const t = document.createElement('span'); t.textContent = name; s.appendChild(t);
+    const b = document.createElement('button');
+    b.type = 'button'; b.setAttribute('data-unexclude', ''); b.setAttribute('aria-label', `Aktifkan kembali ${name}`);
+    b.innerHTML = '<i class="bi bi-x"></i>'; s.appendChild(b);
+    return s;
+  }
+  function syncSummary(type, name, excluded) {
+    const box = type === 'kategori' ? document.getElementById('sumCat') : document.getElementById('sumRek');
+    if (!box) return;
+    box.querySelector('.st-none')?.remove();
+    const sel = `.st-chip[data-name="${CSS.escape(name)}"]`;
+    const cur = box.querySelector(sel);
+    if (excluded && !cur) box.appendChild(chipEl(type, name, type === 'kategori' ? 'st-chip--cat' : 'st-chip--rek'));
+    if (!excluded && cur) cur.remove();
+    ['sumCat', 'sumRek'].forEach(id => {
+      const b = document.getElementById(id);
+      if (b && !b.querySelector('.st-chip')) {
+        const e = document.createElement('span'); e.className = 'st-none';
+        e.textContent = id === 'sumCat' ? 'Tidak ada kategori di-exclude.' : 'Tidak ada rekanan di-exclude.';
+        b.appendChild(e);
+      }
+    });
+    const n = document.querySelectorAll('#excSummary .st-chip').length;
+    const t = document.getElementById('sumTotal'); if (t) t.textContent = n;
+    const tb = document.getElementById('topbarExcNum'); if (tb) tb.textContent = n;
+  }
+  async function toggleExcluded(input) {
+    const body = {
+      type: input.dataset.type,
+      name: input.dataset.name,
+      excluded: input.checked,
+    };
+    input.disabled = true;
+    try {
+      const res = await fetch('/api/settings/excluded', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      input.closest('.st-item').classList.toggle('on', input.checked);
+      syncSummary(body.type, body.name, body.excluded);
+      Toast.ok(input.checked
+        ? `"${body.name}" di-exclude dari perhitungan.`
+        : `"${body.name}" diaktifkan kembali.`);
+    } catch (e) {
+      input.checked = !input.checked; // rollback UI
+      Toast.err('Gagal menyimpan pengaturan.');
+    } finally {
+      input.disabled = false;
+    }
+  }
+  document.querySelectorAll('.st-item input[type="checkbox"]').forEach(inp => {
+    inp.addEventListener('change', () => toggleExcluded(inp));
+  });
+  document.getElementById('excSummary').addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-unexclude]');
+    if (!btn) return;
+    const chip = btn.closest('.st-chip');
+    const type = chip.dataset.type, name = chip.dataset.name;
+    try {
+      const res = await fetch('/api/settings/excluded', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type, name, excluded: false }),
+      });
+      if (!res.ok) throw new Error();
+      setCheckbox(type, name, false);
+      syncSummary(type, name, false);
+      Toast.ok(`"${name}" diaktifkan kembali.`);
+    } catch (err) {
+      Toast.err('Gagal menyimpan pengaturan.');
+    }
+  });
+
+  // Filter pencarian sederhana per kartu.
+  function bindSearch(inputId, listId) {
+    const inp = document.getElementById(inputId);
+    if (!inp) return;
+    inp.addEventListener('input', () => {
+      const q = inp.value.trim().toLowerCase();
+      document.querySelectorAll(`#${listId} .st-item`).forEach(el => {
+        el.style.display = !q || el.dataset.name.includes(q) ? '' : 'none';
+      });
+    });
+  }
+  bindSearch('catSearch', 'catList');
+  bindSearch('rekSearch', 'rekList');
+
+  // Tambah rekanan manual (belum ada di DB) lalu reload supaya muncul tercentang.
+  document.getElementById('rekAddBtn').addEventListener('click', async () => {
+    const el = document.getElementById('rekNew');
+    const name = el.value.trim();
+    if (!name) { Toast.warn('Isi nama rekanan dulu.'); return; }
+    try {
+      const res = await fetch('/api/settings/excluded', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'rekanan', name, excluded: true }),
+      });
+      if (!res.ok) throw new Error();
+      window.location.reload();
+    } catch (e) {
+      Toast.err('Gagal menambahkan rekanan.');
+    }
+  });
+</script>
+{% endblock %}

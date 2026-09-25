@@ -1,0 +1,253 @@
+{% extends "base.html" %} {% block title %}Audit Perubahan - Project Payment Monitoring System{% endblock %} {% block topbar_title %}Catatan Audit{% endblock %} {% block
+topbar_icon %}bi-clock-history{% endblock %} {% block topbar_badges %}
+<span class="topbar-badge" style="background: #eaf2f9; color: #005691">
+  <i class="bi bi-pencil-square"></i> {{ audit_count }} Data Diubah
+</span>
+{% endblock %} {% block content %}
+<!--
+  Catatan Audit — Ledger Desk world (DESIGN.md).
+  THESIS: riwayat koreksi rapi — 4 KPI rata, seleksi batch, diff ledger old→new.
+  OWN-WORLD: navy/paper, satu aksen biru, serif hanya angka KPI, mono sel uang.
+  STORY: staf finance scan siapa berubah apa lalu tandai selesai per kartu atau batch.
+  FIRST VIEWPORT: header + 4 KPI rata + toolbar seleksi + awal kartu.
+  FORM: refinement Operate, mirror tokens verifikasi.html/verifikasi_ignore.html.
+  FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+-->
+<style>
+  .au-wrap { display: flex; flex-direction: column; gap: 16px; max-width: 1100px; margin: 0 auto; }
+  .au-sub { margin: 2px 0 0; font-size: .78rem; color: #667080; }
+  .au-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .au-kpis .ds-kpi { padding: 12px 14px; display: flex; align-items: center; gap: 12px; }
+  .au-kpis .ds-kpi__value { font-size: 1.05rem; }
+  .au-kpis .ds-kpi__value--text { font-size: .85rem; font-family: "Inter", -apple-system, "Segoe UI", sans-serif; font-weight: 700; }
+  .kpi-ico {
+    width: 38px; height: 38px; min-width: 38px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center; font-size: 1rem;
+  }
+  .kpi-ico--blue { background: #e2eff8; color: #005691; }
+  .kpi-ico--violet { background: #ece4f7; color: #6a4fa3; }
+  .kpi-ico--amber { background: #fdf6d8; color: #8a6d00; }
+  .kpi-ico--slate { background: #eef0f2; color: #4d5766; }
+  .au-toolbar {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    background: #fff; border: 1px solid #e3e5e8; border-radius: 16px;
+    padding: 12px 16px; box-shadow: 0 1px 3px rgba(51, 51, 51,.05);
+  }
+  .au-select-all { display: inline-flex; align-items: center; gap: 6px; font-size: .75rem; font-weight: 600; color: #333333; cursor: pointer; user-select: none; }
+  .au-select-all input { width: 16px; height: 16px; accent-color: #005691; cursor: pointer; }
+  .au-select-all input:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 86, 145,.18); border-radius: 4px; }
+  .au-count { margin-left: auto; font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: #667080; font-variant-numeric: tabular-nums; }
+  .au-list { display: flex; flex-direction: column; gap: 10px; }
+  .au-card {
+    background: #fff; border: 1px solid #e3e5e8; border-radius: 16px;
+    box-shadow: 0 1px 3px rgba(51, 51, 51,.05); overflow: hidden;
+    transition: box-shadow .25s cubic-bezier(.4,0,.2,1), background .15s, border-color .15s;
+  }
+  .au-card:hover { box-shadow: 0 4px 12px -2px rgba(51, 51, 51,.08), 0 2px 6px -1px rgba(51, 51, 51,.04); }
+  .au-card:has(.au-check:checked) { background: #eaf2f9; border-color: #005691; }
+  .au-head {
+    display: grid; grid-template-columns: auto 1fr auto; gap: 8px 14px; align-items: start;
+    padding: 14px 18px 10px;
+  }
+  .au-check { width: 16px; height: 16px; margin-top: 4px; accent-color: #005691; cursor: pointer; }
+  .au-check:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 86, 145,.18); border-radius: 4px; }
+  .au-main { grid-column: 2; min-width: 0; }
+  .au-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .au-rnum {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 26px; height: 26px; padding: 0 6px; border-radius: 6px; background: #eef0f2;
+    font-weight: 700; font-size: .7rem; color: #4d5766;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+  }
+  .au-card:has(.au-check:checked) .au-rnum { background: #e2eff8; color: #005691; }
+  .au-rekanan { font-weight: 700; font-size: .85rem; color: #333333; }
+  .au-inv {
+    font-family: "JetBrains Mono", "SF Mono", monospace; font-size: .7rem; font-weight: 600;
+    color: #005691; background: #e2eff8; padding: 3px 10px; border-radius: 6px; white-space: nowrap;
+  }
+  .au-side {
+    grid-column: 3; grid-row: 1; display: flex; flex-direction: column;
+    align-items: flex-end; gap: 6px; min-width: 140px;
+  }
+  .au-time { font-size: .7rem; color: #667080; white-space: nowrap; display: flex; align-items: center; gap: 4px; font-variant-numeric: tabular-nums; }
+  .au-btn {
+    font-size: .72rem; font-weight: 600; padding: 5px 12px; border-radius: 8px;
+    border: 1px solid #e3e5e8; background: #fff; color: #333333; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 5px; font-family: inherit; text-decoration: none;
+    transition: border-color .15s, color .15s, background .15s;
+  }
+  .au-btn:hover:not(:disabled) { border-color: #005691; color: #005691; }
+  .au-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 86, 145,.18); }
+  .au-btn:disabled { opacity: .5; cursor: not-allowed; }
+  .au-body { padding: 0 18px 14px 18px; display: flex; flex-direction: column; }
+  .au-chg {
+    display: grid; grid-template-columns: 200px 1fr auto 1fr; gap: 8px; align-items: center;
+    padding: 8px 0; border-bottom: 1px dashed #e3e5e8; font-size: .8rem;
+  }
+  .au-chg:last-child { border-bottom: none; }
+  .au-chg .fld { color: #4d5766; font-weight: 600; font-size: .7rem; text-transform: uppercase; letter-spacing: .6px; }
+  .au-chg .old {
+    color: #a12a1d; text-decoration: line-through;
+    font-family: "JetBrains Mono", "SF Mono", monospace; font-size: .76rem; font-weight: 600;
+    padding: 2px 8px; background: #fdecea; border-radius: 6px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums;
+  }
+  .au-chg .arr { color: #667080; font-size: .85rem; }
+  .au-chg .new {
+    color: #1d7a2b; font-weight: 600;
+    font-family: "JetBrains Mono", "SF Mono", monospace; font-size: .76rem;
+    padding: 2px 8px; background: #e4f9e7; border-radius: 6px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums;
+  }
+  .au-meta { font-size: .7rem; color: #667080; margin-top: 10px; display: flex; align-items: center; gap: 6px; }
+  ::selection { background: #e2eff8; }
+  @media (max-width: 768px) {
+    .au-kpis { grid-template-columns: repeat(2, 1fr); }
+    .au-chg { grid-template-columns: 1fr; gap: 4px; }
+    .au-chg .arr { display: none; }
+  }
+  @media (max-width: 640px) {
+    .au-head { grid-template-columns: auto 1fr; }
+    .au-side { grid-column: 1 / 3; grid-row: auto; flex-direction: row; align-items: center; flex-wrap: wrap; justify-content: flex-start; padding-top: 8px; border-top: 1px solid #e3e5e8; }
+    .au-toolbar { flex-direction: column; align-items: stretch; }
+    .au-count { margin-left: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) { .au-card, .au-btn { transition: none; } }
+</style>
+
+<div class="au-wrap animate-in">
+
+  {% if audit_rows %}
+  <div class="au-kpis">
+    <div class="ds-kpi">
+      <span class="kpi-ico kpi-ico--blue"><i class="bi bi-pencil-square"></i></span>
+      <div><div class="ds-kpi__label">Data Diubah</div><div class="ds-kpi__value">{{ audit_count }}</div></div>
+    </div>
+    <div class="ds-kpi ds-kpi--warn">
+      <span class="kpi-ico kpi-ico--amber"><i class="bi bi-list-check"></i></span>
+      <div><div class="ds-kpi__label">Field Berubah</div><div class="ds-kpi__value">{{ total_changed }}</div></div>
+    </div>
+    <div class="ds-kpi ds-kpi--ok">
+      <span class="kpi-ico kpi-ico--violet"><i class="bi bi-calculator"></i></span>
+      <div><div class="ds-kpi__label">Rata-rata / Data</div><div class="ds-kpi__value">{{ avg_changed }}</div></div>
+    </div>
+    <div class="ds-kpi">
+      <span class="kpi-ico kpi-ico--slate"><i class="bi bi-clock"></i></span>
+      <div><div class="ds-kpi__label">Edit Terakhir</div><div class="ds-kpi__value ds-kpi__value--text">{{ latest_edit }}</div></div>
+    </div>
+  </div>
+
+  <div class="au-toolbar">
+    <label class="au-select-all"><input type="checkbox" id="auSelectAll" aria-label="Pilih semua baris yang terlihat" /> Pilih semua</label>
+    <div class="ds-search"><i class="bi bi-search"></i><input type="text" id="auSearch" placeholder="Cari R-no, rekanan, invoice..." oninput="filterAudit()" aria-label="Cari catatan audit" /></div>
+    <button class="au-btn" id="auBatchBtn" disabled title="Pilih kartu lalu tandai selesai"><i class="bi bi-check2-circle"></i> Selesai Terpilih <span id="auBatchCount">0</span></button>
+    <span class="au-count" id="auCount" aria-live="polite"></span>
+  </div>
+  {% endif %}
+
+  {% if audit_rows %}
+  <div class="au-list">
+    {% for row in audit_rows %}
+    <div class="au-card" data-search="{{ ('R-' ~ row.R ~ ' ' ~ row.rekanan ~ ' ' ~ row.invoice ~ ' ' ~ row.changed|map(attribute='field')|join(' '))|lower }}">
+      <div class="au-head">
+        <input type="checkbox" class="au-check" value="{{ row.hutang_row }}" aria-label="Pilih R-{{ row.R }} {{ row.rekanan }}" />
+        <div class="au-main">
+          <div class="au-top">
+            <span class="au-rnum">R-{{ row.R }}</span>
+            <span class="au-rekanan">{{ row.rekanan }}</span>
+            <span class="au-inv">{{ row.invoice }}</span>
+          </div>
+        </div>
+        <div class="au-side">
+          <div class="au-time"><i class="bi bi-clock"></i> {{ row.edited_at }}</div>
+          <form method="POST" action="/audit/clear/{{ row.hutang_row }}" style="display:inline" onsubmit="return confirm('Tandai audit ini selesai? Riwayat edit untuk data ini akan dihapus dari Catatan Audit.')">
+            <button type="submit" class="au-btn"><i class="bi bi-check2-circle"></i> Selesai Audit</button>
+          </form>
+        </div>
+      </div>
+      <div class="au-body">
+        {% for c in row.changed %}
+        <div class="au-chg">
+          <span class="fld">{{ c.field }}</span>
+          <span class="old" title="{{ c.old_fmt }}">{{ c.old_fmt }}</span>
+          <span class="arr"><i class="bi bi-arrow-right"></i></span>
+          <span class="new" title="{{ c.new_fmt }}">{{ c.new_fmt }}</span>
+        </div>
+        {% endfor %}
+        <div class="au-meta"><i class="bi bi-hash"></i> {{ row.changed_count }} field berubah</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="ds-empty">
+    <i class="bi bi-clipboard-check"></i>
+    <div class="ds-empty__title">Belum Ada Perubahan</div>
+    <p class="ds-empty__text">Data yang diedit akan muncul di sini.</p>
+  </div>
+  {% endif %}
+</div>
+
+{% if audit_rows %}
+<script>
+function getAuChecked() { return document.querySelectorAll('.au-check:checked'); }
+function updateAuBatch() {
+  var n = getAuChecked().length;
+  var btn = document.getElementById('auBatchBtn');
+  var cnt = document.getElementById('auBatchCount');
+  if (btn) btn.disabled = n === 0;
+  if (cnt) cnt.textContent = n;
+}
+function filterAudit() {
+  var q = document.getElementById('auSearch').value.toLowerCase();
+  var cards = document.querySelectorAll('.au-card');
+  var shown = 0;
+  cards.forEach(function(c) {
+    var hit = (c.getAttribute('data-search') || '').indexOf(q) !== -1;
+    c.style.display = hit ? '' : 'none';
+    if (hit) shown++;
+    else { var cb = c.querySelector('.au-check'); if (cb) cb.checked = false; }
+  });
+  var el = document.getElementById('auCount');
+  if (el) el.textContent = shown + ' / ' + cards.length + ' baris';
+  var all = document.getElementById('auSelectAll');
+  if (all) all.checked = false;
+  updateAuBatch();
+}
+function submitAuBatch() {
+  var checked = getAuChecked();
+  if (checked.length === 0) return;
+  if (!confirm('Tandai ' + checked.length + ' audit selesai? Riwayat edit akan dihapus dari Catatan Audit.')) return;
+  var form = document.createElement('form');
+  form.method = 'POST';
+  form.action = '/audit/clear-batch';
+  checked.forEach(function(cb) {
+    var inp = document.createElement('input');
+    inp.type = 'hidden'; inp.name = 'row_idxs'; inp.value = cb.value;
+    form.appendChild(inp);
+  });
+  document.body.appendChild(form);
+  form.submit();
+}
+function initAuditPage() {
+  filterAudit();
+  var all = document.getElementById('auSelectAll');
+  if (all) all.addEventListener('change', function() {
+    var on = this.checked;
+    document.querySelectorAll('.au-card').forEach(function(c) {
+      if (c.style.display !== 'none') c.querySelector('.au-check').checked = on;
+    });
+    updateAuBatch();
+  });
+  document.querySelectorAll('.au-check').forEach(function(cb) {
+    cb.addEventListener('change', updateAuBatch);
+  });
+  var btn = document.getElementById('auBatchBtn');
+  if (btn) btn.addEventListener('click', submitAuBatch);
+}
+// Re-init pada full load & setiap HTMX swap (konten di-swap tanpa reload penuh).
+if (window.onPageReady) onPageReady(initAuditPage);
+else document.addEventListener('DOMContentLoaded', initAuditPage);
+</script>
+{% endif %}
+{% endblock %}

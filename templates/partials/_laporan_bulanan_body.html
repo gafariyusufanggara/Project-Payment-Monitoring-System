@@ -1,0 +1,194 @@
+{% set current_month = active_month if active_month else (months[-1] if months else '') %}
+{% for r in report_rows %}
+<div
+  class="month-section"
+  id="section-{{ r.key }}"
+  {% if r.key != current_month %}hidden{% endif %}
+>
+  {% set k = r.kpi %}
+
+  <!-- ═══ HERO SISA ═══ -->
+  <div
+    class="lp-sisa-card lp-hero ds-kpi {% if k.sisa_dpp > 0 %}pos ds-kpi--err{% else %}zero ds-kpi--ok{% endif %}"
+  >
+    <div class="lp-hero-main">
+      <span class="kpi-lbl ds-kpi__label"
+        ><i class="bi bi-wallet2"></i> Sisa Hutang DPP · {{ r.label }}</span
+      >
+      <span class="kpi-num ds-kpi__value">{{ k.sisa_dpp|money }}</span>
+    </div>
+    <div class="lp-hero-side">
+      <span class="lp-hero-tot"><strong>{{ k.sd_hutang|money }}</strong> hutang</span>
+      <span class="lp-hero-sep" aria-hidden="true">−</span>
+      <span class="lp-hero-tot"><strong>{{ k.sd_bayar|money }}</strong> bayar</span>
+    </div>
+  </div>
+
+  <!-- ═══ KPI GROUPED ═══ -->
+  <div class="lp-kpi-groups" role="group" aria-label="Ringkasan {{ r.label }}">
+    <section class="lp-kpi-group lp-kpi-group--hutang" aria-label="Realisasi hutang">
+      <h3 class="lp-kpi-group-title"><i class="bi bi-arrow-up-circle"></i> Hutang</h3>
+      <div class="lp-kpi-row">
+        <div class="lp-kpi-cell ds-kpi ds-kpi--err h lp-cell--dim">
+          <div class="kpi-top">
+            <span class="kpi-lbl ds-kpi__label">Lalu</span>
+            <div class="kpi-icon-wrap" aria-hidden="true">
+              <i class="bi bi-arrow-up-circle"></i>
+            </div>
+          </div>
+          <div class="kpi-num ds-kpi__value">{{ k.lalu_hutang|money }}</div>
+        </div>
+        <div class="lp-kpi-cell ds-kpi ds-kpi--err h lp-cell--now">
+          <div class="kpi-top">
+            <span class="kpi-lbl ds-kpi__label">Saat Ini</span>
+            <div class="kpi-icon-wrap" aria-hidden="true">
+              <i class="bi bi-calendar-check"></i>
+            </div>
+          </div>
+          <div class="kpi-num ds-kpi__value">{{ k.saat_ini_hutang|money }}</div>
+        </div>
+        <div class="lp-kpi-cell ds-kpi ds-kpi--err h lp-cell--dim">
+          <div class="kpi-top">
+            <span class="kpi-lbl ds-kpi__label">S/D Ini</span>
+            <div class="kpi-icon-wrap" aria-hidden="true">
+              <i class="bi bi-clock-history"></i>
+            </div>
+          </div>
+          <div class="kpi-num ds-kpi__value">{{ k.sd_hutang|money }}</div>
+        </div>
+      </div>
+    </section>
+    <section class="lp-kpi-group lp-kpi-group--bayar" aria-label="Realisasi pembayaran">
+      <h3 class="lp-kpi-group-title"><i class="bi bi-arrow-down-circle"></i> Pembayaran</h3>
+      <div class="lp-kpi-row">
+        <div class="lp-kpi-cell ds-kpi ds-kpi--ok p lp-cell--dim">
+          <div class="kpi-top">
+            <span class="kpi-lbl ds-kpi__label">Lalu</span>
+            <div class="kpi-icon-wrap" aria-hidden="true">
+              <i class="bi bi-arrow-down-circle"></i>
+            </div>
+          </div>
+          <div class="kpi-num ds-kpi__value">{{ k.lalu_bayar|money }}</div>
+        </div>
+        <div class="lp-kpi-cell ds-kpi ds-kpi--ok p lp-cell--now">
+          <div class="kpi-top">
+            <span class="kpi-lbl ds-kpi__label">Saat Ini</span>
+            <div class="kpi-icon-wrap" aria-hidden="true">
+              <i class="bi bi-check-circle"></i>
+            </div>
+          </div>
+          <div class="kpi-num ds-kpi__value">{{ k.saat_ini_bayar|money }}</div>
+        </div>
+        <div class="lp-kpi-cell ds-kpi ds-kpi--ok p lp-cell--dim">
+          <div class="kpi-top">
+            <span class="kpi-lbl ds-kpi__label">S/D Ini</span>
+            <div class="kpi-icon-wrap" aria-hidden="true">
+              <i class="bi bi-check-all"></i>
+            </div>
+          </div>
+          <div class="kpi-num ds-kpi__value">{{ k.sd_bayar|money }}</div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ═══ SUMMARY TABLE ═══ -->
+  <div class="lp-tbl-wrap">
+    <div class="lp-tbl-hdr ds-section-title">
+      <h4 class="lp-tbl-title">
+        <i class="bi bi-file-earmark-bar-graph"></i>
+        Ringkasan Levelansir
+        <span class="tag">{{ r.total_count }} Invoice</span>
+        <span class="tag teal">{{ r.total_pay_count }} Pembayaran</span>
+      </h4>
+
+    </div>
+     <div class="lp-scroll">
+       <table class="lp-tbl" data-enhance="lp-bulanan">
+        <thead>
+          <tr>
+            <th rowspan="2" class="grp-no w-no" scope="col">No.</th>
+            <th rowspan="2" class="mw-150" scope="col">Levelansir</th>
+            <th colspan="3" class="grp-h" scope="colgroup">Realisasi Hutang</th>
+            <th colspan="3" class="grp-p" scope="colgroup">Realisasi Pembayaran</th>
+            <th rowspan="2" class="grp-sisa mw-95" scope="col">Sisa DPP</th>
+          </tr>
+          <tr>
+            <th class="grp-h-sub" scope="col">LALU</th>
+            <th class="grp-h-sub" scope="col">SAAT INI</th>
+            <th class="grp-h-sub" scope="col">S/D INI</th>
+            <th class="grp-p-sub" scope="col">LALU</th>
+            <th class="grp-p-sub" scope="col">SAAT INI</th>
+            <th class="grp-p-sub" scope="col">S/D INI</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in r.rekanan_list %}
+          <tr
+            data-rekan="{{ s.rekanan | e }}"
+            data-month="{{ r.key }}"
+            onclick="showDetail('{{ r.key }}', '{{ s.rekanan | e }}', this)"
+            onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showDetail('{{ r.key }}','{{ s.rekanan | e }}',this)}"
+            tabindex="0" role="button" aria-label="Detail {{ s.rekanan | e }}"
+          >
+            <td class="c-no">{{ loop.index }}</td>
+            <td>
+              {{ s.rekanan }} {% if s.count > 0 %}
+              <span class="inv-badge inv-badge-h"
+                >{{ s.count }}</span
+              >
+              {% endif %} {% if s.pay_count > 0 %}
+              <span class="inv-badge inv-badge-p"
+                >{{ s.pay_count }}</span
+              >
+              {% endif %}
+            </td>
+            <td class="c-h">{{ s.lalu_hutang|money }}</td>
+            <td class="c-h">{{ s.saat_ini_hutang|money }}</td>
+            <td class="c-h">{{ s.sd_hutang|money }}</td>
+            <td class="c-p">{{ s.lalu_bayar|money }}</td>
+            <td class="c-p">{{ s.saat_ini_bayar|money }}</td>
+            <td class="c-p">{{ s.sd_bayar|money }}</td>
+            <td
+              class="{{ 'c-sisa-pos' if s.sisa_dpp > 0 else 'c-sisa-zero' }}"
+            >
+              {{ s.sisa_dpp|money }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr>
+            {% set t = namespace(l=0, si=0, sd=0, bl=0, bsi=0, bsd=0, sdpp=0)
+            %} {% for s in r.rekanan_list %} {% set t.l = t.l + s.lalu_hutang
+            %} {% set t.si = t.si + s.saat_ini_hutang %} {% set t.sd = t.sd +
+            s.sd_hutang %} {% set t.bl = t.bl + s.lalu_bayar %} {% set t.bsi =
+            t.bsi + s.saat_ini_bayar %} {% set t.bsd = t.bsd + s.sd_bayar %}
+            {% set t.sdpp = t.sdpp + s.sisa_dpp %} {% endfor %}
+            <td class="c-no"></td>
+            <td>TOTAL</td>
+            <td class="c-h">{{ t.l|money }}</td>
+            <td class="c-h">{{ t.si|money }}</td>
+            <td class="c-h">{{ t.sd|money }}</td>
+            <td class="c-p">{{ t.bl|money }}</td>
+            <td class="c-p">{{ t.bsi|money }}</td>
+            <td class="c-p">{{ t.bsd|money }}</td>
+            <td class="{{ 'c-sisa-pos' if t.sdpp > 0 else 'c-sisa-zero' }}">
+              {{ t.sdpp|money }}
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="lp-empty ds-empty">
+  <i class="bi bi-inbox"></i>
+  <h6 class="ds-empty__title">Belum Ada Data Bulanan</h6>
+  <p>Silakan import atau input data terlebih dahulu.</p>
+</div>
+{% endfor %}
+
+{# embed fresh REKANAN_DATA for modal detail #}
+<script id="payloadData" type="application/json">{{ report_rows | tojson }}</script>

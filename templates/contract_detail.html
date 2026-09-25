@@ -1,0 +1,439 @@
+{% extends "base.html" %}
+{% block title %}{{ contract.no_kontrak }} - Project Payment Monitoring System{% endblock %}
+{% block topbar_title %}{{ contract.no_kontrak }}{% endblock %}
+{% block topbar_icon %}bi-file-earmark-text-fill{% endblock %}
+
+{% block content %}
+<!--
+  Detail Kontrak — form identitas + daftar invoice yang memakai nomor kontrak ini.
+  Pencocokan: hutang."NO PO / KONTRAK" == vendor_contracts.no_kontrak (exact, case-insensitive).
+-->
+<style>
+  .kd-wrap { max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+  .kd-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .kd-back { display: inline-flex; align-items: center; gap: 4px; padding: 6px 14px; border-radius: 10px; font-size: .8rem; font-weight: 600; color: #4d5766; text-decoration: none; border: 1px solid #e3e5e8; background: #fff; }
+  .kd-back:hover { border-color: #005691; color: #005691; }
+  .kd-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .ds-kpi--compact { padding: 12px 14px; display: flex; align-items: center; gap: 12px; }
+  .ds-kpi--compact .ds-kpi__value { font-size: 1.05rem; }
+  .kpi-ico { width: 38px; height: 38px; min-width: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1rem; }
+  .kpi-ico--blue { background: #e2eff8; color: #005691; }
+  .kpi-ico--green { background: #e4f9e7; color: #1d7a2b; }
+  .kpi-ico--rose { background: #fdecea; color: #a12a1d; }
+  .kpi-ico--amber { background: #fdf6d8; color: #8a6d00; }
+  .kd-card { background: #fff; border: 1px solid #e3e5e8; border-radius: 16px; box-shadow: 0 1px 3px rgba(51, 51, 51,.05); overflow: hidden; }
+  .kd-card__body { padding: 16px 18px 18px; }
+  .kd-card__head { display: flex; align-items: center; gap: 10px; padding: 13px 18px; border-bottom: 1px solid #eef0f2; background: linear-gradient(180deg,#fbfcfd,#f7f8f9); }
+  .kd-card__head .kd-group__title { margin: 0; flex: 1; }
+  .kd-group { margin-bottom: 18px; }
+  .kd-group:last-of-type { margin-bottom: 0; }
+  .kd-group__title { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: #667080; margin: 0 0 10px; display: flex; align-items: center; gap: 8px; }
+  .kd-group__title::after { content: ''; flex: 1; height: 1px; background: #e3e5e8; }
+  .kd-card__head .kd-group__title::after { display: none; }
+  .kd-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 12px 14px; }
+  .kd-grid > div { min-width: 0; }
+  .kd-s3 { grid-column: span 3; }
+  .kd-s4 { grid-column: span 4; }
+  .kd-s5 { grid-column: span 5; }
+  .kd-s6 { grid-column: span 6; }
+  .kd-s8 { grid-column: span 8; }
+  .kd-s12 { grid-column: span 12; }
+  .kd-label { display: block; font-size: .7rem; font-weight: 600; color: #4d5766; margin-bottom: 5px; letter-spacing: .2px; }
+  /* Mode baca: kartu definisi rapi dengan pemisah antar-baris */
+  .kd-def { display: grid; grid-template-columns: repeat(12, 1fr); gap: 0 12px; }
+  .kd-def > div { min-width: 0; padding: 9px 0; border-bottom: 1px dashed #eef0f2; }
+  .kd-def > div.kd-def__sec { padding: 0 0 7px; border-bottom: 1px solid #e3e5e8; }
+  .kd-def dt { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: #667080; margin-bottom: 3px; }
+  .kd-def dd { margin: 0; font-size: .86rem; color: #333333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .kd-def dd.kd-money { font-variant-numeric: tabular-nums; text-align: left; font-weight: 600; }
+  .kd-def__sec { grid-column: span 12; font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: #005691; margin: 14px 0 0; padding: 0 0 7px; border-bottom: 1px solid #e3e5e8; display: flex; align-items: center; gap: 8px; }
+  .kd-def__sec::after { content: ''; flex: 1; height: 1px; background: #e3e5e8; }
+  .kd-def__sec:first-child { margin-top: 0; }
+  .kd-input, .kd-select, .kd-textarea { width: 100%; padding: 8px 12px; border-radius: 10px; border: 1px solid #e3e5e8; font-size: .84rem; background: #fff; color: #333333; font-family: inherit; outline: none; }
+  .kd-input:focus, .kd-select:focus, .kd-textarea:focus { border-color: #005691; box-shadow: 0 0 0 3px rgba(0, 86, 145,.12); }
+  .kd-textarea { min-height: 62px; resize: vertical; }
+  .kd-money { font-variant-numeric: tabular-nums; text-align: right; }
+  .kd-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; align-items: center; }
+  .kd-actions .spacer { flex: 1 1 auto; }
+  .kd-danger-quiet { color: #a12a1d; }
+  .kd-danger-quiet:hover { background: #fdecea; border-color: #f8cfc9; color: #a12a1d; }
+  .kd-table { width: 100%; font-size: .78rem; border-collapse: separate; border-spacing: 0; min-width: 820px; }
+  .kd-table thead th { background: #f7f8f9; color: #4d5766; font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; padding: 10px 14px; border-bottom: 2px solid #e3e5e8; white-space: nowrap; text-align: left; }
+  .kd-table thead th.num { text-align: right; }
+  .kd-table tbody td { padding: 9px 14px; border-bottom: 1px solid #eef0f2; vertical-align: middle; color: #333333; }
+  .kd-table tbody tr:last-child td { border-bottom: none; }
+  .kd-table tbody tr:hover td { background: #f7f8f9; }
+  .kd-table .cell-money { font-family: "JetBrains Mono", "SF Mono", monospace; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; font-size: .75rem; white-space: nowrap; }
+  .kd-table .cell-dim { font-family: "JetBrains Mono", monospace; font-size: .75rem; color: #4d5766; font-variant-numeric: tabular-nums; }
+  .kd-table .cell-desc { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .kd-scroll { overflow-x: auto; }
+  .ds-badge { padding: 3px 10px; border-radius: 6px; font-size: .7rem; font-weight: 700; display: inline-block; white-space: nowrap; }
+  .ds-badge-green { background: #e4f9e7; color: #1d7a2b; }
+  .ds-badge-amber { background: #fdf6d8; color: #8a6d00; }
+  .ds-badge-gray { background: #eef0f2; color: #4d5766; }
+  .kd-hint { font-size: .74rem; color: #667080; margin: 0; }
+  @media (max-width: 640px) {
+    .kd-kpis { grid-template-columns: repeat(2, 1fr); }
+    .kd-s3, .kd-s4, .kd-s6, .kd-s8 { grid-column: span 12; }
+    .kd-actions .ds-btn { flex: 1 1 100%; justify-content: center; }
+  }
+</style>
+
+<div class="kd-wrap animate-in">
+
+  <div class="kd-head">
+    <a href="{{ url_for('contract.list_contracts') }}" class="kd-back"><i class="bi bi-arrow-left"></i> Daftar</a>
+    {% if contract %}
+    <span style="font-weight:700;font-size:.95rem">{{ contract.no_kontrak }}</span>
+    {% if contract.status_invoice == 'Ada Invoice' %}
+    <span class="ds-badge ds-badge-green">Ada Invoice</span>
+    {% else %}
+    <span class="ds-badge ds-badge-amber">Belum Ada Invoice</span>
+    {% endif %}
+    {% endif %}
+  </div>
+
+  {% if contract %}
+  {% set sisa_dpp = (contract.tertagih or 0) - (contract.dibayar or 0) %}
+  {% set sisa_ppn = (contract.tertagih_ppn or 0) - (contract.dibayar_ppn or 0) %}
+  <div class="kd-kpis">
+    <div class="ds-kpi ds-kpi--compact" tabindex="0">
+      <div class="kpi-ico kpi-ico--amber"><i class="bi bi-cash-coin"></i></div>
+      <div><div class="ds-kpi__label">Nilai Kontrak (DPP)</div><div class="ds-kpi__value">{{ (contract.nilai_dpp or 0)|money }}</div><div class="ds-kpi__hint">Ditagihkan: {{ contract.tertagih|money }}</div></div>
+    </div>
+    <div class="ds-kpi ds-kpi--compact" tabindex="0">
+      <div class="kpi-ico kpi-ico--blue"><i class="bi bi-percent"></i></div>
+      <div><div class="ds-kpi__label">PPN Kontrak</div><div class="ds-kpi__value">{{ (contract.nilai_ppn or 0)|money }}</div><div class="ds-kpi__hint">Ditagihkan: {{ contract.tertagih_ppn|money }}</div></div>
+    </div>
+    <div class="ds-kpi ds-kpi--compact" tabindex="0">
+      <div class="kpi-ico kpi-ico--green"><i class="bi bi-cash-stack"></i></div>
+      <div><div class="ds-kpi__label">Terbayar DPP</div><div class="ds-kpi__value">{{ (contract.dibayar or 0)|money }}</div>
+        <div class="ds-kpi__hint">{% if contract.tertagih > 0 %}{{ (contract.dibayar / contract.tertagih * 100)|round(1) }}{% else %}0{% endif %}% dari yang ditagihkan</div></div>
+    </div>
+    <div class="ds-kpi ds-kpi--compact" tabindex="0">
+      <div class="kpi-ico kpi-ico--green"><i class="bi bi-percent"></i></div>
+      <div><div class="ds-kpi__label">Terbayar PPN</div><div class="ds-kpi__value">{{ (contract.dibayar_ppn or 0)|money }}</div>
+        <div class="ds-kpi__hint">{% if contract.tertagih_ppn > 0 %}{{ (contract.dibayar_ppn / contract.tertagih_ppn * 100)|round(1) }}{% else %}0{% endif %}% dari yang ditagihkan</div></div>
+    </div>
+    <div class="ds-kpi ds-kpi--compact{% if sisa_dpp > 0 %} ds-kpi--warn{% endif %}" tabindex="0">
+      <div class="kpi-ico kpi-ico--rose"><i class="bi bi-wallet2"></i></div>
+      <div><div class="ds-kpi__label">Sisa Hutang DPP</div><div class="ds-kpi__value">{{ sisa_dpp|money }}</div></div>
+    </div>
+    <div class="ds-kpi ds-kpi--compact{% if sisa_ppn > 0 %} ds-kpi--warn{% endif %}" tabindex="0">
+      <div class="kpi-ico kpi-ico--rose"><i class="bi bi-hourglass-split"></i></div>
+      <div><div class="ds-kpi__label">Sisa Hutang PPN</div><div class="ds-kpi__value">{{ sisa_ppn|money }}</div></div>
+    </div>
+  </div>
+  {% endif %}
+
+  <section class="kd-card" aria-label="Identitas kontrak">
+    <div class="kd-card__head">
+      <h2 class="kd-group__title"><i class="bi bi-card-text" style="color:#005691"></i> Identitas Kontrak</h2>
+      <button type="button" class="ds-btn ds-btn--sm" id="kdEditBtn"><i class="bi bi-pencil"></i> Ubah</button>
+    </div>
+    <div class="kd-card__body">
+      <dl class="kd-def" id="kdRead">
+        <div class="kd-def__sec">Umum</div>
+        <div class="kd-s6"><dt>No. Kontrak</dt><dd>{{ contract.no_kontrak }}</dd></div>
+        <div class="kd-s6"><dt>Proyek</dt><dd>{{ (project_list|selectattr('0', 'equalto', contract.project_id|string)|map(attribute='1')|first) or '—' }}</dd></div>
+        <div class="kd-s12"><dt>Vendor / Rekanan</dt><dd title="{{ contract.vendor }}">{% if contract.vendor %}{{ contract.vendor }}{% else %}<span class="ds-badge ds-badge-amber"><i class="bi bi-exclamation-triangle"></i> Vendor belum diisi — klik Ubah untuk melengkapi</span>{% endif %}</dd></div>
+        <div class="kd-s4"><dt>Tipe Kontrak</dt><dd>{{ contract.tipe_kontrak or '—' }}</dd></div>
+        <div class="kd-s4"><dt>Metode Pembayaran</dt><dd>{{ contract.metode_pembayaran or '—' }}</dd></div>
+        <div class="kd-s4"><dt>PPN</dt><dd>{% if contract.ppn_rate %}{{ '%g'|format(contract.ppn_rate) }}%{% else %}—{% endif %}</dd></div>
+
+        <div class="kd-def__sec">Nilai</div>
+        <div class="kd-s4"><dt>Nilai Kontrak (DPP)</dt><dd class="kd-money">{{ (contract.nilai_dpp or 0)|money }}</dd></div>
+        <div class="kd-s4"><dt>PPN Kontrak</dt><dd class="kd-money">{{ (contract.nilai_ppn or 0)|money }}</dd></div>
+        <div class="kd-s4"><dt>Belum Ditagih (DPP)</dt><dd class="kd-money">{{ contract.sisa_kontrak|money }}</dd></div>
+
+        <div class="kd-def__sec">Pekerjaan &amp; Jadwal</div>
+        <div class="kd-s6"><dt>Tipe Pekerjaan</dt><dd>{{ contract.tipe_pekerjaan or '—' }}</dd></div>
+        <div class="kd-s6"><dt>Item Pekerjaan</dt><dd>{{ contract.item_pekerjaan or '—' }}</dd></div>
+        <div class="kd-s4"><dt>Tgl Kontrak</dt><dd>{{ contract.tgl_kontrak|tgl }}</dd></div>
+        <div class="kd-s4"><dt>Tgl Selesai</dt><dd>{{ contract.tgl_selesai|tgl }}</dd></div>
+        <div class="kd-s4"><dt>Durasi Termin</dt><dd>{% if contract.durasi_termin %}{{ '%g'|format(contract.durasi_termin) }} hari{% else %}—{% endif %}</dd></div>
+        {% if contract.keterangan %}<div class="kd-s12" style="border-bottom:none"><dt>Keterangan</dt><dd style="white-space:pre-wrap;overflow:visible">{{ contract.keterangan }}</dd></div>{% endif %}
+      </dl>
+      </div>
+      <form method="POST" id="kdForm" hidden
+            action="{{ url_for('contract.contract_action', contract_id=contract.id) }}">
+        <div class="kd-card__body">
+        <div class="kd-group">
+          <h2 class="kd-group__title">Umum</h2>
+          <div class="kd-grid">
+            <div class="kd-s6">
+              <label class="kd-label" for="no_kontrak">No. Kontrak *</label>
+              <input class="kd-input" id="no_kontrak" name="no_kontrak" required
+                     value="{{ contract.no_kontrak if contract else '' }}" placeholder="SPK-001" />
+            </div>
+            <div class="kd-s6">
+              <label class="kd-label" for="project_id">Proyek</label>
+              <select class="kd-select" id="project_id" name="project_id">
+                <option value="">— Tanpa Proyek —</option>
+                {% for pid, label in project_list %}
+                <option value="{{ pid }}" {% if contract and contract.project_id|string == pid|string %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="kd-s12">
+              <label class="kd-label" for="vendor">Vendor / Rekanan *</label>
+              <input class="kd-input" id="vendor" name="vendor" required
+                     value="{{ contract.vendor if contract else '' }}" placeholder="PT. Nama Vendor" />
+            </div>
+            <div class="kd-s4">
+              <label class="kd-label" for="tipe_kontrak">Tipe Kontrak</label>
+              <input class="kd-input" id="tipe_kontrak" name="tipe_kontrak"
+                     value="{{ contract.tipe_kontrak if contract else '' }}" placeholder="Material / Jasa" />
+            </div>
+            <div class="kd-s4">
+              <label class="kd-label" for="metode_pembayaran">Metode Pembayaran</label>
+              <select class="kd-select" id="metode_pembayaran" name="metode_pembayaran">
+                <option value="">— Pilih —</option>
+                {% for m in ['PPN Include', 'PPN Reimburse', 'PPN Exclude'] %}
+                <option value="{{ m }}" {% if contract and contract.metode_pembayaran == m %}selected{% endif %}>{{ m }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="kd-s4">
+              <label class="kd-label" for="ppn_rate">PPN (%)</label>
+              <input class="kd-input kd-money" id="ppn_rate" name="ppn_rate" type="number" min="0" max="100" step="0.01"
+                     value="{{ '%g'|format(contract.ppn_rate) if contract and contract.ppn_rate else '' }}" placeholder="11" />
+            </div>
+          </div>
+        </div>
+
+        <div class="kd-group">
+          <h2 class="kd-group__title">Nilai</h2>
+          <div class="kd-grid">
+            <div class="kd-s6">
+              <label class="kd-label" for="nilai_kontrak">Nilai Kontrak (Rp)</label>
+              <input class="kd-input kd-money" id="nilai_kontrak" name="nilai_kontrak" type="number" min="0" step="1"
+                     value="{{ contract.nilai_kontrak|int if contract and contract.nilai_kontrak else '' }}" placeholder="0" />
+            </div>
+          </div>
+        </div>
+
+        <div class="kd-group">
+          <h2 class="kd-group__title">Pekerjaan &amp; Jadwal</h2>
+          <div class="kd-grid">
+            <div class="kd-s6">
+              <label class="kd-label" for="tipe_pekerjaan">Tipe Pekerjaan</label>
+              <input class="kd-input" id="tipe_pekerjaan" name="tipe_pekerjaan"
+                     value="{{ contract.tipe_pekerjaan if contract else '' }}" placeholder="Mech / Inst / Sipil" />
+            </div>
+            <div class="kd-s6">
+              <label class="kd-label" for="item_pekerjaan">Item Pekerjaan</label>
+              <input class="kd-input" id="item_pekerjaan" name="item_pekerjaan"
+                     value="{{ contract.item_pekerjaan if contract else '' }}" placeholder="Water Injection Pump" />
+            </div>
+            <div class="kd-s4">
+              <label class="kd-label" for="tgl_kontrak">Tgl Kontrak</label>
+              <input class="kd-input" id="tgl_kontrak" name="tgl_kontrak" type="date"
+                     value="{{ contract.tgl_kontrak if contract else '' }}" />
+            </div>
+            <div class="kd-s4">
+              <label class="kd-label" for="tgl_selesai">Tgl Selesai</label>
+              <input class="kd-input" id="tgl_selesai" name="tgl_selesai" type="date"
+                     value="{{ contract.tgl_selesai if contract else '' }}" />
+            </div>
+            <div class="kd-s4">
+              <label class="kd-label" for="durasi_termin">Durasi Termin (Hari)</label>
+              <input class="kd-input kd-money" id="durasi_termin" name="durasi_termin" type="number" min="0" step="1"
+                     value="{{ contract.durasi_termin|int if contract and contract.durasi_termin else '' }}" placeholder="0" />
+            </div>
+          </div>
+        </div>
+
+        <div class="kd-group">
+          <h2 class="kd-group__title">Catatan</h2>
+          <div class="kd-grid">
+            <div class="kd-s12">
+              <label class="kd-label" for="keterangan">Keterangan</label>
+              <textarea class="kd-textarea" id="keterangan" name="keterangan" placeholder="Ruang lingkup pekerjaan, catatan termin, dll.">{{ contract.keterangan if contract else '' }}</textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="kd-actions">
+          <button type="submit" class="ds-btn ds-btn--primary"><i class="bi bi-check-lg"></i> Simpan</button>
+          {% if contract %}
+          <button type="button" class="ds-btn" id="kdCancelBtn">Batal</button>
+          {% else %}
+          <a href="{{ url_for('contract.list_contracts') }}" class="ds-btn">Batal</a>
+          {% endif %}
+          <span class="spacer"></span>
+          {% if contract %}
+          <button type="submit" name="action" value="delete" class="ds-btn kd-danger-quiet"
+                  onclick="return confirm('Hapus kontrak {{ contract.no_kontrak }}? Daftar invoice tidak ikut terhapus.')">
+            <i class="bi bi-trash3"></i> Hapus
+          </button>
+          {% endif %}
+        </div>
+        </div>
+      </form>
+  </section>
+
+  {% if contract %}
+  {% set total_persen = termins|map(attribute='persen')|sum %}
+  {% set persen_ok = total_persen and total_persen >= 99.5 and total_persen <= 100.5 %}
+  {% set total_norm = termins|map(attribute='normalisasi')|sum %}
+  {% set total_termin_nilai = termins|map(attribute='nilai')|sum %}
+  {% set total_ppn = termins|map(attribute='ppn')|sum %}
+  {% set total_bayar = termins|map(attribute='total_bayar')|sum %}
+  <section class="kd-card" aria-label="Jadwal termin">
+    <div class="kd-card__head">
+      <h2 class="kd-group__title"><i class="bi bi-calendar3" style="color:#005691"></i> Jadwal Termin</h2>
+    </div>
+    <div class="kd-card__body">
+      {% if termins %}
+      <p class="kd-hint" style="margin-bottom:10px">
+        {% if contract.tipe_kontrak %}
+        <span class="ds-badge ds-badge-gray">{{ contract.tipe_kontrak }}</span>
+        {% endif %}
+        {% if contract.metode_pembayaran %}
+        <span class="ds-badge ds-badge-gray">{{ contract.metode_pembayaran }}</span>
+        {% endif %}
+        {% if contract.ppn_rate %}
+        <span class="ds-badge ds-badge-gray">PPN {{ '%g'|format(contract.ppn_rate) }}%</span>
+        {% endif %}
+        {% if contract.durasi_termin %}
+        <span class="ds-badge ds-badge-gray">Durasi {{ '%g'|format(contract.durasi_termin) }} hari</span>
+        {% endif %}
+        {% if total_persen and (total_persen < 99.5 or total_persen > 100.5) %}
+        <span style="color:#7a6000;font-weight:600"><i class="bi bi-exclamation-triangle"></i>
+          Termin (%) mentah = {{ '%g'|format(total_persen) }}% — dipakai
+          <strong>Normalisasi</strong> (total 100%) untuk hitung nilai &amp; PPN.</span>
+        {% endif %}
+        {% if total_norm and (total_norm < 99.5 or total_norm > 100.5) %}
+        <span style="color:#a12a1d;font-weight:600"><i class="bi bi-exclamation-triangle"></i>
+          Total normalisasi = {{ '%g'|format(total_norm) }}% — cek Nilai Kontrak vs Total Termin.</span>
+        {% endif %}
+      </p>
+      <div class="kd-scroll">
+        <table class="kd-table" style="min-width:900px">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Termin</th>
+              <th>Tgl Maksimal</th>
+              <th class="num">Termin (%)</th>
+              {% if not persen_ok %}<th class="num">Normalisasi (%)</th>{% endif %}
+              <th class="num">Total Termin (Rp)</th>
+              <th class="num">PPN per Termin (Rp){% if termins and termins[0].ppn_persen %} <span style="font-weight:400;text-transform:none;letter-spacing:0">({{ '%.2f'|format(termins[0].ppn_persen) }}%)</span>{% endif %}</th>
+              <th class="num">Total Pembayaran (Rp)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for t in termins %}
+            <tr>
+              <td class="cell-dim">{{ t.urutan_no }}</td>
+              <td>{{ t.label or 'Termin ' ~ t.urutan_no }}</td>
+              <td>{{ t.tgl_termin or '-' }}</td>
+              <td class="cell-money">{% if t.persen %}{{ '%g'|format(t.persen) }}%{% else %}-{% endif %}</td>
+              {% if not persen_ok %}<td class="cell-money">{{ '%.2f'|format(t.normalisasi) }}%</td>{% endif %}
+              <td class="cell-money">{{ t.nilai|money }}</td>
+              <td class="cell-money">{{ t.ppn|money }}</td>
+              <td class="cell-money">{{ t.total_bayar|money }}</td>
+            </tr>
+            {% endfor %}
+            <tr style="background:#f7f8f9;font-weight:700">
+              <td></td>
+              <td>Total</td>
+              <td></td>
+              <td class="cell-money">{% if total_persen %}{{ '%g'|format(total_persen) }}%{% else %}-{% endif %}</td>
+              {% if not persen_ok %}<td class="cell-money">{{ '%.2f'|format(total_norm) }}%</td>{% endif %}
+              <td class="cell-money">{{ total_termin_nilai|money }}</td>
+              <td class="cell-money">{{ total_ppn|money }}</td>
+              <td class="cell-money">{{ total_bayar|money }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="ds-empty" style="padding:14px">
+        <i class="bi bi-list-check" style="color:#a3a8af"></i>
+        <div class="ds-empty__title">Belum ada jadwal termin</div>
+        <p class="ds-empty__text">Import Kontrak dengan kolom <strong>Termin</strong> /
+        <strong>Termin (%)</strong> / <strong>Total Termin (Rp)</strong> (1 baris = 1 termin).</p>
+      </div>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="kd-card" aria-label="Invoice terkait">
+    <div class="kd-card__head">
+      <h2 class="kd-group__title"><i class="bi bi-receipt" style="color:#005691"></i> Invoice dengan No. Kontrak Ini</h2>
+    </div>
+    <div class="kd-card__body">
+      <p class="kd-hint" style="margin-bottom:10px">
+        Cocok otomatis dengan kolom <strong>NO PO / KONTRAK</strong> pada data invoice
+        ({{ invoices|length }} baris).
+      </p>
+      {% if invoices %}
+      <div class="kd-scroll">
+        <table class="kd-table">
+          <thead>
+            <tr>
+              <th>No. Invoice</th>
+              <th>Tgl Terima</th>
+              <th>Deskripsi</th>
+              <th class="num">Harga (Exclude)</th>
+              <th class="num">Bayar DPP</th>
+              <th class="num">Sisa DPP</th>
+              <th class="num">Bayar PPN</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for inv in invoices %}
+            {% set sisa_inv = (inv.harga or 0) - (inv.bayar or 0) %}
+            <tr>
+              <td class="cell-dim">{{ inv.no_invoice or '-' }}</td>
+              <td>{{ inv.tgl_terima or '-' }}</td>
+              <td class="cell-desc" title="{{ inv.deskripsi }}">{{ inv.deskripsi or '-' }}</td>
+              <td class="cell-money">{% if inv.dup %}<span style="color:#a3a8af">0</span>{% else %}{{ inv.harga|money }}{% endif %}</td>
+              <td class="cell-money">{{ inv.bayar|money }}</td>
+              <td class="cell-money" style="{% if sisa_inv > 0 %}color:#a12a1d{% else %}color:#1d7a2b{% endif %}">{{ sisa_inv|money }}</td>
+              <td class="cell-money">{% if inv.bayar_ppn %}{{ inv.bayar_ppn|money }}{% endif %}</td>
+              <td>
+                {% if inv.status_dpp == 'Lunas' %}
+                <span class="ds-badge ds-badge-green">Lunas</span>
+                {% elif inv.status_dpp %}
+                <span class="ds-badge ds-badge-amber">{{ inv.status_dpp }}</span>
+                {% else %}
+                <span class="ds-badge ds-badge-gray">-</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="ds-empty">
+        <i class="bi bi-inbox"></i>
+        <div class="ds-empty__title">Belum ada invoice</div>
+        <p class="ds-empty__text">Tidak ada invoice dengan kolom NO PO / KONTRAK = "{{ contract.no_kontrak }}".</p>
+      </div>
+      {% endif %}
+    </div>
+  </section>
+  {% endif %}
+</div>
+<script>
+(function () {
+  var btn = document.getElementById('kdEditBtn');
+  if (!btn) return;
+  var form = document.getElementById('kdForm');
+  var read = document.getElementById('kdRead');
+  var cancel = document.getElementById('kdCancelBtn');
+  btn.addEventListener('click', function () {
+    form.hidden = false; read.hidden = true; btn.hidden = true;
+    form.querySelector('input,select,textarea')?.focus();
+  });
+  cancel?.addEventListener('click', function () {
+    form.hidden = true; read.hidden = false; btn.hidden = false;
+  });
+})();
+</script>
+{% endblock %}

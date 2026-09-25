@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+{% block title %}Kontrak Vendor - Project Payment Monitoring System{% endblock %}
+{% block topbar_title %}Kontrak Vendor{% endblock %}
+{% block topbar_icon %}bi-file-earmark-text-fill{% endblock %}
+{% block topbar_badges %}
+<span class="topbar-badge"><i class="bi bi-file-earmark-text"></i> {{ summary.total_kontrak }} Kontrak</span>
+<span class="topbar-badge"><i class="bi bi-exclamation-triangle"></i> {{ summary.belum_invoice }} Belum Ada Invoice</span>
+{% endblock %}
+
+{% block content %}
+<!--
+  Kontrak Vendor — registri kontrak procurement.
+  Tabel memakai tema .dt-invoice yang sama dengan halaman Data Invoice
+  (partials/_dt_theme.html) agar tampilan seragam; override kc-page hanya
+  mengatur lebar kolom sticky & min-width (11 kolom vs 19).
+-->
+{% include "partials/_dt_theme.html" %}
+<style>
+  .kc-wrap { display: flex; flex-direction: column; gap: 16px; max-width: 1280px; margin: 0 auto; }
+  .kc-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .ds-kpi--compact { padding: 12px 14px; display: flex; align-items: center; gap: 12px; }
+  .ds-kpi--compact .ds-kpi__value { font-size: 1.05rem; }
+  .kpi-ico { width: 38px; height: 38px; min-width: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1rem; }
+  .kpi-ico--blue { background: #e2eff8; color: #005691; }
+  .kpi-ico--green { background: #e4f9e7; color: #1d7a2b; }
+  .kpi-ico--rose { background: #fdecea; color: #a12a1d; }
+  .kpi-ico--amber { background: #fdf6d8; color: #8a6d00; }
+  .kc-page { --c1w: 300px; }
+  .kc-page #kcTable { min-width: 1060px; }
+  .kc-page #kcTable thead th.col-sticky-left,
+  .kc-page #kcTable tbody td.col-sticky-left { width: var(--c1w); min-width: var(--c1w); max-width: var(--c1w); }
+  .kc-vend { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .kc-vend-name { font-weight: 600; font-size: .8rem; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .kc-no { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .kc-no a { color: #0a6aa8; text-decoration: none; font-weight: 500; font-size: .73rem; }
+  .kc-no a:hover { text-decoration: underline; }
+  .badge-status.badge-amber { background: #fdf6d8; color: #8a6d00; }
+  .kc-page #kcTable thead th.col-sticky-right,
+  .kc-page #kcTable tbody td.col-sticky-right { min-width: 96px; }
+  /* Stat. Invoice — pill kecil sebagai satu-satunya penanda kelompok. */
+  .kc-stat-pill { display: inline-block; min-width: 26px; padding: 3px 8px; border-radius: 20px; font-size: .68rem; font-weight: 700; line-height: 1.2; }
+  .kc-stat-pill--ok { background: #e4f9e7; color: #1d7a2b; }
+  .kc-stat-pill--none { background: #fdf6d8; color: #8a6d00; }
+  /* Hutang aktif pada baris Ada — pill merah muda di sel Belum Ditagih. */
+  .kc-page #kcTable tbody td.kc-owe { background: #fdecea; }
+  .kc-page #kcTable tbody tr:hover td.kc-owe { background: #f8cfc9 !important; }
+  .kc-prog { min-width: 130px; }
+  .kc-prog-lbl { display: flex; justify-content: flex-end; font-size: .68rem; font-weight: 700; color: #667080; margin-bottom: 4px; font-variant-numeric: tabular-nums; }
+  .kc-prog-lbl .pct { color: #333333; }
+  .kc-bar { height: 7px; background: #eef0f2; border-radius: 6px; overflow: hidden; }
+  .kc-bar > span { display: block; height: 100%; border-radius: 6px; background: #005691; }
+  .kc-bar > span.warn { background: #E5B800; }
+  .kc-bar > span.over { background: linear-gradient(90deg, #e74c3c, #f0705f); }
+  .kc-bar > span.none { background: #e3e5e8; }
+  .kc-empty-note { font-size: .72rem; color: #667080; }
+  ::selection { background: #e2eff8; }
+  @media (max-width: 1024px) { .kc-kpis { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 640px) { .ds-kpi--compact .ds-kpi__value { font-size: 1rem; } }
+  @media (prefers-reduced-motion: reduce) {
+    .kc-card, .ds-kpi, .ds-btn, .table-wrapper { transition: none; }
+  }
+</style>
+
+{% macro pay_bar(pct, over, label, empty_note) %}
+  {% if pct is not none %}
+    <div class="kc-prog-lbl"><span class="pct">{{ '%.1f'|format(pct) }}%</span></div>
+    <div class="kc-bar" role="progressbar" aria-valuenow="{{ '%.1f'|format(pct) }}" aria-valuemin="0" aria-valuemax="100" aria-label="{{ label }}">
+      <span class="{{ 'over' if over else ('warn' if pct > 85 else '') }}" style="width:{{ pct if pct <= 100 else 100 }}%"></span>
+    </div>
+  {% else %}
+    <div class="kc-bar"><span class="none" style="width:100%"></span></div>
+    <div class="kc-empty-note">{{ empty_note }}</div>
+  {% endif %}
+{% endmacro %}
+
+<div class="kc-wrap animate-in">
+
+  <div class="kc-kpis">
+    <div class="ds-kpi ds-kpi--compact" tabindex="0">
+      <div class="kpi-ico kpi-ico--blue"><i class="bi bi-file-earmark-text"></i></div>
+      <div><div class="ds-kpi__label">Total Kontrak</div><div class="ds-kpi__value">{{ summary.total_kontrak }}</div></div>
+    </div>
+    <div class="ds-kpi ds-kpi--compact" tabindex="0">
+      <div class="kpi-ico kpi-ico--amber"><i class="bi bi-cash-coin"></i></div>
+      <div><div class="ds-kpi__label">Nilai Kontrak (DPP)</div><div class="ds-kpi__value">{{ summary.total_dpp|money }}</div><div class="ds-kpi__hint">Ditagihkan: {{ summary.total_tertagih|money }}</div></div>
+    </div>
+    <div class="ds-kpi ds-kpi--compact" tabindex="0">
+      <div class="kpi-ico kpi-ico--blue"><i class="bi bi-percent"></i></div>
+      <div><div class="ds-kpi__label">PPN Kontrak</div><div class="ds-kpi__value">{{ summary.total_ppn|money }}</div><div class="ds-kpi__hint">Ditagihkan: {{ summary.total_tertagih_ppn|money }}</div></div>
+    </div>
+    <div class="ds-kpi ds-kpi--compact{% if summary.belum_invoice > 0 %} ds-kpi--warn{% endif %}" tabindex="0">
+      <div class="kpi-ico kpi-ico--rose"><i class="bi bi-exclamation-triangle"></i></div>
+      <div><div class="ds-kpi__label">Belum Ada Invoice</div><div class="ds-kpi__value">{{ summary.belum_invoice }}</div></div>
+    </div>
+    <div class="ds-kpi ds-kpi--compact" tabindex="0">
+      <div class="kpi-ico kpi-ico--green"><i class="bi bi-cash-stack"></i></div>
+      <div><div class="ds-kpi__label">Terbayar DPP</div><div class="ds-kpi__value">{{ summary.total_dibayar|money }}</div>
+        <div class="ds-kpi__hint">{% if summary.total_tertagih > 0 %}{{ (summary.total_dibayar / summary.total_tertagih * 100)|round(1) }}{% else %}0{% endif %}% dari yang ditagihkan</div></div>
+    </div>
+    <div class="ds-kpi ds-kpi--compact" tabindex="0">
+      <div class="kpi-ico kpi-ico--green"><i class="bi bi-percent"></i></div>
+      <div><div class="ds-kpi__label">Terbayar PPN</div><div class="ds-kpi__value">{{ summary.total_dibayar_ppn|money }}</div>
+        <div class="ds-kpi__hint">{% if summary.total_tertagih_ppn > 0 %}{{ (summary.total_dibayar_ppn / summary.total_tertagih_ppn * 100)|round(1) }}{% else %}0{% endif %}% dari yang ditagihkan</div></div>
+    </div>
+    <div class="ds-kpi ds-kpi--compact{% if summary.total_sisa_dpp > 0 %} ds-kpi--warn{% endif %}" tabindex="0">
+      <div class="kpi-ico kpi-ico--rose"><i class="bi bi-wallet2"></i></div>
+      <div><div class="ds-kpi__label">Sisa Hutang DPP</div><div class="ds-kpi__value">{{ summary.total_sisa_dpp|money }}</div>
+        <div class="ds-kpi__hint">{{ summary.belum_lunas }} invoice belum lunas</div></div>
+    </div>
+    <div class="ds-kpi ds-kpi--compact{% if summary.total_sisa_ppn > 0 or summary.jatuh_tempo > 0 %} ds-kpi--warn{% endif %}" tabindex="0">
+      <div class="kpi-ico kpi-ico--rose"><i class="bi bi-hourglass-split"></i></div>
+      <div><div class="ds-kpi__label">Sisa Hutang PPN</div><div class="ds-kpi__value">{{ summary.total_sisa_ppn|money }}</div>
+        <div class="ds-kpi__hint">{{ summary.jatuh_tempo }} invoice jatuh tempo</div></div>
+    </div>
+  </div>
+
+  <div class="dt-invoice kc-page">
+    {% if contracts %}
+    <div class="table-wrapper">
+      <div class="table-toolbar">
+        <div class="table-toolbar-actions">
+          <a href="{{ url_for('contract.unmatched') }}" class="ds-btn ds-btn--sm">
+            <i class="bi bi-question-circle"></i> Belum Terdaftar
+          </a>
+          <a href="{{ url_for('contract.import_page') }}" class="ds-btn ds-btn--sm ds-btn--primary">
+            <i class="bi bi-cloud-upload"></i> Import Kontrak
+          </a>
+        </div>
+        <div class="table-toolbar-filters">
+          <div class="filter-group">
+            {% set vendors = contracts|map(attribute='vendor')|list|unique|sort %}
+            <select class="filter-select" id="filterVendor" aria-label="Filter vendor">
+              <option value="">Semua Vendor</option>
+              {% for v in vendors %}<option value="{{ v }}">{{ v }}</option>{% endfor %}
+            </select>
+            <select class="filter-select" id="filterStatus" aria-label="Filter status invoice">
+              <option value="">Semua Status</option>
+              <option value="Ada">Ada Invoice</option>
+              <option value="Belum">Belum Ada Invoice</option>
+            </select>
+            <div class="search-box ds-search">
+              <i class="bi bi-search"></i>
+              <input type="text" id="kcSearch" placeholder="Cari no. kontrak / vendor..." autocomplete="off" aria-label="Cari kontrak" />
+              <button class="search-clear" id="kcSearchClear" style="display:none">&times;</button>
+              <span class="search-count" id="kcCount" aria-live="polite"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-scroll">
+        <table class="table dt-table" id="kcTable" data-enhance="kontrak">
+          <thead>
+            <tr>
+              <th class="col-sticky-left">Vendor / Rekanan</th>
+              <th class="text-end">Total DPP</th>
+              <th class="text-end">Total PPN</th>
+              <th class="text-end">Tagihan DPP</th>
+              <th class="text-end">Tagihan PPN</th>
+              <th class="text-end">Belum Ditagih (DPP)</th>
+              <th class="text-end">Belum Ditagih (PPN)</th>
+              <th>Terbayar DPP</th>
+              <th>Terbayar PPN</th>
+              <th class="text-center col-sticky-right">Stat. Invoice</th>
+            </tr>
+          </thead>
+          <tbody id="kcBody">
+            {% for c in contracts %}
+            <tr data-search="{{ (c.no_kontrak ~ ' ' ~ c.vendor ~ ' ' ~ (project_labels.get(c.project_id|string) or ''))|lower }}"
+                data-vendor="{{ c.vendor }}"
+                data-status="{{ 'Ada' if c.status_invoice == 'Ada Invoice' else 'Belum' }}">
+              {% set is_ada = c.status_invoice == 'Ada Invoice' %}
+              <td class="col-sticky-left">
+                <div class="kc-vend">
+                  <div class="kc-vend-name" title="{{ c.vendor }}">{{ c.vendor if c.vendor else 'Vendor belum diisi' }}{% if not c.vendor %} <span class="ds-badge ds-badge-amber" style="font-size:.62rem;vertical-align:middle"><i class="bi bi-exclamation-triangle"></i> lengkapi</span>{% endif %}</div>
+                  <div class="kc-no" title="{{ c.no_kontrak }}"><a href="{{ url_for('contract.contract_detail', contract_id=c.id) }}">{{ c.no_kontrak }}</a></div>
+                </div>
+              </td>
+              <td class="cell-money">{{ (c.nilai_dpp or 0)|money }}</td>
+              <td class="cell-money">{{ (c.nilai_ppn or 0)|money }}</td>
+              <td class="cell-money">{{ c.tertagih|money }}</td>
+              <td class="cell-money">{{ c.tertagih_ppn|money }}</td>
+              <td class="cell-money{% if is_ada and c.sisa_kontrak|float > 0 %} kc-owe{% endif %}{% if c.sisa_kontrak|float > 0 %} text-danger{% elif not is_ada %} text-muted{% else %} text-success{% endif %}" style="font-weight:700">{{ c.sisa_kontrak|money }}</td>
+              <td class="cell-money{% if is_ada and c.sisa_ppn|float > 0 %} kc-owe{% endif %}{% if c.sisa_ppn|float > 0 %} text-danger{% elif not is_ada %} text-muted{% else %} text-success{% endif %}" style="font-weight:700">{{ c.sisa_ppn|money }}</td>
+              <td class="kc-prog">
+                {{ pay_bar(c.progres if c.total_dpp and c.total_dpp > 0 else none,
+                           c.over,
+                           'Progres pembayaran DPP ' ~ c.no_kontrak,
+                           'Total DPP belum diisi.') }}
+              </td>
+              <td class="kc-prog">
+                {{ pay_bar(c.progres_ppn if c.nilai_ppn and c.nilai_ppn > 0 else none,
+                           c.over_ppn,
+                           'Progres pembayaran PPN ' ~ c.no_kontrak,
+                           'Total PPN belum diisi.') }}
+              </td>
+              <td class="text-center col-sticky-right">
+                {% if is_ada %}
+                <span class="kc-stat-pill kc-stat-pill--ok" title="Ada Invoice ({{ c.jumlah_invoice }})">{{ c.jumlah_invoice }}</span>
+                {% else %}
+                <span class="kc-stat-pill kc-stat-pill--none" title="Belum ada invoice">0</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <i class="bi bi-file-earmark-text"></i>
+      <h6>Belum Ada Kontrak</h6>
+      <p class="text-muted">
+        Klik "Import Kontrak" untuk memuat daftar kontrak dari procurement.
+      </p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+function filterRows() {
+  var inp = document.getElementById('kcSearch');
+  if (!inp) return;
+  var q = (inp.value || '').toLowerCase();
+  var vendor = document.getElementById('filterVendor')?.value || '';
+  var status = document.getElementById('filterStatus')?.value || '';
+  var rows = document.querySelectorAll('#kcBody tr');
+  var shown = 0;
+  rows.forEach(function (tr) {
+    var hit = (!q || (tr.getAttribute('data-search') || '').indexOf(q) !== -1)
+           && (!vendor || tr.getAttribute('data-vendor') === vendor)
+           && (!status || tr.getAttribute('data-status') === status);
+    // Publish filter result; TableEnhance paginates only passing rows.
+    tr.dataset.filterPass = hit ? '1' : '0';
+    if (hit) shown++;
+  });
+
+  if (window.TableEnhance) {
+    // Reset to page 1 on every filter change and let the enhancer repaint.
+    window.TableEnhance.resetPage();
+    window.TableEnhance.refresh();
+  } else {
+    // Fallback: no enhancement loaded — honour filter directly.
+    rows.forEach(function (tr) {
+      tr.style.display = tr.dataset.filterPass === '0' ? 'none' : '';
+    });
+  }
+
+  var el = document.getElementById('kcCount');
+  var anyFilter = q || vendor || status;
+  if (el) el.textContent = anyFilter ? shown + ' dari ' + rows.length + ' kontrak' : '';
+  var clr = document.getElementById('kcSearchClear');
+  if (clr) clr.style.display = q ? '' : 'none';
+}
+document.getElementById('kcSearch')?.addEventListener('input', filterRows);
+document.getElementById('filterVendor')?.addEventListener('change', filterRows);
+document.getElementById('filterStatus')?.addEventListener('change', filterRows);
+document.getElementById('kcSearchClear')?.addEventListener('click', function () {
+  var inp = document.getElementById('kcSearch');
+  if (inp) { inp.value = ''; inp.focus(); }
+  filterRows();
+});
+// Re-init pada full load & setiap HTMX swap (konten di-swap tanpa reload penuh).
+if (window.onPageReady) onPageReady(filterRows);
+else document.addEventListener('DOMContentLoaded', filterRows);
+</script>
+{% endblock %}

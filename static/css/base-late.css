@@ -1,0 +1,314 @@
+﻿/* ============================================================
+   BASE CSS (LATE) - modal & override akhir
+   ------------------------------------------------------------
+   Dimuat di dalam <body> SETELAH {% block content %} supaya
+   menang atas CSS halaman - SAMA seperti posisi blok aslinya.
+   (menggantikan blok <style> kedua base.html)
+   Diekstrak dari templates/base.html (Fase 2 design system).
+   Tidak mengandung sintaks Jinja - aman sebagai file statis.
+   ============================================================ */
+
+#viewModal .modal-dialog {
+        max-width: 960px;
+      }
+      #viewModal .modal-dialog.modal-dialog-wide {
+        max-width: 1020px;
+      }
+      #viewModal .modal-content {
+        border: none;
+        border-radius: 16px;
+        overflow: hidden;
+        max-height: calc(100vh - 3.5rem);
+        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.18);
+        background: #ffffff;
+      }
+      /* -- header: navy, sejajar modal input/edit -- */
+      .vm-header {
+        background: #005691;
+        color: #fff;
+        padding: 16px 24px;
+        border-bottom: none;
+        position: relative;
+        flex: none;
+      }
+      .vm-header-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+      }
+      .vm-label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+        color: rgba(255,255,255,.6);
+        font-weight: 600;
+      }
+      .vm-rekanan {
+        font-family: "Inter", Georgia, serif;
+        font-size: 1.25rem;
+        font-weight: 400;
+        color: #fff;
+        margin: 4px 0 2px;
+        letter-spacing: -0.02em;
+      }
+      .vm-invoice-ref {
+        font-size: 0.75rem;
+        color: rgba(255,255,255,.75);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .vm-invoice-ref i {
+        font-size: 0.7rem;
+        color: #7fc4ee;
+      }
+      .vm-header-badges {
+        display: flex;
+        gap: 6px;
+        flex-shrink: 0;
+      }
+      .vm-badge {
+        display: inline-block;
+        padding: 3px 12px;
+        border-radius: 20px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        letter-spacing: 0.3px;
+      }
+      .vm-badge-lunas {
+        background: #e4f9e7;
+        color: #1d7a2b;
+      }
+      .vm-badge-belum {
+        background: #fdecea;
+        color: #a12a1d;
+      }
+      .vm-badge-na {
+        background: #eef0f2;
+        color: #4d5766;
+      }
+
+      /* -- financial bar: 3 momen baca, 1 aksen -- */
+      .vm-finbar {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1px;
+        background: #e3e5e8;
+      }
+      .vm-finbar-item {
+        background: #fff;
+        padding: 12px 16px;
+        text-align: center;
+        transition: background 0.2s;
+      }
+      .vm-finbar-item:hover {
+        background: #f7f8f9;
+      }
+      .vm-finbar-label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        color: #667080;
+        font-weight: 700;
+        margin-bottom: 3px;
+      }
+      .vm-finbar-val {
+        font-size: 1rem;
+        font-weight: 700;
+        font-family: "JetBrains Mono", "Courier New", monospace;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+      .vm-finbar-sub {
+        margin-top: 4px;
+        font-size: 0.72rem;
+        color: #667080;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+      .vm-finbar-sub i {
+        color: #1d7a2b;
+        font-size: 0.7rem;
+      }
+
+      /* -- body: kartu bernomor, selaras modal input/edit -- */
+      #viewModal .modal-body-wrap { display: flex; flex-direction: column; min-height: 0; flex: 1 1 auto; overflow: hidden; }
+      .vm-body {
+        padding: 18px 22px 28px;
+        display: flex;
+        gap: 0;
+        background: #f7f8f9;
+        overflow-y: auto;
+        flex: 1 1 auto;
+        min-height: 0;
+      }
+      .vm-body-left {
+        flex: 1;
+        min-width: 0;
+      }
+      .vm-body-right {
+        width: 320px;
+        flex-shrink: 0;
+        margin-left: 16px;
+        padding-left: 16px;
+        border-left: 1px solid #e3e5e8;
+      }
+      .vm-section {
+        margin-bottom: 12px;
+        border: 1px solid #e3e5e8;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #fff;
+      }
+      .vm-section:last-child {
+        margin-bottom: 0;
+      }
+      .vm-section-title {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        color: #333333;
+        font-weight: 700;
+        padding: 10px 16px;
+        background: #f7f8f9;
+        border-bottom: 1px solid #e3e5e8;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .vm-section-title .vm-num {
+        width: 24px; height: 24px; min-width: 24px; border-radius: 8px;
+        background: #005691; color: #fff; font-size: .7rem; font-weight: 700;
+        display: inline-flex; align-items: center; justify-content: center;
+      }
+      .vm-section-title i {
+        font-size: 0.6rem;
+        color: #0a6aa8;
+      }
+      .vm-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px 12px;
+        padding: 14px 16px;
+      }
+      .vm-grid > div { min-width: 0; }
+      .vm-field {
+        padding: 0;
+        border-bottom: none;
+        min-width: 0;
+      }
+      .vm-field-label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        color: #667080;
+        font-weight: 700;
+        margin-bottom: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .vm-field-val {
+        font-size: 0.85rem;
+        color: #333333;
+        font-weight: 500;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .vm-field-val code {
+        font-family: "JetBrains Mono", "Courier New", monospace;
+        font-size: 0.78rem;
+        background: #eef0f2;
+        padding: 0 6px;
+        border-radius: 6px;
+        color: #333333;
+      }
+      .vm-remaining {
+        margin-top: 12px;
+        border: 1px dashed #e3e5e8;
+        border-radius: 12px;
+        background: #fff;
+        padding: 10px 16px;
+      }
+      .vm-remaining summary {
+        cursor: pointer;
+        font-size: 0.7rem;
+        color: #4d5766;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        user-select: none;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .vm-remaining summary:hover {
+        color: #333333;
+      }
+      .vm-remaining-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px 12px;
+        margin-top: 8px;
+      }
+      .vm-remaining-grid .vm-field-label { font-weight: 700; }
+      .vm-remaining-grid .vm-field-val { font-size: 0.8rem; }
+      /* -- kolom audit kanan: token Ledger Desk, tanpa inline style -- */
+      .vm-audit-list { padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; max-height: 400px; overflow-y: auto; }
+      .vm-audit-item { padding: 8px 10px; background: #f7f8f9; border: 1px solid #e3e5e8; border-radius: 8px; }
+      .vm-audit-field { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.3px; color: #333333; font-weight: 700; }
+      .vm-audit-time { color: #667080; font-weight: 400; text-transform: none; letter-spacing: 0; }
+      .vm-audit-diff { display: flex; gap: 6px; align-items: center; font-size: 0.72rem; margin-top: 4px; flex-wrap: wrap; }
+      .vm-audit-diff .vm-old { background: #fdecea; color: #a12a1d; padding: 1px 6px; border-radius: 6px; text-decoration: line-through; }
+      .vm-audit-diff i { color: #667080; font-size: 0.7rem; }
+      .vm-audit-diff .vm-new { background: #e4f9e7; color: #1d7a2b; padding: 1px 6px; border-radius: 6px; }
+      @media (max-width: 768px) {
+        .vm-body { flex-direction: column; padding: 14px; }
+        .vm-body-right { width: auto; margin-left: 0; padding-left: 0; border-left: none; border-top: 1px solid #e3e5e8; margin-top: 12px; padding-top: 12px; }
+        .vm-finbar { grid-template-columns: repeat(2, 1fr); }
+        .vm-grid, .vm-remaining-grid { grid-template-columns: 1fr; }
+      }
+      @media (prefers-reduced-motion: reduce) { #viewModal * { transition: none !important; } }
+
+      /* -- footer: sticky, sejajar modal input/edit -- */
+      #viewModal .modal-footer {
+        background: #fff;
+        border: none;
+        padding: 12px 22px;
+        border-top: 1px solid #e3e5e8;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: none;
+      }
+      #viewModal .modal-footer .vm-note { font-size: .7rem; color: #667080; margin-right: auto; }
+      .vm-btn {
+        padding: 8px 20px;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: 1px solid #e3e5e8;
+      }
+      .vm-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 86, 145,.18); }
+      .vm-btn-close {
+        background: #e3e5e8;
+        color: #4d5766;
+      }
+      .vm-btn-close:hover {
+        background: #c9ccd1;
+      }
+      .vm-btn-audit {
+        background: #005691;
+        color: #ffffff;
+      }
+      .vm-btn-audit:hover {
+        box-shadow: 0 4px 15px rgba(0, 86, 145, 0.35);
+        transform: translateY(-1px);
+      }

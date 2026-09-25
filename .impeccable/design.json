@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-09T22:20:00+07:00",
+  "title": "Design System: Project Payment Monitoring System",
+  "extensions": {
+    "colorMeta": {
+      "primary": { "role": "primary", "displayName": "Verde Esmeralda", "canonical": "#2ECC40", "tonalRamp": ["#145c1e", "#1d7a2b", "#27b537", "#2ECC40", "#5fd76e", "#8fe699", "#bff5c6", "#e4f9e7"] },
+      "deep": { "role": "secondary", "displayName": "Azul Profundo", "canonical": "#005691", "tonalRamp": ["#00213a", "#004a7c", "#005691", "#0a6aa8", "#3d8bbd", "#7fc4ee", "#cfe3f0", "#eaf2f9"] },
+      "ink": { "role": "neutral", "displayName": "Cinza Escuro", "canonical": "#333333", "tonalRamp": ["#1a1a1a", "#333333", "#4d4d4d", "#667080", "#8a929e", "#a3a8af", "#c9ccd1", "#e3e5e8"] },
+      "surface": { "role": "neutral", "displayName": "Branco", "canonical": "#ffffff", "tonalRamp": ["#e3e5e8", "#eef0f2", "#f7f8f9", "#f2f3f5", "#F0F0F0", "#fafbfc", "#f5f6f7", "#ffffff"] },
+      "warning": { "role": "tertiary", "displayName": "Amarelo Ouro", "canonical": "#FFD700", "tonalRamp": ["#8a6d00", "#E5B800", "#f7e9a8", "#fdf6d8", "#FFD700", "#ffe66b", "#fff0ad", "#fffbe0"] },
+      "orange": { "role": "tertiary", "displayName": "Laranja Vibrante", "canonical": "#FF8C00", "tonalRamp": ["#a35400", "#cc6900", "#FF8C00", "#ffa333", "#ffb95c", "#ffcf8f", "#ffe3bf", "#fff3e0"] },
+      "purple": { "role": "tertiary", "displayName": "Roxo Suave", "canonical": "#9370DB", "tonalRamp": ["#4a346e", "#6a4fa3", "#9370DB", "#ab8ee6", "#c3abef", "#dbc8f5", "#ece4f7", "#f7f2fc"] },
+      "danger": { "role": "neutral", "displayName": "Merah Negativo", "canonical": "#e74c3c", "tonalRamp": ["#7a1f15", "#a12a1d", "#e74c3c", "#f0705f", "#f49b90", "#f8cfc9", "#fdecea", "#fff5f3"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Angka hero dashboard (Total Sisa Hutang) — Inter 700, satu-satunya ukuran 2rem." },
+      "title": { "displayName": "Title", "purpose": "Judul halaman & kartu; ikon aksen hijau di sebelah judul." },
+      "body": { "displayName": "Body", "purpose": "Konten tabel & form 0.85rem — density ledger." },
+      "label": { "displayName": "Label", "purpose": "Label form, header kolom, section title — uppercase 0.7rem +0.6px." },
+      "data": { "displayName": "Data Mono", "purpose": "Sel uang, nomor invoice, baris — JetBrains Mono tabular." }
+    },
+    "shadows": [
+      { "name": "shadow-sm", "value": "0 1px 3px rgba(51,51,51,0.06)", "purpose": "Kartu & container terang saat diam." },
+      { "name": "shadow-md", "value": "0 4px 12px -2px rgba(51,51,51,0.09), 0 2px 6px -1px rgba(51,51,51,0.05)", "purpose": "Hover kartu KPI." },
+      { "name": "shadow-lg", "value": "0 10px 25px -5px rgba(51,51,51,0.12), 0 8px 16px -6px rgba(51,51,51,0.06)", "purpose": "Modal & dropdown panel." }
+    ],
+    "motion": [
+      { "name": "transition-smooth", "value": "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)", "purpose": "Transisi state default seluruh komponen." },
+      { "name": "toast-in", "value": "0.22s cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Masuk toast dari kanan." }
+    ],
+    "breakpoints": [
+      { "name": "lg", "value": "992px — sidebar jadi rail 64px" },
+      { "name": "md", "value": "768px — filter full-width, grid modal 2-kolom" },
+      { "name": "sm", "value": "576px — padding konten 16px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Aksi utama (Simpan/Import/Catat Audit) — hijau esmeralda dengan tinta gelap.",
+      "html": "<button class=\"ds-btn-primary\">Simpan</button>",
+      "css": ".ds-btn-primary { display:inline-flex; align-items:center; gap:6px; font-family:'Inter',sans-serif; font-size:.78rem; font-weight:600; color:#333333; background:#2ECC40; border:1px solid #2ECC40; border-radius:8px; padding:7px 14px; cursor:pointer; transition:all .25s cubic-bezier(.4,0,.2,1); } .ds-btn-primary:hover { background:#27b537; border-color:#27b537; } .ds-btn-primary:focus-visible { outline:none; border-color:#005691; box-shadow:0 0 0 3px rgba(0,86,145,.18); } .ds-btn-primary:active { transform:translateY(-1px); }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Aksi sekunder — putih bergaris.",
+      "html": "<button class=\"ds-btn-ghost\">Batal</button>",
+      "css": ".ds-btn-ghost { display:inline-flex; align-items:center; gap:6px; font-family:'Inter',sans-serif; font-size:.78rem; font-weight:600; color:#333333; background:#ffffff; border:1px solid #e3e5e8; border-radius:8px; padding:7px 14px; cursor:pointer; transition:all .25s cubic-bezier(.4,0,.2,1); } .ds-btn-ghost:hover { background:#f7f8f9; border-color:#c9ccd1; } .ds-btn-ghost:focus-visible { outline:none; border-color:#005691; box-shadow:0 0 0 3px rgba(0,86,145,.18); }"
+    },
+    {
+      "name": "KPI Card",
+      "kind": "card",
+      "refersTo": "kpi-card",
+      "description": "Kartu metrik dengan bar aksen 3px atas dan angka Inter 700.",
+      "html": "<div class=\"ds-kpi-card\"><div class=\"ds-kpi-card__label\">Sisa Hutang</div><div class=\"ds-kpi-card__value\">Rp 128.450.000</div><div class=\"ds-kpi-card__hint\">42 invoice aktif</div></div>",
+      "css": ".ds-kpi-card { position:relative; overflow:hidden; background:#ffffff; border:1px solid #e3e5e8; border-radius:16px; padding:16px; box-shadow:0 1px 3px rgba(51,51,51,.06); transition:all .25s cubic-bezier(.4,0,.2,1); } .ds-kpi-card::before { content:\"\"; position:absolute; top:0; left:0; right:0; height:3px; border-radius:16px 16px 0 0; background:#2ECC40; } .ds-kpi-card:hover { box-shadow:0 4px 12px -2px rgba(51,51,51,.09), 0 2px 6px -1px rgba(51,51,51,.05); transform:translateY(-2px); } .ds-kpi-card__label { font-size:.7rem; font-weight:600; text-transform:uppercase; letter-spacing:.6px; color:#667080; margin-bottom:4px; } .ds-kpi-card__value { font-family:'Inter',sans-serif; font-size:1.45rem; font-weight:700; letter-spacing:-.02em; line-height:1.15; color:#333333; font-variant-numeric:tabular-nums; } .ds-kpi-card__hint { margin-top:4px; font-size:.7rem; color:#667080; }"
+    },
+    {
+      "name": "Search Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Pencarian dengan ikon; fokus biru profundo.",
+      "html": "<div class=\"ds-search-demo\"><i>🔍</i><input placeholder=\"Cari invoice...\" /></div>",
+      "css": ".ds-search-demo { position:relative; display:inline-flex; align-items:center; font-family:'Inter',sans-serif; } .ds-search-demo i { position:absolute; left:10px; font-size:.8rem; font-style:normal; color:#667080; pointer-events:none; } .ds-search-demo input { font-size:.85rem; color:#333333; background:#ffffff; border:1px solid #e3e5e8; border-radius:8px; padding:7px 12px 7px 32px; min-width:190px; transition:all .25s cubic-bezier(.4,0,.2,1); } .ds-search-demo input::placeholder { color:#667080; } .ds-search-demo input:focus { outline:none; border-color:#005691; box-shadow:0 0 0 3px rgba(0,86,145,.12); }"
+    },
+    {
+      "name": "Status Badges",
+      "kind": "chip",
+      "refersTo": "kpi-card",
+      "description": "Badge status tint+ink: LUNAS hijau, BELUM merah, kategori abu.",
+      "html": "<span class=\"ds-badge ds-badge--lunas\">LUNAS</span> <span class=\"ds-badge ds-badge--belum\">BELUM</span> <span class=\"ds-badge ds-badge--kat\">JASA</span>",
+      "css": ".ds-badge { display:inline-block; padding:3px 10px; border-radius:6px; font-family:'Inter',sans-serif; font-size:.68rem; font-weight:700; letter-spacing:.3px; } .ds-badge--lunas { background:#e4f9e7; color:#1d7a2b; } .ds-badge--belum { background:#fdecea; color:#a12a1d; } .ds-badge--kat { background:#F0F0F0; color:#4d5766; font-weight:600; }"
+    },
+    {
+      "name": "Navigation Item",
+      "kind": "nav",
+      "refersTo": "kpi-card",
+      "description": "Item sidebar biru profundo; aktif = putih 14% + bar hijau 3px kiri.",
+      "html": "<nav class=\"ds-nav-demo\"><button class=\"ds-nav-item\"><i>▦</i><span>Dashboard</span></button><button class=\"ds-nav-item ds-nav-item--active\"><i>▦</i><span>Data Invoice</span></button></nav>",
+      "css": ".ds-nav-demo { background:linear-gradient(180deg,#004a7c,#0a6aa8); padding:16px 12px; border-radius:12px; display:flex; flex-direction:column; gap:4px; font-family:'Inter',sans-serif; } .ds-nav-item { display:flex; align-items:center; gap:12px; padding:12px 14px; border:none; background:none; border-radius:10px; font-size:.82rem; font-weight:500; color:rgba(255,255,255,.6); cursor:pointer; text-align:left; transition:all .2s; } .ds-nav-item:hover { background:rgba(255,255,255,.08); color:rgba(255,255,255,.9); } .ds-nav-item--active { background:rgba(255,255,255,.14); color:#fff; box-shadow:inset 3px 0 0 #2ECC40; }"
+    },
+    {
+      "name": "Toast",
+      "kind": "custom",
+      "refersTo": "kpi-card",
+      "description": "Notifikasi kanan-atas dengan garis status kiri.",
+      "html": "<div class=\"ds-toast-demo ds-toast-demo--ok\"><i>✔</i><span>Data tersimpan sebagai audit.</span></div>",
+      "css": ".ds-toast-demo { display:flex; align-items:flex-start; gap:10px; padding:11px 14px; background:#ffffff; border:1px solid #e3e5e8; border-left:3px solid #2ECC40; border-radius:8px; box-shadow:0 10px 25px -5px rgba(51,51,51,.12), 0 8px 16px -6px rgba(51,51,51,.06); font-family:'Inter',sans-serif; font-size:.85rem; color:#333333; max-width:380px; } .ds-toast-demo--ok i { color:#2ECC40; font-style:normal; }"
+    },
+    {
+      "name": "Table Header (Ledger)",
+      "kind": "custom",
+      "refersTo": "kpi-card",
+      "description": "Header tabel ledger biru profundo, uppercase mono-spaced label.",
+      "html": "<div class=\"ds-thead-demo\"><span>NO. INVOICE</span><span>REKANAN</span><span>SISA HUTANG</span></div>",
+      "css": ".ds-thead-demo { display:flex; gap:24px; background:linear-gradient(180deg,#0a6aa8,#004a7c); color:#eaf2f8; font-family:'Inter',sans-serif; font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.6px; padding:12px 10px; border-radius:8px 8px 0 0; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Buku Besar Tenang",
+    "overview": "Flat design keuangan yang menenangkan: kebisingan visual dihapus agar angka bicara. Chrome aplikasi memakai Azul Profundo — kesan perbankan yang aman — sementara konten bernapas di atas permukaan terang netral. Verde Esmeralda adalah satu-satunya aksen tindakan, dan semua angka uang memakai JetBrains Mono tabular agar kolom mengunci rapi seperti buku besar.",
+    "keyCharacteristics": [
+      "Satu aksen (hijau) untuk aksi; biru profundo hanya untuk chrome & navigasi.",
+      "Semua angka uang monospace tabular.",
+      "Flat: shadow halus 1 tingkat, gradient hanya chrome biru 2-stop.",
+      "Label uppercase 0.7rem letter-spacing 0.6px sebagai bahasa struktur."
+    ],
+    "rules": [
+      { "name": "The Green Acts Rule", "body": "Hijau hanya untuk aksi & status positif; biru tidak pernah jadi tombol primer; teks di atas hijau selalu #333333.", "section": "colors" },
+      { "name": "The Chrome Rule", "body": "Azul Profundo hanya menyentuh navigasi, header tabel/modal, dan fokus — tidak pernah jadi warna isi kartu.", "section": "colors" },
+      { "name": "The Money Is Mono Rule", "body": "Setiap sel uang memakai JetBrains Mono + tabular-nums; tidak ada angka keuangan dalam Inter.", "section": "typography" }
+    ],
+    "dos": [
+      "Do pakai --ds-* / :root token untuk semua warna baru.",
+      "Do pasangkan teks di atas hijau dengan #333333.",
+      "Do pakai JetBrains Mono untuk seluruh angka uang.",
+      "Do pakai tint + ink untuk badge (bukan warna solid).",
+      "Do gunakan focus ring biru profundo yang konsisten."
+    ],
+    "donts": [
+      "Don't pakai putih sebagai teks di atas hijau (2.1:1).",
+      "Don't perkenalkan aksen kedua selain hijau untuk aksi primer.",
+      "Don't gradient dekoratif pada konten; gradient hanya chrome biru 2-stop.",
+      "Don't pakai DM Sans / DM Serif Display — sudah diganti Inter.",
+      "Don't buat permukaan gelap baru di luar chrome biru & hero."
+    ]
+  }
+}

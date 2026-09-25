@@ -1,0 +1,686 @@
+{% extends "base.html" %}
+{% block title %}Verifikasi Kelengkapan - Project Payment Monitoring System{% endblock %}
+{% block topbar_title %}Verifikasi Kelengkapan{% endblock %}
+{% block topbar_icon %}bi-shield-exclamation{% endblock %}
+{% block topbar_badges %}
+{% if counts.critical_count %}<span class="topbar-badge tb-kritis"><i class="bi bi-exclamation-octagon"></i> {{ counts.critical_count }} Kritis</span>{% endif %}
+{% if counts.warning_count %}<span class="topbar-badge tb-peringatan"><i class="bi bi-exclamation-triangle"></i> {{ counts.warning_count }} Peringatan</span>{% endif %}
+{% if counts.duplicate_count %}<span class="topbar-badge tb-duplikat"><i class="bi bi-copy"></i> {{ counts.duplicate_count }} Duplikat</span>{% endif %}
+<span class="topbar-badge tb-total"><i class="bi bi-database"></i> {{ counts.total_issues }} Perlu diperbaiki</span>
+{% endblock %}
+{% block content %}
+<!--
+  Verifikasi Kelengkapan — Ledger Desk world (DESIGN.md).
+  THESIS: antrean koreksi data rapi — 6 KPI rata, grup duplikat expandable, tabel ledger padat.
+  OWN-WORLD: navy/paper, satu aksen biru, serif hanya angka KPI, mono sel uang.
+  STORY: staf finance scan masalah kritis lalu telusuri alasan per baris lalu edit/abaikan.
+  FIRST VIEWPORT: header + 6 KPI rata + filter + awal tabel.
+  FORM: refinement Operate, mirror tokens invoice_cicilan.html/_dashboard.html.
+  FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+-->
+<style>
+  /* topbar badge: tint severity, sama pola dgn tb-* laporan.css */
+  .tb-kritis { background: #fdecea; color: #a12a1d; }
+  .tb-peringatan { background: #fdf6d8; color: #8a6d00; }
+  .tb-duplikat { background: #ece4f7; color: #6a4fa3; }
+  .tb-total { background: #eaf2f9; color: #005691; }
+
+  .vf-wrap { display: flex; flex-direction: column; gap: 16px; max-width: 1280px; margin: 0 auto; }
+  .vf-sub { margin: 2px 0 0; font-size: .78rem; color: #667080; }
+  .vf-kpis { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+  .ds-kpi--compact { padding: 12px 14px; display: flex; align-items: center; gap: 12px; }
+  .ds-kpi--compact .ds-kpi__value { font-size: 1.05rem; }
+  .vf-kpi-link { cursor: pointer; }
+  .vf-kpi-link:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 86, 145,.18); }
+  .kpi-ico {
+    width: 38px; height: 38px; min-width: 38px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; font-size: 1rem;
+  }
+  .kpi-ico--rose { background: #fdecea; color: #a12a1d; }
+  .kpi-ico--amber { background: #fdf6d8; color: #8a6d00; }
+  .kpi-ico--blue { background: #e2eff8; color: #005691; }
+  .kpi-ico--violet { background: #ece4f7; color: #6a4fa3; }
+  .kpi-ico--slate { background: #eef0f2; color: #4d5766; }
+    .vf-card {
+    background: #fff; border: 1px solid #e3e5e8; border-radius: 16px;
+    box-shadow: 0 1px 3px rgba(51, 51, 51,.05); overflow: hidden;
+  }
+  .vf-sec-head {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    padding: 12px 18px; background: #f7f8f9; border-bottom: 1px solid #e3e5e8;
+    font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .6px;
+    color: #4d5766; cursor: pointer; user-select: none; width: 100%; border-top: none;
+    border-left: none; border-right: none; text-align: left; font-family: inherit;
+  }
+  .vf-sec-head:hover { background: #eef0f2; }
+  .vf-sec-head:focus-visible { outline: none; box-shadow: inset 0 0 0 2px rgba(0, 86, 145,.5); }
+  .vf-sec-head i.bi-copy, .vf-sec-head i.bi-info-circle { color: #005691; }
+  .vf-sec-body { padding: 14px 18px; display: flex; flex-direction: column; gap: 8px; }
+  .vf-sec-body.collapsed { display: none; }
+  .vf-count-pill {
+    font-size: .7rem; font-weight: 700; color: #8a6d00; background: #fdf6d8;
+    padding: 2px 8px; border-radius: 6px; white-space: nowrap;
+  }
+  .vf-chevron { margin-left: auto; font-size: .75rem; color: #4d5766; transition: transform .25s cubic-bezier(.4,0,.2,1); }
+  .vf-sec-head.collapsed .vf-chevron { transform: rotate(-90deg); }
+  .vf-dup-group {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+    padding: 10px 14px; background: #fdf6d8; border: 1px solid #f7e9a8; border-radius: 8px;
+  }
+  .vf-dup-same { font-size: .7rem; color: #8a6d00; font-weight: 700; font-style: italic; }
+  .vf-dup-name {
+    padding: 3px 10px; border-radius: 6px; font-size: .75rem; font-weight: 600;
+    background: #fff; border: 1px solid #f7e9a8; display: inline-flex; align-items: center; gap: 4px;
+  }
+  .vf-dup-name.suggested { background: #1d7a2b; color: #fff; border-color: #1d7a2b; }
+  .vf-dup-count { font-size: .7rem; padding: 1px 6px; border-radius: 6px; background: rgba(51, 51, 51,.06); color: #4d5766; font-variant-numeric: tabular-nums; }
+  .vf-dup-hint { font-size: .7rem; color: #4d5766; display: flex; align-items: center; gap: 4px; }
+  .vf-dup-hint i { color: #2ECC40; }
+  .vf-legend-item { display: flex; align-items: flex-start; gap: 10px; font-size: .78rem; color: #4d5766; line-height: 1.6; }
+  .vf-legend-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px 18px; }
+
+  .vf-legend-item > span:nth-child(2) { min-width: 0; }
+
+  .ds-badge { padding: 3px 10px; border-radius: 6px; font-size: .7rem; font-weight: 700; display: inline-block; white-space: nowrap; }
+  .ds-badge-red { background: #fdecea; color: #a12a1d; }
+  .ds-badge-amber { background: #fdf6d8; color: #8a6d00; }
+  .ds-badge-blue { background: #e2eff8; color: #005691; }
+  .ds-badge-violet { background: #ece4f7; color: #6a4fa3; }
+  .ds-badge-gray { background: #eef0f2; color: #4d5766; }
+  .vf-toolbar {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    padding: 12px 18px; background: #f7f8f9; border-bottom: 1px solid #e3e5e8;
+  }
+  .vf-toolbar-filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex: 1 1 auto; min-width: 0; }
+  .vf-toolbar-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+  .vf-filter {
+    padding: 6px 14px; border-radius: 8px; border: 1px solid #e3e5e8; background: #fff;
+    font-size: .75rem; font-weight: 600; color: #333333; cursor: pointer; white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 5px; font-family: inherit;
+    transition: border-color .15s, color .15s, background .15s;
+  }
+  .vf-filter:hover { border-color: #005691; color: #005691; }
+  .vf-filter:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 86, 145,.18); }
+  .vf-filter.active { background: #005691; border-color: #005691; color: #fff; }
+  .vf-batch-alasan {
+    display: none; align-items: center; gap: 6px; padding: 4px 10px;
+    border-radius: 8px; background: #f7f8f9; border: 1px solid #e3e5e8;
+  }
+  .vf-batch-alasan.open { display: flex; }
+  .vf-batch-alasan input, .vf-single-panel input {
+    border: 1px solid #e3e5e8; border-radius: 8px; padding: 6px 10px;
+    font-size: .75rem; outline: none; font-family: inherit; color: #333333; background: #fff;
+  }
+  .vf-batch-alasan input { width: 170px; }
+  .vf-batch-alasan input:focus, .vf-single-panel input:focus { border-color: #005691; box-shadow: 0 0 0 3px rgba(0, 86, 145,.12); }
+  .vf-btn {
+    font-size: .72rem; font-weight: 600; padding: 5px 12px; border-radius: 8px;
+    border: 1px solid #e3e5e8; background: #fff; color: #333333; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 5px; font-family: inherit; text-decoration: none;
+    transition: border-color .15s, color .15s, background .15s;
+  }
+  .vf-btn:hover:not(:disabled) { border-color: #005691; color: #005691; }
+  .vf-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 86, 145,.18); }
+  .vf-btn:disabled { opacity: .5; cursor: not-allowed; }
+  .vf-btn--danger:hover:not(:disabled) { border-color: #a12a1d; color: #a12a1d; background: #fdecea; }
+  .vf-table tbody tr { content-visibility: auto; contain-intrinsic-size: auto 86px; }
+  .vf-single-panel {
+    position: fixed; z-index: 10000; background: #fff; border: 1px solid #e3e5e8;
+    border-radius: 8px; padding: 12px 14px; box-shadow: 0 10px 25px -5px rgba(51, 51, 51,.1);
+    min-width: 260px; max-width: calc(100vw - 16px); max-height: calc(100vh - 16px); overflow-y: auto;
+    display: none; flex-direction: column; gap: 10px;
+  }
+  .vf-single-panel.open { display: flex; }
+  .vf-single-panel-actions { display: flex; gap: 6px; justify-content: flex-end; }
+  .vf-table-card { overflow-x: auto; }
+  .vf-table { width: 100%; min-width: 1000px; border-collapse: separate; border-spacing: 0; font-size: .78rem; }
+  .vf-table thead th {
+    background: linear-gradient(180deg, #0a6aa8 0%, #004a7c 100%);
+    color: #eaf2f8; font-size: .7rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .6px; padding: 10px 12px;
+    border-bottom: 2px solid #2ECC40; text-align: left; white-space: nowrap;
+  }
+  .vf-table thead th.vf-th-plain { text-transform: none; letter-spacing: 0; font-size: .75rem; }
+  .vf-table tbody td { padding: 8px 12px; border-bottom: 1px solid #eef0f2; vertical-align: top; color: #333333; }
+  .vf-table tbody tr:last-child td { border-bottom: none; }
+  .vf-table tbody tr:hover td { background: #f7f8f9; }
+  .vf-table tbody tr:has(.vf-row-check:checked) td { background: #eaf2f9; }
+  .vf-table th:last-child, .vf-table td:last-child { position: sticky; right: 0; z-index: 2; }
+  .vf-table thead th:last-child { background: linear-gradient(180deg, #0a6aa8 0%, #004a7c 100%); }
+  .vf-table tbody td:last-child { background: #fff; box-shadow: inset 8px 0 8px -8px rgba(51, 51, 51,.06); }
+  .vf-table tbody tr:hover td:last-child { background: #f7f8f9; }
+  .vf-table tbody tr:has(.vf-row-check:checked) td:last-child { background: #eaf2f9; }
+  .vf-reasons { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 3px; }
+  .vf-reason-pill { font-size: .72rem; padding: 2px 7px; border-radius: 6px; background: #eef0f2; color: #4d5766; line-height: 1.4; }
+  .vf-field-missing { color: #a12a1d; font-weight: 600; }
+  .vf-field-ok { color: #1d7a2b; }
+  .vf-rnum {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; border-radius: 6px; background: #eef0f2;
+    font-weight: 700; font-size: .7rem; color: #4d5766;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+  }
+  .vf-rowcheck { width: 16px; height: 16px; accent-color: #005691; cursor: pointer; }
+  .vf-audit-flag {
+    display: inline-flex; align-items: center; justify-content: center; margin-left: 4px;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: #005691; color: #fff; font-size: .6rem; vertical-align: middle;
+  }
+  .vf-rekanan { font-weight: 600; display: block; min-width: 0; overflow-wrap: break-word; }
+  .vf-kategori { display: inline-block; margin-top: 4px; font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: #4d5766; background: #eceef0; border: 1px solid #e3e5e8; padding: 2px 8px; border-radius: 6px; }
+  .vf-desc { font-size: .72rem; color: #667080; margin-top: 2px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: break-word; }
+  .vf-table tbody td { overflow-wrap: break-word; }
+  .vf-table tbody td:nth-child(3) { max-width: 230px; min-width: 0; }
+  .vf-dup-group { min-width: 0; }
+  .vf-dup-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; overflow-wrap: anywhere; }
+  .vf-reason-pill { overflow-wrap: anywhere; }
+  .vf-no-results td { text-align: center; padding: 22px 12px !important; color: #4d5766; font-size: .78rem; }
+  .vf-no-results strong { display: block; color: #333333; margin-bottom: 2px; }
+  .vf-act { display: inline-flex; gap: 4px; }
+  .vf-table tbody tr.is-checked td { background: #eaf2f9; }
+  .vf-table tbody tr.is-checked td:last-child { background: #eaf2f9; }
+  ::selection { background: #e2eff8; }
+  .vf-rowcheck:focus-visible { outline: 2px solid #005691; outline-offset: 2px; }
+  .vf-table input[type="checkbox"]:focus-visible { outline: 2px solid #005691; outline-offset: 2px; }
+  .vf-sec-head:focus-visible, .vf-filter:focus-visible { outline: none; }
+  @media (max-width: 1024px) { .vf-kpis { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 640px) {
+    .vf-kpis { grid-template-columns: repeat(2, 1fr); }
+    .ds-kpi--compact .ds-kpi__value { font-size: 1rem; }
+  .vf-toolbar { flex-direction: column; align-items: stretch; }
+  .vf-toolbar-actions { margin-left: 0; flex-wrap: wrap; }
+    .vf-batch-alasan { flex-wrap: wrap; }
+    .vf-batch-alasan input { width: 100%; }
+    /* Sentuh: target minimum 40px tinggi untuk kontrol jempol. */
+    .vf-filter, .vf-btn, .vf-sec-head { min-height: 40px; }
+    .vf-batch-alasan input { min-height: 40px; }
+    .vf-rowcheck { width: 22px; height: 22px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .vf-card, .vf-chevron, .vf-filter, .vf-btn { transition: none; }
+  }
+</style>
+
+<div class="vf-wrap animate-in">
+  <h1 class="visually-hidden">Verifikasi Kelengkapan</h1>
+
+  <div class="vf-kpis">
+    <div class="ds-kpi ds-kpi--compact ds-kpi--err vf-kpi-link" tabindex="0" role="button"
+      data-filter="CRITICAL" onclick="setVfFilter('CRITICAL')"
+      onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setVfFilter('CRITICAL');}"
+      aria-label="Tampilkan hanya baris Kritis">
+      <div class="kpi-ico kpi-ico--rose"><i class="bi bi-exclamation-octagon-fill"></i></div>
+      <div><div class="ds-kpi__label">Kritis</div><div class="ds-kpi__value">{{ counts.critical_count }}</div></div>
+    </div>
+    <div class="ds-kpi ds-kpi--compact ds-kpi--warn vf-kpi-link" tabindex="0" role="button"
+      data-filter="WARNING" onclick="setVfFilter('WARNING')"
+      onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setVfFilter('WARNING');}"
+      aria-label="Tampilkan hanya baris Peringatan">
+      <div class="kpi-ico kpi-ico--amber"><i class="bi bi-exclamation-triangle-fill"></i></div>
+      <div><div class="ds-kpi__label">Peringatan</div><div class="ds-kpi__value">{{ counts.warning_count }}</div></div>
+    </div>
+    <div class="ds-kpi ds-kpi--compact vf-kpi-link" tabindex="0" role="button"
+      data-filter="COMPLETION" onclick="setVfFilter('COMPLETION')"
+      onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setVfFilter('COMPLETION');}"
+      aria-label="Tampilkan hanya baris Kelengkapan">
+      <div class="kpi-ico kpi-ico--blue"><i class="bi bi-file-earmark-check-fill"></i></div>
+      <div><div class="ds-kpi__label">Kelengkapan</div><div class="ds-kpi__value">{{ counts.completion_count }}</div></div>
+    </div>
+    <div class="ds-kpi ds-kpi--compact vf-kpi-link" tabindex="0" role="button"
+      data-filter="DUPLICATE" onclick="setVfFilter('DUPLICATE')"
+      onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setVfFilter('DUPLICATE');}"
+      aria-label="Tampilkan hanya baris Duplikat">
+      <div class="kpi-ico kpi-ico--violet"><i class="bi bi-copy"></i></div>
+      <div><div class="ds-kpi__label">Duplikat</div><div class="ds-kpi__value">{{ counts.duplicate_count }}</div></div>
+    </div>
+    <div class="ds-kpi ds-kpi--compact vf-kpi-link" tabindex="0" role="button"
+      data-filter="all" onclick="setVfFilter('all')"
+      onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();setVfFilter('all');}"
+      aria-label="Tampilkan semua masalah">
+      <div class="kpi-ico kpi-ico--slate"><i class="bi bi-layers"></i></div>
+      <div><div class="ds-kpi__label">Total Masalah</div><div class="ds-kpi__value">{{ counts.total_issues }}</div></div>
+    </div>
+    <div       class="ds-kpi ds-kpi--compact vf-kpi-link" tabindex="0" role="link" aria-label="Lihat {{ ignored_count }} baris yang diabaikan"
+      onclick="window.location='{{ url_for('verifikasi.ignore_list') }}'"
+      onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.location='{{ url_for('verifikasi.ignore_list') }}';}">
+      <div class="kpi-ico kpi-ico--slate"><i class="bi bi-eye-slash-fill"></i></div>
+      <div><div class="ds-kpi__label">Diabaikan <i class="bi bi-arrow-right-circle" style="font-size:.7rem;color:#005691"></i></div><div class="ds-kpi__value">{{ ignored_count }}</div></div>
+    </div>
+  </div>
+
+  {% if duplicates %}
+  <section class="vf-card" aria-label="Rekanan dengan beberapa ejaan">
+    <button class="vf-sec-head" id="dupSectionToggle" aria-expanded="true" aria-controls="dupSectionBody">
+      <i class="bi bi-copy"></i> Nama Rekanan Perlu Diseragamkan
+      <span class="vf-count-pill">{{ duplicates|length }} grup</span>
+      <i class="bi bi-chevron-down vf-chevron" id="dupSectionIcon" aria-hidden="true"></i>
+    </button>
+    <div class="vf-sec-body" id="dupSectionBody">
+      {% for grp in duplicates %}
+      <div class="vf-dup-group">
+        <span class="vf-dup-same">Varian ejaan:</span>
+        {% for v in grp.variants %}
+        <span class="vf-dup-name{% if v.name == grp.suggested %} suggested{% endif %}">
+          {{ v.name }}<span class="vf-dup-count">{{ v.count }}x</span>
+        </span>
+        {% if not loop.last %}<span style="color:#667080;font-size:.78rem">&#8594;</span>{% endif %}
+        {% endfor %}
+        <span class="vf-dup-hint"><i class="bi bi-check-circle"></i> Ejaan disarankan: <strong>{{ grp.suggested }}</strong></span>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="vf-card" aria-label="Aturan verifikasi">
+    <button class="vf-sec-head collapsed" id="legendToggle" aria-expanded="false" aria-controls="legendBody">
+      <i class="bi bi-info-circle"></i> Aturan Verifikasi
+      <i class="bi bi-chevron-down vf-chevron" id="legendIcon" aria-hidden="true"></i>
+    </button>
+      <div class="vf-sec-body collapsed" id="legendBody">
+      <div class="vf-legend-grid">
+      <div class="vf-legend-item"><span class="ds-badge ds-badge-red">Kritis</span><span>Ada pembayaran DPP tapi <strong>Tgl Bayar DPP</strong> / <strong>Dibayar via Divisi</strong> kosong; atau rekanan terisi tapi <strong>No. Invoice</strong> / <strong>Tgl Invoice</strong> kosong.</span></div>
+      <div class="vf-legend-item"><span class="ds-badge ds-badge-red">Kritis</span><span>Ada pembayaran PPN tapi <strong>Tgl Bayar PPN</strong>, <strong>Pembayaran PPN Via</strong>, atau <strong>No. Bukti Bayar PPN</strong> kosong.</span></div>
+      <div class="vf-legend-item"><span class="ds-badge ds-badge-red">Kritis</span><span>Status <strong>Belum Lunas</strong> tapi <strong>Jth. Tempo</strong> kosong — umur hutang tak bisa dihitung.</span></div>
+      <div class="vf-legend-item"><span class="ds-badge ds-badge-blue">Kelengkapan</span><span><strong>Tgl Terima</strong> kosong — berkas fisik belum diterima.</span></div>
+      <div class="vf-legend-item"><span class="ds-badge ds-badge-blue">Kelengkapan</span><span>Bukti bayar masih tertulis "uang pinjaman" dan <strong>Dibayar via Divisi</strong> kosong.</span></div>
+      <div class="vf-legend-item"><span class="ds-badge ds-badge-amber">Peringatan</span><span><strong>No. PO / Kontrak</strong> kosong <em>atau</em> <strong>Nama Rekanan</strong> punya beberapa ejaan.</span></div>
+      <div class="vf-legend-item"><span class="ds-badge ds-badge-violet">Duplikat</span><span><strong>No. Invoice</strong> + <strong>Rekanan</strong> sama dengan baris lain — kemungkinan entri ganda.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="vf-card vf-table-card">
+    <div class="vf-toolbar">
+      <div class="vf-toolbar-filters">
+        <button class="vf-filter active" data-filter="all">Semua</button>
+        <button class="vf-filter" data-filter="CRITICAL"><i class="bi bi-exclamation-octagon" style="font-size:.7rem"></i> Kritis</button>
+        <button class="vf-filter" data-filter="COMPLETION"><i class="bi bi-file-earmark-check" style="font-size:.7rem"></i> Kelengkapan</button>
+        <button class="vf-filter" data-filter="WARNING"><i class="bi bi-exclamation-triangle" style="font-size:.7rem"></i> Peringatan</button>
+        <button class="vf-filter" data-filter="DUPLICATE"><i class="bi bi-copy" style="font-size:.7rem"></i> Duplikat</button>
+        <div class="ds-search"><i class="bi bi-search"></i><input type="text" id="vfSearch" placeholder="Cari rekanan, kategori, deskripsi..." autocomplete="off" aria-label="Saring baris berdasarkan nama rekanan" /></div>
+      </div>
+      <div class="vf-toolbar-actions">
+        <div class="vf-batch-alasan" id="vfBatchAlasan">
+          <input type="text" id="vfBatchReason" placeholder="Alasan (opsional)" maxlength="200" aria-label="Alasan pengabaian" />
+          <button class="vf-btn vf-btn--danger vf-batch-exec"><i class="bi bi-eye-slash"></i> Abaikan</button>
+          <button class="vf-btn vf-batch-cancel">Batal</button>
+        </div>
+        <button class="vf-btn" id="vfBatchIgnoreBtn" disabled title="Pilih minimal satu baris dulu"><i class="bi bi-eye-slash"></i> Abaikan Terpilih <span id="vfBatchCount">0</span></button>
+      </div>
+    </div>
+    {% if rows %}
+     <table class="vf-table" id="vfTable">
+       <caption class="visually-hidden">Daftar baris yang perlu diverifikasi, dengan tingkat masalah dan aksi perbaikan</caption>
+       <thead>
+         <tr>
+            <th scope="col" style="width:34px"><input type="checkbox" class="vf-rowcheck" id="vfSelectAll" title="Pilih semua baris yang tampil" aria-label="Pilih semua baris yang tampil" /></th>
+            <th scope="col" style="width:44px" title="Nomor baris">No.</th>
+            <th scope="col">Rekanan</th>
+            <th scope="col" style="width:120px">Invoice</th>
+            <th scope="col" style="width:120px">Tingkat</th>
+            <th scope="col" class="vf-th-plain">Yang perlu diperbaiki</th>
+            <th scope="col" style="width:106px">Aksi</th>
+         </tr>
+       </thead>
+       <tbody>
+         {% for item in rows %}
+         <tr data-level="{{ item.level }}" data-row-idx="{{ item.row_idx }}">
+            <td><input type="checkbox" class="vf-row-check vf-rowcheck" value="{{ item.row_idx }}" aria-label="Pilih baris {{ item.r }} untuk diabaikan" /></td>
+            <td><span class="vf-rnum">{{ item.r }}</span>{% if item.row_idx in audited_rows %}<span class="vf-audit-flag" title="Telah diaudit/diubah"><i class="bi bi-clock-history"></i></span>{% endif %}</td>
+            <td>
+              <span class="vf-rekanan" title="{{ item.row.get('NAMA LEVELANSIR / REKANAN', '') }}">{{ item.row.get('NAMA LEVELANSIR / REKANAN', '-') }}</span>
+              {% if item.row.get('KATEGORI') %}<span class="vf-kategori">{{ item.row.get('KATEGORI', '') }}</span>{% endif %}
+              {% if item.row.get('DESKRIPSI') %}<div class="vf-desc" title="{{ item.row.get('DESKRIPSI','') }}">{{ item.row.get('DESKRIPSI', '') }}</div>{% endif %}
+            </td>
+            <td style="overflow-wrap:anywhere;max-width:120px">{% if item.row.get('NO INVOICE') and item.row.get('NO INVOICE')|string|trim != '' %}<span class="vf-field-ok">{{ item.row.get('NO INVOICE') }}</span>{% else %}<span class="vf-field-missing">-</span>{% endif %}</td>
+            <td>
+              {% if item.level == 'CRITICAL' %}
+              <span class="ds-badge ds-badge-red"><i class="bi bi-exclamation-octagon"></i> Kritis</span>
+              {% elif item.level == 'COMPLETION' %}
+              <span class="ds-badge ds-badge-blue"><i class="bi bi-file-earmark-check"></i> Kelengkapan</span>
+              {% elif item.level == 'DUPLICATE' %}
+              <span class="ds-badge ds-badge-violet"><i class="bi bi-copy"></i> Duplikat</span>
+              {% else %}
+              <span class="ds-badge ds-badge-amber"><i class="bi bi-exclamation-triangle"></i> Peringatan</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="vf-reasons">
+                {% for reason in item.reasons %}
+                <span class="vf-reason-pill">{{ reason }}</span>
+                {% endfor %}
+              </div>
+            </td>
+            <td>
+              <span class="vf-act">
+                <button type="button" class="vf-btn" onclick="editRow({{ item.row_idx }})" title="Perbaiki data baris ini" aria-label="Perbaiki data baris {{ item.r }}"><i class="bi bi-pencil"></i></button>
+                <form method="POST" action="{{ url_for('verifikasi.ignore', row_idx=item.row_idx) }}" style="display:inline" class="vf-ignore-form">
+                  <input type="hidden" name="alasan" value="" />
+                  <button type="button" class="vf-btn vf-ignore-btn" title="Abaikan baris ini dari verifikasi" aria-label="Abaikan baris {{ item.r }} dari verifikasi"><i class="bi bi-eye-slash"></i></button>
+                </form>
+              </span>
+            </td>
+         </tr>
+         {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="ds-empty">
+      <i class="bi bi-check-circle"></i>
+      <div class="ds-empty__title">Semua Data Lengkap</div>
+      <p class="ds-empty__text">Tidak ada baris yang perlu diperbaiki.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="vf-single-panel" id="vfSinglePanel" role="dialog" aria-modal="true" aria-label="Abaikan baris dari verifikasi">
+  <input type="text" id="vfSingleReason" placeholder="Alasan (opsional)" maxlength="200" aria-label="Alasan baris diabaikan dari verifikasi" />
+  <div class="vf-single-panel-actions">
+    <button class="vf-btn vf-btn--danger vf-single-exec"><i class="bi bi-eye-slash"></i> Abaikan</button>
+    <button class="vf-btn vf-single-cancel">Batal</button>
+  </div>
+</div>
+
+<script>
+  window.setVfFilter = function (f) {
+    const target = document.querySelector('.vf-filter[data-filter="' + f + '"]') || document.querySelector('.vf-filter[data-filter="all"]');
+    if (target) target.click();
+  };
+
+  function initVerifikasiPage() {
+    const vfTable = document.getElementById("vfTable");
+    const btns = document.querySelectorAll(".vf-filter");
+    const rows = vfTable ? vfTable.querySelectorAll("tbody tr") : [];
+    const searchInput = document.getElementById("vfSearch");
+    const filterToolbar = document.querySelector(".vf-toolbar");
+    let noResultsRow = null;
+
+    function debounce(fn, ms) {
+      let t = null;
+      return function () {
+        const args = arguments;
+        clearTimeout(t);
+        t = setTimeout(function () { fn.apply(null, args); }, ms);
+      };
+    }
+
+    function showNoResults(show, q) {
+      if (!vfTable) return;
+      const tbody = vfTable.querySelector("tbody");
+      if (show && !noResultsRow) {
+        noResultsRow = document.createElement("tr");
+        noResultsRow.className = "vf-no-results";
+        const td = document.createElement("td");
+        td.colSpan = 7;
+        td.innerHTML = "";
+        noResultsRow.appendChild(td);
+        tbody.appendChild(noResultsRow);
+      }
+      if (noResultsRow) {
+        noResultsRow.style.display = show ? "" : "none";
+        if (show) {
+          const safe = String(q || "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+          const activeBtn = document.querySelector(".vf-filter.active");
+          const f = activeBtn ? activeBtn.textContent.trim() : "Semua";
+          var fname = (f === "Semua") ? "" : " " + f.toLowerCase();
+          noResultsRow.querySelector("td").innerHTML =
+            "<strong>Tidak ada hasil</strong>Tidak ada baris" + fname + (safe ? ' yang cocok dengan &ldquo;' + safe + "&rdquo;" : "") + ". Ubah saringan atau kata kunci.";
+        }
+      }
+    }
+
+    function selectAllState() {
+      const sa = document.getElementById("vfSelectAll");
+      if (!sa) return;
+      const visible = Array.prototype.filter.call(rows, function (r) { return r.style.display !== "none"; });
+      const checked = visible.filter(function (r) { const c = r.querySelector(".vf-row-check"); return c && c.checked; });
+      sa.checked = visible.length > 0 && checked.length === visible.length;
+      sa.indeterminate = checked.length > 0 && checked.length < visible.length;
+    }
+
+    function markChecked() {
+      rows.forEach(function (row) {
+        const cb = row.querySelector(".vf-row-check");
+        row.classList.toggle("is-checked", !!(cb && cb.checked));
+      });
+    }
+
+    function applyFilters() {
+      if (!vfTable) return;
+      const activeBtn = document.querySelector(".vf-filter.active");
+      const filter = activeBtn ? activeBtn.dataset.filter : "all";
+      const q = (searchInput && searchInput.value || "").toLowerCase().trim();
+      let shown = 0;
+      rows.forEach((row) => {
+        const passSev = filter === "all" || row.dataset.level === filter;
+        const td = row.querySelector("td:nth-child(3)");
+        const text = td ? td.textContent.toLowerCase() : "";
+        const passSearch = !q || text.includes(q);
+        const show = passSev && passSearch;
+        row.style.display = show ? "" : "none";
+        if (show) shown++;
+      });
+      document.querySelectorAll(".vf-row-check:checked").forEach((cb) => {
+        const tr = cb.closest("tr");
+        if (tr && tr.style.display === "none") { cb.checked = false; tr.classList.remove("is-checked"); }
+      });
+      showNoResults(shown === 0 && rows.length > 0, searchInput ? searchInput.value.trim() : "");
+      selectAllState();
+      updateBatchBtn();
+      markChecked();
+    }
+
+    btns.forEach((btn) => {
+      btn.addEventListener("click", function () {
+        btns.forEach((b) => b.classList.remove("active"));
+        this.classList.add("active");
+        applyFilters();
+      });
+    });
+    if (searchInput) {
+      searchInput.addEventListener("input", debounce(applyFilters, 180));
+      searchInput.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") { searchInput.value = ""; applyFilters(); }
+      });
+    }
+
+    function bindToggle(toggleId, bodyId) {
+      const toggle = document.getElementById(toggleId);
+      const body = document.getElementById(bodyId);
+      if (!toggle || !body) return;
+      toggle.addEventListener("click", function () {
+        body.classList.toggle("collapsed");
+        toggle.classList.toggle("collapsed");
+        toggle.setAttribute("aria-expanded", !body.classList.contains("collapsed"));
+      });
+    }
+    bindToggle("dupSectionToggle", "dupSectionBody");
+    bindToggle("legendToggle", "legendBody");
+
+    try { if (localStorage.getItem("vfDupCollapsed") === "1") {
+      const b = document.getElementById("dupSectionBody"); const t = document.getElementById("dupSectionToggle");
+      if (b && t) { b.classList.add("collapsed"); t.classList.add("collapsed"); t.setAttribute("aria-expanded", "false"); }
+    } } catch (e) {}
+    const dupT = document.getElementById("dupSectionToggle");
+    if (dupT) dupT.addEventListener("click", function () {
+      try { localStorage.setItem("vfDupCollapsed", document.getElementById("dupSectionBody").classList.contains("collapsed") ? "1" : "0"); } catch (e) {}
+    });
+    try { if (localStorage.getItem("vfLegendOpen") === "1") {
+      const b = document.getElementById("legendBody"); const t = document.getElementById("legendToggle");
+      if (b && t) { b.classList.remove("collapsed"); t.classList.remove("collapsed"); t.setAttribute("aria-expanded", "true"); }
+    } } catch (e) {}
+    const legT = document.getElementById("legendToggle");
+    if (legT) legT.addEventListener("click", function () {
+      try { localStorage.setItem("vfLegendOpen", document.getElementById("legendBody").classList.contains("collapsed") ? "0" : "1"); } catch (e) {}
+    });
+
+    const singlePanel = document.getElementById("vfSinglePanel");
+    const singleReason = document.getElementById("vfSingleReason");
+    let activeSingleForm = null;
+    let lastIgnoreBtn = null;
+    let submitting = false;
+
+    function closeSinglePanel() {
+      if (!singlePanel) return;
+      singlePanel.classList.remove("open");
+      activeSingleForm = null;
+      if (lastIgnoreBtn) { lastIgnoreBtn.focus(); lastIgnoreBtn = null; }
+    }
+    function submitSinglePanel() {
+      if (!activeSingleForm || submitting) return;
+      submitting = true;
+      singleReason.value = singleReason.value.slice(0, 500);
+      activeSingleForm.querySelector('input[name="alasan"]').value = singleReason.value.trim();
+      activeSingleForm.submit();
+    }
+
+    document.querySelectorAll(".vf-ignore-btn").forEach((btn) => {
+      btn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        lastIgnoreBtn = this;
+        activeSingleForm = this.closest(".vf-ignore-form");
+        const rect = this.getBoundingClientRect();
+        const panelW = 260;
+        const gap = 4;
+        let left = rect.left - panelW - gap;
+        if (left < 8) left = rect.right + gap;
+        if (left + panelW > window.innerWidth - 8) left = window.innerWidth - panelW - 8;
+        let top = Math.max(8 + window.scrollY, rect.top + window.scrollY);
+        top = Math.min(top, window.scrollY + window.innerHeight - 140);
+        singlePanel.style.top = top + "px";
+        singlePanel.style.left = Math.max(8, left + window.scrollX) + "px";
+        singleReason.value = "";
+        singlePanel.classList.add("open");
+        setTimeout(() => singleReason.focus(), 50);
+      });
+    });
+
+    if (singlePanel) {
+      singlePanel.querySelector(".vf-single-exec").addEventListener("click", submitSinglePanel);
+      singlePanel.querySelector(".vf-single-cancel").addEventListener("click", closeSinglePanel);
+      singleReason.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") submitSinglePanel();
+        if (e.key === "Escape") closeSinglePanel();
+      });
+      // Fokus terjebak di dalam panel (dialog kecil: input + 2 tombol).
+      singlePanel.addEventListener("keydown", function (e) {
+        if (e.key !== "Tab") return;
+        const f = singlePanel.querySelectorAll("input, button");
+        const first = f[0], last = f[f.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      });
+    }
+    document.addEventListener("click", function (e) {
+      if (singlePanel && singlePanel.classList.contains("open") && !singlePanel.contains(e.target) && !e.target.closest(".vf-ignore-btn")) {
+        closeSinglePanel();
+      }
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") {
+        if (singlePanel && singlePanel.classList.contains("open")) closeSinglePanel();
+        if (batchActive) closeBatch();
+      }
+    });
+    window.addEventListener("scroll", function () {
+      if (singlePanel && singlePanel.classList.contains("open")) closeSinglePanel();
+    }, { passive: true });
+
+    const selectAll = document.getElementById("vfSelectAll");
+    const batchBtn = document.getElementById("vfBatchIgnoreBtn");
+    const batchAlasan = document.getElementById("vfBatchAlasan");
+    const batchReason = document.getElementById("vfBatchReason");
+    const batchExec = document.querySelector(".vf-batch-exec");
+    const batchCancel = document.querySelector(".vf-batch-cancel");
+    const batchCount = document.getElementById("vfBatchCount");
+    let batchActive = false;
+    let batchSubmitting = false;
+
+    function getChecked() { return document.querySelectorAll(".vf-row-check:checked"); }
+    function updateBatchBtn() {
+      if (!batchBtn) return;
+      const n = getChecked().length;
+      batchBtn.disabled = n === 0;
+      if (batchCount) batchCount.textContent = n;
+      batchBtn.setAttribute("aria-label", n > 0 ? "Abaikan " + n + " baris terpilih" : "Pilih minimal satu baris dulu");
+      if (n === 0 && batchActive) closeBatch();
+    }
+    function openBatch() {
+      if (getChecked().length === 0) return;
+      batchActive = true;
+      batchAlasan.classList.add("open");
+      batchBtn.style.display = "none";
+      batchReason.value = "";
+      batchReason.focus();
+    }
+    function closeBatch() {
+      batchActive = false;
+      batchAlasan.classList.remove("open");
+      batchBtn.style.display = "";
+      batchBtn.focus();
+    }
+    function submitBatch() {
+      const checked = getChecked();
+      if (checked.length === 0 || batchSubmitting) return;
+      if (window.confirm("Abaikan " + checked.length + " baris terpilih dari verifikasi? Baris bisa dikembalikan dari daftar Diabaikan.")) submitBatchNow();
+    }
+    function submitBatchNow() {
+      const checked = getChecked();
+      if (checked.length === 0 || batchSubmitting) return;
+      batchSubmitting = true;
+      if (batchExec) batchExec.disabled = true;
+      const alasan = batchReason.value.trim().slice(0, 500);
+      const form = document.createElement("form");
+      form.method = "POST";
+      form.action = "{{ url_for('verifikasi.ignore_batch') }}";
+      const ai = document.createElement("input");
+      ai.type = "hidden"; ai.name = "alasan"; ai.value = alasan;
+      form.appendChild(ai);
+      checked.forEach((cb) => {
+        const inp = document.createElement("input");
+        inp.type = "hidden"; inp.name = "row_idxs"; inp.value = cb.value;
+        form.appendChild(inp);
+      });
+      document.body.appendChild(form);
+      form.submit();
+    }
+
+    if (selectAll) selectAll.addEventListener("change", function () {
+      const checked = this.checked;
+      rows.forEach((row) => {
+        if (row.style.display !== "none") {
+          const cb = row.querySelector(".vf-row-check");
+          if (cb) { cb.checked = checked; row.classList.toggle("is-checked", checked); }
+        }
+      });
+      updateBatchBtn();
+      selectAllState();
+    });
+    document.querySelectorAll(".vf-row-check").forEach((cb) => {
+      cb.addEventListener("change", function () {
+        const tr = cb.closest("tr");
+        if (tr) tr.classList.toggle("is-checked", cb.checked);
+        updateBatchBtn();
+        selectAllState();
+      });
+    });
+    if (batchBtn) batchBtn.addEventListener("click", openBatch);
+    if (batchExec) batchExec.addEventListener("click", submitBatch);
+    if (batchCancel) batchCancel.addEventListener("click", closeBatch);
+    if (batchReason) batchReason.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") submitBatch();
+      if (e.key === "Escape") closeBatch();
+    });
+    if (filterToolbar && window.innerWidth <= 640) {
+      filterToolbar.setAttribute("aria-label", "Saringan dan aksi verifikasi");
+    }
+    markChecked();
+    applyFilters();
+  }
+  // Re-init pada full load & setiap HTMX swap (konten di-swap tanpa reload penuh).
+  if (window.onPageReady) onPageReady(initVerifikasiPage);
+  else document.addEventListener("DOMContentLoaded", initVerifikasiPage);
+</script>
+{% endblock %}

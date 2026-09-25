@@ -1,0 +1,695 @@
+{% extends "base.html" %}
+
+{% block title %}{% if tab == 'tabDashboard' %}Dashboard - {{ super() }}{% else %}Data Invoice - {{ super() }}{% endif %}{% endblock %}
+
+{% block topbar_title %}{% if tab == 'tabDashboard' %}Dashboard{% else %}Data Invoice{% endif %}{% endblock %}
+{% block topbar_icon %}bi-table{% endblock %}
+
+{% block head_extra %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block topbar_badges %}
+<span class="topbar-badge" style="background:#eef0f2;color:#4d5766"><i class="bi bi-database"></i> {{ data|length }} data</span>
+<span class="topbar-badge" style="background:#e4f9e7;color:#1d7a2b"><i class="bi bi-check-circle-fill"></i> {{ lunas_count }} Lunas</span>
+<span class="topbar-badge" style="background:#fdecea;color:#a12a1d"><i class="bi bi-exclamation-circle-fill"></i> {{ belum_count }} Belum</span>
+{% endblock %}
+
+{% block content %}
+<!-- TAB PILLS (hidden — sidebar handles navigation) -->
+<ul class="nav nav-pills mb-4 d-none" id="mainTab">
+    <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tabDashboard">Dashboard</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tabData">Data Invoice</button></li>
+</ul>
+
+<div class="tab-content animate-in">
+    <!-- DASHBOARD TAB -->
+    <div class="tab-pane fade{{ ' show active' if tab == 'tabDashboard' }}" id="tabDashboard">
+        {% include "partials/_dashboard.html" %}
+    </div>
+
+    <!-- DATA TABLE TAB -->
+    <div class="tab-pane fade{{ ' show active' if tab == 'tabData' }}" id="tabData">
+        {% include "partials/_data_table.html" %}
+    </div>
+</div>
+
+<!-- Page script berada DI DALAM block content (#mainContent) agar ikut
+     di-swap & dieksekusi ulang HTMX. Dibungkus IIFE supaya deklarasi
+     const/let tidak bentrok saat script dieksekusi berulang. -->
+<script>
+(function () {
+// Activate the correct tab based on server-rendered context
+(function initTab() {
+    const activeTab = '{{ tab }}';
+    const tabBtn = document.querySelector(`#mainTab [data-bs-target="#${activeTab}"]`);
+    if (tabBtn) bootstrap.Tab.getOrCreateInstance(tabBtn).show();
+})();
+
+// === SEARCH + FILTER ===
+function filterTable() {
+    const q = (document.getElementById('searchInput')?.value || '').toLowerCase().trim();
+    const dppFilter = document.getElementById('filterStatusDPP')?.value || '';
+    const ppnFilter = document.getElementById('filterStatusPPN')?.value || '';
+    const catFilter = document.getElementById('filterKategori')?.value || '';
+    const kbFilter = document.getElementById('filterKodeBiaya')?.value || '';
+    const bayarFilter = document.getElementById('filterStatusBayar')?.value || '';
+    const jtFilter = document.getElementById('filterJatuhTempo')?.value || '';
+    const blYMs = getCheckedYMs('berkas');
+    const bayarYMs = getCheckedYMs('bayar');
+    // "Pilih Semua" (all checked) = no filter; else rows with empty date would vanish.
+    const blAll = document.querySelectorAll('#ddBerkasOpts input').length;
+    const byAll = document.querySelectorAll('#ddBayarOpts input').length;
+    const blEff = blYMs.length === blAll ? [] : blYMs;
+    const byEff = bayarYMs.length === byAll ? [] : bayarYMs;
+
+    // Epsilon to absorb float noise on money fields.
+    const EPS = 0.5;
+    // Today for jatuh-tempo comparisons (YYYY-MM-DD, local).
+    const today = new Date();
+    const todayStr = new Date(today.getTime() - today.getTimezoneOffset() * 60000)
+        .toISOString().slice(0, 10);
+    const in30Str = new Date(today.getTime() + 30 * 86400000 - today.getTimezoneOffset() * 60000)
+        .toISOString().slice(0, 10);
+
+    let visible = 0;
+    document.querySelectorAll('#dataTable tbody tr').forEach(tr => {
+        const haystack = (tr.dataset.search || '') || tr.textContent;
+        const searchMatch = !q || haystack.toLowerCase().includes(q);
+        const dppMatch = !dppFilter || tr.dataset.statusDpp === dppFilter;
+        const ppnMatch = !ppnFilter || tr.dataset.statusPpn === ppnFilter;
+        const catMatch = !catFilter || tr.dataset.kategori === catFilter;
+        const kbMatch = !kbFilter || (tr.dataset.kodeBiaya || '') === kbFilter;
+
+        const bl = tr.dataset.tglBerkas || '';
+        const blYM = bl.length >= 7 ? bl.slice(0, 7) : '';
+        const blMatch = blEff.length === 0 || blEff.includes(blYM);
+        const by = tr.dataset.tglBayarDpp || '';
+        const byYM = by.length >= 7 ? by.slice(0, 7) : '';
+        const byMatch = byEff.length === 0 || byEff.includes(byYM);
+
+        // Status bayar derived from sisa DPP + PPN.
+        let bayarMatch = true;
+        if (bayarFilter) {
+            const sisaDpp = parseFloat(tr.dataset.sisaDpp) || 0;
+            const sisaPpn = parseFloat(tr.dataset.sisaPpn) || 0;
+            const paidDpp = sisaDpp <= EPS;
+            const paidPpn = sisaPpn <= EPS;
+            if (bayarFilter === 'lunas') bayarMatch = paidDpp && paidPpn;
+            else if (bayarFilter === 'belum') bayarMatch = !paidDpp && !paidPpn;
+            else if (bayarFilter === 'sebagian') bayarMatch = (paidDpp || paidPpn) && !(paidDpp && paidPpn);
+        }
+
+        // Jatuh tempo derived from JTH TEMPO + payment state.
+        let jtMatch = true;
+        if (jtFilter) {
+            const sisaDpp = parseFloat(tr.dataset.sisaDpp) || 0;
+            const sisaPpn = parseFloat(tr.dataset.sisaPpn) || 0;
+            const belumLunas = (sisaDpp > EPS) || (sisaPpn > EPS);
+            const jt = tr.dataset.tglJthTempo || '';
+            const hasJt = /^\d{4}-\d{2}-\d{2}$/.test(jt);
+            if (jtFilter === 'unpaid_no_due') jtMatch = belumLunas && !hasJt;
+            else if (jtFilter === 'overdue') jtMatch = belumLunas && hasJt && jt < todayStr;
+            else if (jtFilter === 'due') jtMatch = belumLunas && hasJt && jt >= todayStr && jt <= in30Str;
+            else if (jtFilter === 'safe') jtMatch = !belumLunas || (hasJt && jt > in30Str);
+        }
+
+        const match = searchMatch && dppMatch && ppnMatch && catMatch && kbMatch
+            && blMatch && byMatch && bayarMatch && jtMatch;
+        // Publish filter result; table-enhance.js paginates only passing rows.
+        tr.dataset.filterPass = match ? '1' : '0';
+        if (match) visible++;
+    });
+
+    if (window.TableEnhance) {
+        // Reset to page 1 on every filter change and let the enhancer repaint.
+        window.TableEnhance.resetPage();
+        window.TableEnhance.refresh();
+    } else {
+        // Fallback: no enhancement loaded — honour filter directly.
+        document.querySelectorAll('#dataTable tbody tr').forEach(tr => {
+            tr.style.display = tr.dataset.filterPass === '0' ? 'none' : '';
+        });
+    }
+
+    const countEl = document.getElementById('searchCount');
+    const total = document.querySelectorAll('#dataTable tbody tr').length;
+    const anyFilter = q || dppFilter || ppnFilter || catFilter || kbFilter
+        || bayarFilter || jtFilter || blEff.length || byEff.length;
+    const countText = anyFilter ? `${visible} dari ${total}` : '';
+    if (countEl) {
+        countEl.setAttribute('data-te-total', countText);
+        countEl.textContent = countText;
+    }
+    // Reflect active-filter count on each select so users see what is applied.
+    [['filterStatusDPP', dppFilter], ['filterStatusPPN', ppnFilter], ['filterKategori', catFilter],
+     ['filterKodeBiaya', kbFilter], ['filterStatusBayar', bayarFilter], ['filterJatuhTempo', jtFilter]]
+        .forEach(([id, val]) => {
+            const el = document.getElementById(id);
+            if (el) el.classList.toggle('filter-select--active', !!val);
+        });
+}
+
+document.getElementById('searchInput')?.addEventListener('input', filterTable);
+document.getElementById('filterStatusDPP')?.addEventListener('change', filterTable);
+document.getElementById('filterStatusPPN')?.addEventListener('change', filterTable);
+document.getElementById('filterKategori')?.addEventListener('change', filterTable);
+document.getElementById('filterKodeBiaya')?.addEventListener('change', filterTable);
+document.getElementById('filterStatusBayar')?.addEventListener('change', filterTable);
+document.getElementById('filterJatuhTempo')?.addEventListener('change', filterTable);
+
+// Reset all filters + search in one click.
+document.getElementById('filterReset')?.addEventListener('click', function () {
+    ['filterStatusDPP', 'filterStatusPPN', 'filterKategori', 'filterKodeBiaya',
+     'filterStatusBayar', 'filterJatuhTempo'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+    const inp = document.getElementById('searchInput');
+    if (inp) inp.value = '';
+    // Uncheck month dropdowns (re-check "Semua").
+    document.querySelectorAll('.dd-filter .dd-all-cb').forEach(cb => { cb.checked = true; });
+    document.querySelectorAll('.dd-options input').forEach(cb => { cb.checked = false; });
+    filterTable();
+});
+
+const monthNames = ['','Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+function getCheckedYMs(group) {
+    return Array.from(document.querySelectorAll(`#dd${group === 'berkas' ? 'Berkas' : 'Bayar'}Opts input:checked`)).map(cb => cb.value);
+}
+function buildYmCheckboxes(panelOptsId, dataAttr) {
+    const rows = document.querySelectorAll('#dataTable tbody tr');
+    const yms = new Map();
+    rows.forEach(tr => {
+        const v = tr.dataset[dataAttr] || '';
+        const ym = v.length >= 7 ? v.slice(0, 7) : '';
+        if (ym) {
+            const [y, m] = ym.split('-');
+            yms.set(ym, (monthNames[parseInt(m, 10)] || m) + ' ' + y);
+        }
+    });
+    const opts = document.getElementById(panelOptsId);
+    if (!opts) return;
+    if (yms.size === 0) {
+        opts.innerHTML = '<span class="text-muted" style="font-size:.72rem;padding:4px 8px;display:block">Tidak ada data tanggal</span>';
+        const allWrap = opts.closest('.dd-panel')?.querySelector('.dd-all');
+        if (allWrap) allWrap.style.display = 'none';
+        return;
+    }
+    Array.from(yms.keys()).sort().reverse().forEach(ym => {
+        const lbl = document.createElement('label');
+        lbl.innerHTML = `<input type="checkbox" value="${ym}"> ${yms.get(ym)}`;
+        opts.appendChild(lbl);
+    });
+}
+buildYmCheckboxes('ddBerkasOpts', 'tglBerkas');
+buildYmCheckboxes('ddBayarOpts', 'tglBayarDpp');
+
+// Dropdown open/close + "Pilih Semua" + option sync
+document.querySelectorAll('.dd-filter').forEach(dd => {
+    const btn = dd.querySelector('.dd-toggle');
+    const panel = dd.querySelector('.dd-panel');
+    const allCb = dd.querySelector('.dd-all-cb');
+    const opts = dd.querySelector('.dd-options');
+    btn?.addEventListener('click', e => {
+        e.stopPropagation();
+        document.querySelectorAll('.dd-filter.open').forEach(d => { if (d !== dd) d.classList.remove('open'); });
+        dd.classList.remove('dd-flip-up');
+        const rect = dd.getBoundingClientRect();
+        const spaceBelow = window.innerHeight - rect.bottom - 10;
+        if (spaceBelow < 280) dd.classList.add('dd-flip-up');
+        dd.classList.toggle('open');
+    });
+    opts?.addEventListener('change', () => {
+        const cbs = opts.querySelectorAll('input');
+        const checked = opts.querySelectorAll('input:checked').length;
+        if (allCb) allCb.checked = checked === cbs.length;
+        filterTable();
+    });
+    allCb?.addEventListener('change', () => {
+        opts.querySelectorAll('input').forEach(cb => cb.checked = allCb.checked);
+        filterTable();
+    });
+});
+document.addEventListener('click', e => {
+    document.querySelectorAll('.dd-filter.open').forEach(dd => {
+        if (!dd.contains(e.target)) dd.classList.remove('open');
+    });
+});
+
+// === SORT ===
+let sortCol = -1, sortAsc = true;
+document.querySelectorAll('.th-sort').forEach(th => {
+    th.setAttribute('aria-sort', 'none');
+    th.setAttribute('role', 'button');
+    th.setAttribute('tabindex', '0');
+
+    function doSort() {
+        const col = parseInt(this.dataset.col);
+        if (sortCol === col) sortAsc = !sortAsc;
+        else { sortCol = col; sortAsc = true; }
+
+        document.querySelectorAll('.th-sort').forEach(h => {
+            h.classList.remove('sort-asc','sort-desc');
+            h.setAttribute('aria-sort', 'none');
+        });
+        this.classList.add(sortAsc ? 'sort-asc' : 'sort-desc');
+        this.setAttribute('aria-sort', sortAsc ? 'ascending' : 'descending');
+
+        const tbody = document.querySelector('#dataTable tbody');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+
+        // Sort the ENTIRE dataset, not just the current page. Sorting only the
+        // 25 rendered rows used to reorder within one page and leave the rest
+        // untouched, so "sort by TOTAL" never actually surfaced the extremes.
+        // Rows failing the active filter keep their relative order at the end.
+        const keep = rows.filter(r => r.dataset.filterPass !== '0');
+        const dropped = rows.filter(r => r.dataset.filterPass === '0');
+
+        // Pull the raw comparable value + type once per row (avoids repeated
+        // dataset lookups inside the comparator).
+        const meta = new Map();
+        const readMeta = (tr) => {
+            let m = meta.get(tr);
+            if (m) return m;
+            const cell = tr.cells[col];
+            let type = cell?.dataset.type || '';
+            const raw = cell?.dataset.v != null ? cell.dataset.v : (cell?.textContent || '').trim();
+            // Fall back to inferring numeric when no explicit type is present.
+            if (!type && raw !== '' && !isNaN(raw.replace(/\./g, ''))) type = 'num';
+            m = { type: type || 'text', raw: raw };
+            meta.set(tr, m);
+            return m;
+        };
+
+        keep.sort((a, b) => {
+            const ma = readMeta(a), mb = readMeta(b);
+            const dir = sortAsc ? 1 : -1;
+
+            if (ma.type === 'num') {
+                const na = parseFloat(ma.raw) || 0, nb = parseFloat(mb.raw) || 0;
+                return (na - nb) * dir;
+            }
+            if (ma.type === 'date') {
+                // ISO yyyy-mm-dd sorts correctly as string; blanks always last
+                // regardless of direction so empty rows don't clutter the top.
+                if (!ma.raw && !mb.raw) return 0;
+                if (!ma.raw) return 1;
+                if (!mb.raw) return -1;
+                return ma.raw.localeCompare(mb.raw) * dir;
+            }
+            // Text: case/accent-insensitive + natural number ordering
+            // ("INV-2" < "INV-10"). Blank values always last.
+            if (!ma.raw && !mb.raw) return 0;
+            if (!ma.raw) return 1;
+            if (!mb.raw) return -1;
+            return String(ma.raw).localeCompare(String(mb.raw), undefined, { numeric: true, sensitivity: 'base' }) * dir;
+        });
+
+        keep.concat(dropped).forEach(r => tbody.appendChild(r));
+
+        // Re-apply pagination to the freshly ordered DOM, back to page 1.
+        if (window.TableEnhance) {
+            window.TableEnhance.resetPage();
+            window.TableEnhance.refresh();
+        } else {
+            keep.forEach(r => { r.style.display = ''; });
+            dropped.forEach(r => { r.style.display = 'none'; });
+        }
+        // Update row count
+        const rc = document.getElementById('rowCount');
+        if (rc) rc.textContent = keep.length;
+    }
+
+    th.addEventListener('click', doSort);
+    th.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+            e.preventDefault();
+            doSort.call(this);
+        }
+    });
+});
+
+// === VIEW ROW (read-only detail) ===
+let _viewRowIdx = null;
+
+function viewRow(rowIdx) {
+    _viewRowIdx = rowIdx;
+    fetch('/edit/' + rowIdx).then(r => r.json()).then(data => {
+        const rekanan = data['NAMA LEVELANSIR / REKANAN'] || '-';
+        const invoice = data['NO INVOICE'] || '-';
+        const statusDPP = data['STATUS TERHADAP DPP'] || '-';
+        const statusPPN = data['STATUS TERHADAP PPN'] || '-';
+        const total = parseFloat(data['TOTAL (INCLD)']) || 0;
+        const bayarDPP = parseFloat(data['PEMBAYARAN DPP']) || 0;
+        const bayarPPN = parseFloat(data['PEMBAYARAN PPN']) || 0;
+        const sisa = parseFloat(data['SISA HUTANG (INCLD PPN)']) || 0;
+
+        const badge = s => s === 'Lunas' ? 'vm-badge-lunas' : s === 'Belum Lunas' ? 'vm-badge-belum' : 'vm-badge-na';
+
+        // ── Header ──
+        document.getElementById('vmRekanan').textContent = rekanan;
+        document.getElementById('vmInvoice').textContent = invoice;
+        document.getElementById('vmBadges').innerHTML =
+            `<span class="vm-badge ${badge(statusDPP)}">DPP: ${statusDPP}</span>` +
+            `<span class="vm-badge ${badge(statusPPN)}">PPN: ${statusPPN}</span>`;
+
+        // ── Financial bar ──
+        const finItems = [
+            { label: 'Total (Incld)', val: money(total), cls: '#3d434c' },
+            { label: 'Bayar DPP', val: money(bayarDPP), cls: '#1d7a2b', sub: data['TGL BAYAR DPP'] },
+            { label: 'Bayar PPN', val: money(bayarPPN), cls: '#1d7a2b', sub: data['TGL BAYAR PPN'] },
+            { label: 'Sisa Hutang', val: money(sisa), cls: sisa > 0 ? '#e74c3c' : '#1d7a2b' },
+        ];
+        document.getElementById('vmFinbar').innerHTML = finItems.map(f =>
+            `<div class="vm-finbar-item"><div class="vm-finbar-label">${f.label}</div><div class="vm-finbar-val" style="color:${f.cls}">${f.val}</div>` +
+            (f.sub ? `<div class="vm-finbar-sub"><i class="bi bi-calendar-check"></i> ${f.sub}</div>` : '') +
+            `</div>`
+        ).join('');
+
+        // ── Body — grouped sections ──
+        const skip = new Set(['R','_row','NAMA LEVELANSIR / REKANAN','NO INVOICE','TOTAL (INCLD)','PEMBAYARAN DPP','PEMBAYARAN PPN','SISA HUTANG (INCLD PPN)','TGL BAYAR DPP','TGL BAYAR PPN']);
+        const moneyFields = new Set(['TOTAL (INCLD)','PEMBAYARAN DPP','PEMBAYARAN PPN','SISA HUTANG (INCLD PPN)','SISA HUTANG DPP','SISA HUTANG PPN','HARGA (EXLD)','HARGA SATUAN','POT. RETENSI','POT. PPH','PPN','PEMBAYARAN POT. PPH','NILAI YG DITERIMA VENDOR']);
+        const boolHighlight = {'STATUS TERHADAP DPP':true,'STATUS TERHADAP PPN':true};
+
+        const val = f => data[f] != null && data[f] !== '' ? data[f] : '-';
+        const fieldLabel = {
+            'TGL TERIMA': 'TGL TERIMA BERKAS LENGKAP',
+            'TGL INV': 'TGL INVOICE',
+            'JTH TEMPO': 'TGL JATUH TEMPO',
+            'TGL FAKTUR PAJAK': 'TGL FAKTUR PAJAK MASUKAN',
+        };
+        const labelOf = k => fieldLabel[k] || k;
+
+        // Section renderer — each field appears in exactly one section, so no
+        // duplicates and logical neighbours (e.g. no. & tgl. faktur pajak) stay together.
+        const used = new Set();
+
+        function renderSection(num, title, fields, mode) {
+            const present = fields.filter(k => k in data);
+            if (present.length === 0) return '';
+            let html = `<div class="vm-section"><div class="vm-section-title"><span class="vm-num">${num}</span>${title}</div><div class="vm-grid">`;
+            for (const k of present) {
+                used.add(k);
+                let raw = val(k);
+                if (boolHighlight[k] && raw !== '-') {
+                    raw = `<span class="vm-badge ${badge(raw)}">${raw}</span>`;
+                } else if (mode === 'money') {
+                    raw = `<code>${moneyFields.has(k) && raw !== '-' ? money(parseFloat(raw)||0) : raw}</code>`;
+                }
+                html += `<div class="vm-field"><div class="vm-field-label">${labelOf(k)}</div><div class="vm-field-val">${raw}</div></div>`;
+            }
+            return html + '</div></div>';
+        }
+
+        // Group 1 — Dokumen & Status
+        const docFields = ['NO PO / KONTRAK','NO SERI FAKTUR PAJAK','TGL FAKTUR PAJAK',
+            'NO INVOICE INTERNAL','TGL INV','TGL TERIMA BERKAS','TGL TERIMA','JTH TEMPO',
+            'STATUS TERHADAP DPP','STATUS TERHADAP PPN','KETERANGAN PPN'];
+        // Group 2 — Keuangan
+        const finFields = ['HARGA SATUAN','VOLUME PROGRESS','HARGA (EXLD)',
+            'POT. RETENSI','POT. PPH','PPN','PEMBAYARAN POT. PPH','NILAI YG DITERIMA VENDOR',
+            'SISA HUTANG DPP','SISA HUTANG PPN'];
+        // Group 3 — Pembayaran (nominal sudah di header, di sini detail bukti)
+        const payFields = ['PEMBAYARAN DPP VIA DIVISI','NO BUKTI BAYAR DPP',
+            'PEMBAYARAN PPN VIA','NO BUKTI BAYAR PPN'];
+        // Group 4 — Detail
+        const detailFields = ['DESKRIPSI','KATEGORI','KETERANGAN','KODE BIAYA','KODE BIAYA2','TGL MASUK DIVISI'];
+
+        let bodyHtml = '';
+        bodyHtml += renderSection('01', 'Dokumen & Status', docFields, 'plain');
+        bodyHtml += renderSection('02', 'Keuangan', finFields, 'money');
+        bodyHtml += renderSection('03', 'Pembayaran', payFields, 'plain');
+        bodyHtml += renderSection('04', 'Detail', detailFields, 'plain');
+
+        // Remaining fields (expandable) — everything not shown above.
+        // Aging buckets and internal keys are hidden from the UI.
+        const hideFields = new Set(['BLM JATUH TEMPO','1-30 HARI','31-60 HARI','61-90 HARI','LEBIH 90 HARI','project_id']);
+        const remaining = Object.keys(data).filter(k => k !== '_row' && !skip.has(k) && !used.has(k) && !hideFields.has(k));
+        if (remaining.length > 0) {
+            bodyHtml += `<div class="vm-remaining"><details><summary><i class="bi bi-three-dots"></i> Semua field lainnya (${remaining.length})</summary><div class="vm-remaining-grid">`;
+            for (const k of remaining) {
+                const raw = val(k);
+                const display = moneyFields.has(k) && raw !== '-' ? money(parseFloat(raw)||0) : raw;
+                bodyHtml += `<div class="vm-field"><div class="vm-field-label">${labelOf(k)}</div><div class="vm-field-val">${display}</div></div>`;
+            }
+            bodyHtml += '</div></details></div>';
+        }
+
+        document.getElementById('vmBody').innerHTML = '<div class="vm-body-left">' + bodyHtml + '</div>';
+
+        // ── Catatan Audit right column ──
+        const dlg = document.querySelector('#viewModal .modal-dialog');
+        dlg.classList.remove('modal-dialog-wide');
+        const audited = {{ audited_rows|tojson }};
+        if (audited.includes(rowIdx)) {
+            dlg.classList.add('modal-dialog-wide');
+            fetch('/audit/row/' + rowIdx).then(r => r.json()).then(entries => {
+                if (entries && entries.length > 0) {
+                    let auditHtml = '<div class="vm-body-right"><div class="vm-section"><div class="vm-section-title"><span class="vm-num">04</span>Catatan Audit</div><div class="vm-audit-list">';
+                    for (const e of entries) {
+                        auditHtml += `<div class="vm-audit-item">`;
+                        auditHtml += `<div class="vm-audit-field">${e.field_name} <span class="vm-audit-time">(${e.changed_at})</span></div>`;
+                        auditHtml += `<div class="vm-audit-diff">`;
+                        auditHtml += `<span class="vm-old">${e.old_value || '(kosong)'}</span>`;
+                        auditHtml += `<i class="bi bi-arrow-right"></i>`;
+                        auditHtml += `<span class="vm-new">${e.new_value || '(kosong)'}</span>`;
+                        auditHtml += `</div></div>`;
+                    }
+                    auditHtml += '</div></div></div>';
+                    document.getElementById('vmBody').insertAdjacentHTML('beforeend', auditHtml);
+                } else {
+                    dlg.classList.remove('modal-dialog-wide');
+                }
+            }).catch(() => { dlg.classList.remove('modal-dialog-wide'); });
+        }
+
+        // Wire audit button
+        document.getElementById('viewEditBtn').onclick = function() {
+            bootstrap.Modal.getInstance(document.getElementById('viewModal')).hide();
+            editRow(_viewRowIdx);
+        };
+        new bootstrap.Modal(document.getElementById('viewModal')).show();
+    }).catch(() => Toast.err('Gagal memuat data. Coba lagi.'));
+}
+
+// === CLICK ROW → VIEW MODAL ===
+document.getElementById('dataTable')?.addEventListener('click', function(e) {
+    const tr = e.target.closest('tr.row-clickable');
+    if (!tr || e.target.closest('.row-actions')) return;
+    const idx = tr.dataset.rowIdx;
+    if (idx) viewRow(parseInt(idx));
+});
+
+// === CHARTS (deferred until dashboard tab is visible — Chart.js needs visible canvas) ===
+// ─── Global helpers ───
+const money = v => Math.round(Number(v||0)).toLocaleString('id-ID');
+
+const COLORS = ['#005691','#2ECC40','#E5B800','#e74c3c','#9370DB','#0a6aa8','#27b537','#FF8C00','#6a4fa3','#1d7a2b','#a12a1d','#8a6d00'];
+const katData = {{ kategori_data|tojson }};
+const agingData = {{ aging|tojson }};
+const monthlyData = {{ monthly_data|tojson }};
+const dailyData = {{ daily_data|tojson }};
+
+const chartOpts = { responsive: true, maintainAspectRatio: false };
+let _chartsInited = false;
+let _chartRetry = 0;
+let monthlyChart, dailyChart;
+
+function destroyChartById(id) {
+    try {
+        if (typeof Chart === 'undefined' || !Chart.getChart) return;
+        const el = document.getElementById(id);
+        const inst = el && Chart.getChart(el);
+        if (inst) inst.destroy();
+    } catch (e) { /* abaikan — jangan merusak render */ }
+}
+function dashboardVisible() {
+    const el = document.getElementById('chartKategori');
+    if (!el) return false;
+    const pane = el.closest('.tab-pane');
+    if (pane && !pane.classList.contains('show')) return false;
+    return el.clientWidth > 0;
+}
+
+function initDashboardCharts() {
+    if (_chartsInited) return;
+    if (typeof Chart === 'undefined') {
+        if (typeof ensureChartJs === 'function') ensureChartJs(function (ok) { if (ok) initDashboardCharts(); });
+        return;
+    }
+    // Canvas 0px (tab hidden / swap belum settle) — coba lagi, jangan latch.
+    if (!dashboardVisible()) {
+        if (_chartRetry++ < 20) setTimeout(initDashboardCharts, 150);
+        return;
+    }
+    _chartRetry = 0;
+    ['chartKategori', 'chartAging', 'chartMonthly', 'chartDaily'].forEach(destroyChartById);
+
+    const katKeys = Object.keys(katData);
+    const katVals = Object.values(katData).map(v=>v.total);
+    new Chart(document.getElementById('chartKategori'), {
+        type: 'doughnut',
+        data: { labels: katKeys, datasets: [{ data: katVals, backgroundColor: COLORS, borderWidth: 2, borderColor: '#fff' }] },
+        options: { ...chartOpts, cutout: '62%', plugins: { legend: { display: false } } },
+        plugins: [{
+            id: 'kategoriLegend',
+            afterUpdate(chart) {
+                const el = document.getElementById('kategoriLegend');
+                if (!el || !chart.data.labels.length) return;
+                const colors = chart.data.datasets[0].backgroundColor;
+                const total = chart.data.datasets[0].data.reduce((a,b)=>a+b,0);
+                el.innerHTML = chart.data.labels.map((l,i) => {
+                    const pct = total ? ((chart.data.datasets[0].data[i]/total)*100).toFixed(0) : 0;
+                    return `<div style="display:flex;align-items:center;gap:5px;font-size:.68rem;padding:1px 0">
+                        <span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${Array.isArray(colors)?colors[i]:colors};flex-shrink:0"></span>
+                        <span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ds-muted)">${l}</span>
+                        <span style="font-weight:600;color:var(--ds-text);font-family:'JetBrains Mono',monospace;font-size:.65rem">${pct}%</span>
+                    </div>`;
+                }).join('');
+            }
+        }]
+    });
+
+
+    new Chart(document.getElementById('chartAging'), {
+        type: 'bar',
+        data: { labels: ['Blm Jth Tempo','1-30','31-60','61-90','>90'], datasets: [{ label: 'Invoice', data: [agingData.belum_jatuh_tempo, agingData['1-30'], agingData['31-60'], agingData['61-90'], agingData['>90']], backgroundColor: ['#005691','#E5B800','#FF8C00','#e74c3c','#a12a1d'], borderRadius: 8, borderSkipped: false }] },
+        options: { ...chartOpts, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#eef0f2' } }, x: { grid: { display: false } } } }
+    });
+
+    buildMonthlyChart(monthlyData, '');
+    buildDailyChart(dailyData, '');
+    _chartsInited = true;
+}
+
+// Fire when dashboard tab is shown (or immediately if already visible)
+const dashTab = document.querySelector('#mainTab [data-bs-target="#tabDashboard"]');
+if (dashTab) {
+    dashTab.addEventListener('shown.bs.tab', initDashboardCharts);
+}
+// If dashboard tab is already visible on load (has .show class), init right away
+if (document.querySelector('.tab-pane#tabDashboard.show')) {
+    setTimeout(initDashboardCharts, 100);
+}
+
+// === YEAR/MONTH FILTERS ===
+function getYearsFromMonthly(data) {
+    const years = new Set();
+    data.forEach(m => { const y = m[0].slice(0,4); years.add(y); });
+    return Array.from(years).sort();
+}
+function getMonthsFromDaily(data) {
+    const months = new Set();
+    data.forEach(d => { const m = d[0].slice(0,7); months.add(m); });
+    return Array.from(months).sort();
+}
+
+function buildMonthlyChart(data, year) {
+    const filtered = year ? data.filter(m => m[0].startsWith(year)) : data;
+    const labels = filtered.map(m => m[1].label);
+    const total = filtered.map(m => m[1].total_hutang_dpp);
+    const bayar = filtered.map(m => m[1].total_bayar_dpp);
+    const sisa = filtered.map(m => m[1].sisa_dpp);
+
+    // Rebuild table
+    const tbody = document.getElementById('monthlyTableBody');
+    if (tbody) {
+        tbody.innerHTML = filtered.map(m => `
+            <tr>
+                <td style="font-weight:600">${m[1].label}</td>
+                <td class="cell-money">${money(m[1].total_hutang_dpp)}</td>
+                <td class="cell-money" style="color:#2ECC40">${money(m[1].total_bayar_dpp)}</td>
+                <td class="cell-money" style="color:${m[1].sisa_dpp > 0 ? '#e74c3c' : '#2ECC40'};font-weight:700">${money(m[1].sisa_dpp)}</td>
+            </tr>
+        `).join('');
+    }
+
+    if (monthlyChart) monthlyChart.destroy();
+    const ctx = document.getElementById('chartMonthly');
+    if (!ctx || labels.length === 0) return;
+    monthlyChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [
+                { label: 'Hutang JT DPP', data: total, backgroundColor: '#005691', borderRadius: 4, borderSkipped: false },
+                { label: 'Bayar JT DPP', data: bayar, backgroundColor: '#2ECC40', borderRadius: 4, borderSkipped: false },
+                { label: 'Sisa DPP', data: sisa, backgroundColor: '#e74c3c', borderRadius: 4, borderSkipped: false },
+            ]
+        },
+        options: { ...chartOpts, plugins: { legend: { position: 'top', labels: { boxWidth: 12, padding: 10, font: { size: 10, family: 'Inter' } } } }, scales: { y: { beginAtZero: true, grid: { color: '#eef0f2' } }, x: { grid: { display: false } } } }
+    });
+}
+
+function buildDailyChart(data, month) {
+    const filtered = month ? data.filter(d => d[0].startsWith(month)) : data;
+    const labels = filtered.map(d => d[1].tgl.slice(5));
+    const hutangDPP = filtered.map(d => d[1].hutang_jt_dpp);
+    const bayarDPP = filtered.map(d => d[1].bayar_jt_dpp);
+    const sisaDPP = filtered.map(d => d[1].sisa_dpp);
+    const sisaPPN = filtered.map(d => d[1].sisa_ppn);
+
+    // Rebuild table
+    const tbody = document.getElementById('dailyTableBody');
+    if (tbody) {
+        tbody.innerHTML = filtered.length ? filtered.map(d => `
+            <tr>
+                <td style="font-weight:600">${d[1].tgl}</td>
+                <td class="cell-money">${money(d[1].hutang_jt_dpp)}</td>
+                <td class="cell-money" style="color:#2ECC40">${money(d[1].bayar_jt_dpp)}</td>
+                <td class="cell-money" style="color:#E5B800">${money(d[1].sisa_dpp)}</td>
+                <td class="cell-money" style="color:#005691">${money(d[1].sisa_ppn)}</td>
+            </tr>
+        `).join('') : '<tr><td colspan="5" class="text-center text-muted small py-3">Tidak ada data</td></tr>';
+    }
+
+    if (dailyChart) dailyChart.destroy();
+    const ctx = document.getElementById('chartDaily');
+    if (!ctx || labels.length === 0) return;
+    dailyChart = new Chart(ctx, {
+        type: 'bar',
+        data: { labels, datasets: [{ label: 'Hutang JT DPP', data: hutangDPP, backgroundColor: '#005691', borderRadius: 4, borderSkipped: false }] },
+        options: { ...chartOpts, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#eef0f2' } }, x: { grid: { display: false }, ticks: { maxTicksLimit: 15, font: { size: 9 } } } } }
+    });
+}
+
+// Init year dropdown
+const years = getYearsFromMonthly(monthlyData);
+const yearSel = document.getElementById('yearSelect');
+if (yearSel) {
+    yearSel.innerHTML = '<option value="">Semua Tahun</option>' + years.map(y => `<option value="${y}">${y}</option>`).join('');
+    yearSel.addEventListener('change', () => buildMonthlyChart(monthlyData, yearSel.value));
+}
+
+// Init month dropdown
+const months = getMonthsFromDaily(dailyData);
+const monthSel = document.getElementById('monthSelect');
+if (monthSel) {
+    monthSel.innerHTML = '<option value="">Semua Bulan</option>' + months.map(m => {
+        const [y, mo] = m.split('-');
+        const label = new Date(y, mo-1).toLocaleDateString('id-ID', { year: 'numeric', month: 'long' });
+        return `<option value="${m}">${label}</option>`;
+    }).join('');
+    monthSel.addEventListener('change', () => buildDailyChart(dailyData, monthSel.value));
+}
+
+// Jalankan ulang init saat full load & setiap HTMX swap.
+// Seluruh body IIFE di atas sudah dijalankan pada saat script dieksekusi.
+if (window.onPageReady) {
+    onPageReady(function () {
+        _chartsInited = false;
+        _chartRetry = 0;
+        // Chart.js tidak ikut swap HTMX (di <head>) — lazy-load bila perlu.
+        // Callback menerima ok=false bila CDN gagal; retry manual pecahkan
+        // cache promise gagal di ensureChartJs.
+        if (typeof ensureChartJs === 'function') {
+            ensureChartJs(function (ok) { if (ok !== false) initDashboardCharts(); });
+        } else {
+            initDashboardCharts();
+        }
+    });
+}
+})();
+</script>
+{% endblock %}

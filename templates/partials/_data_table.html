@@ -1,0 +1,298 @@
+{% include "partials/_dt_theme.html" %}
+
+{% if data %}
+<div class="dt-invoice">
+  <div class="table-wrapper animate-in">
+    <div class="table-toolbar">
+      <div class="table-toolbar-filters">
+      <div class="filter-group">
+        <select class="filter-select" id="filterStatusDPP">
+          <option value="">Status DPP</option>
+          <option value="Lunas">Lunas</option>
+          <option value="Belum Lunas">Belum Lunas</option>
+        </select>
+        <select class="filter-select" id="filterStatusPPN">
+          <option value="">Status PPN</option>
+          <option value="Ada PPN">Ada PPN</option>
+          <option value="Tidak ada PPN">Tidak ada PPN</option>
+          <option value="Ditanggung Rekanan">Ditanggung Rekanan</option>
+        </select>
+        <select class="filter-select" id="filterKategori">
+          <option value="">Kategori</option>
+          {% for cat in categories %}
+          <option value="{{ cat }}">{{ cat }}</option>
+          {% endfor %}
+        </select>
+        <select class="filter-select" id="filterKodeBiaya">
+          <option value="">Kode Biaya</option>
+          {% for kb in kode_biaya_list %}
+          <option value="{{ kb[0] }}">{{ kb[0] }} — {{ kb[1] }}</option>
+          {% endfor %}
+        </select>
+        <select class="filter-select" id="filterStatusBayar">
+          <option value="">Status Bayar</option>
+          <option value="lunas">Lunas (DPP &amp; PPN)</option>
+          <option value="sebagian">Sebagian</option>
+          <option value="belum">Belum Bayar</option>
+        </select>
+        <select class="filter-select" id="filterJatuhTempo">
+          <option value="">Jatuh Tempo</option>
+          <option value="overdue">Lewat Jatuh Tempo</option>
+          <option value="due">Jatuh Tempo ≤ 30 hari</option>
+          <option value="safe">Aman (&gt; 30 hari)</option>
+          <option value="unpaid_no_due">Belum Bayar (tanpa JT)</option>
+        </select>
+        <div class="dd-filter">
+          <button class="dd-toggle">
+            <i class="bi bi-calendar3" style="font-size: 0.78rem"></i> Tgl.
+            Berkas <i class="bi bi-chevron-down"></i>
+          </button>
+          <div class="dd-panel">
+            <label class="dd-all"
+              ><input type="checkbox" class="dd-all-cb" data-group="berkas" />
+              Semua</label
+            >
+            <div class="dd-options" id="ddBerkasOpts"></div>
+          </div>
+        </div>
+        <div class="dd-filter">
+          <button class="dd-toggle">
+            <i class="bi bi-currency-dollar" style="font-size: 0.78rem"></i>
+            Tgl. Bayar DPP <i class="bi bi-chevron-down"></i>
+          </button>
+          <div class="dd-panel">
+            <label class="dd-all"
+              ><input type="checkbox" class="dd-all-cb" data-group="bayar" />
+              Semua</label
+            >
+            <div class="dd-options" id="ddBayarOpts"></div>
+          </div>
+        </div>
+        <div class="search-box ds-search">
+          <i class="bi bi-search"></i>
+          <input
+            type="text"
+            id="searchInput"
+            placeholder="Cari invoice, rekanan, PO..."
+            autocomplete="off"
+          />
+          <span class="search-count" id="searchCount"></span>
+        </div>
+        <button type="button" class="filter-reset" id="filterReset" title="Reset semua filter">
+          <i class="bi bi-x-circle"></i> Reset
+        </button>
+      </div>
+      </div>
+    </div>
+
+    <div class="table-scroll">
+      <table class="table dt-table" id="dataTable" data-enhance>
+        <thead>
+          <tr>
+            <th class="col-sticky-left" style="width: 40px">#</th>
+            <th
+              class="col-sticky-left-2 th-sort"
+              data-col="1"
+              style="min-width: 130px"
+            >
+              NAMA LEVELANSIR <span class="sort-arrow">▲</span>
+            </th>
+            <th class="th-sort" data-col="2" style="width: 85px">
+              TGL BERKAS <span class="sort-arrow">▲</span>
+            </th>
+            <th class="th-sort" data-col="3" style="min-width: 90px">NO. INV INTERNAL <span class="sort-arrow">▲</span></th>
+            <th class="th-sort" data-col="4" style="min-width: 110px">
+              NO. INVOICE <span class="sort-arrow">▲</span>
+            </th>
+            <th class="th-sort" data-col="5" style="min-width: 110px">
+              NO. PO/KONTRAK <span class="sort-arrow">▲</span>
+            </th>
+            <th class="th-sort" data-col="6" style="width: 90px">
+              TGL INVOICE <span class="sort-arrow">▲</span>
+            </th>
+            <th class="th-sort" data-col="7" style="width: 90px">
+              TGL TERIMA <span class="sort-arrow">▲</span>
+            </th>
+            <th class="th-sort" data-col="8" style="min-width: 110px">
+              NO. SERI FAKTUR <span class="sort-arrow">▲</span>
+            </th>
+            <th class="text-center th-sort" data-col="9" style="width: 80px">STATUS DPP <span class="sort-arrow">▲</span></th>
+            <th class="text-center th-sort" data-col="10" style="width: 80px">STATUS PPN <span class="sort-arrow">▲</span></th>
+            <th class="th-sort text-end" data-col="11" style="width: 115px">
+              NILAI DPP <span class="sort-arrow">▲</span>
+            </th>
+            <th class="th-sort text-end" data-col="12" style="width: 105px">
+              NILAI PPN <span class="sort-arrow">▲</span>
+            </th>
+            <th class="th-sort text-end" data-col="13" style="width: 110px">
+              POT. PPH <span class="sort-arrow">▲</span>
+            </th>
+            {% if has_retensi %}
+            <th class="th-sort text-end" data-col="14" style="width: 100px">
+              RETENSI <span class="sort-arrow">▲</span>
+            </th>
+            {% endif %}
+            <th class="th-sort text-end" data-col="15" style="width: 115px">
+              TOTAL (INCLD) <span class="sort-arrow">▲</span>
+            </th>
+            <th class="th-sort text-end" data-col="16" style="width: 105px">
+              BAYAR DPP <span class="sort-arrow">▲</span>
+            </th>
+            <th class="th-sort text-end" data-col="17" style="width: 105px">
+              BAYAR PPN <span class="sort-arrow">▲</span>
+            </th>
+            <th class="th-sort text-end" data-col="18" style="width: 115px">
+              SISA HUTANG DPP <span class="sort-arrow">▲</span>
+            </th>
+            <th class="th-sort text-end" data-col="19" style="width: 115px">
+              SISA HUTANG PPN <span class="sort-arrow">▲</span>
+            </th>
+            <th class="col-sticky-right text-center" style="width: 70px">
+              AKSI
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in data %}
+          <tr
+            class="{% if row._row in overdue_rows %}overdue-row {% endif %}row-clickable"
+            data-search="{{ (row['NAMA LEVELANSIR / REKANAN'] or '') + ' ' + (row['NO INVOICE INTERNAL'] or '') + ' ' + (row['NO INVOICE'] or '') + ' ' + (row['NO PO / KONTRAK'] or '') + ' ' + (row['KATEGORI'] or '') + ' ' + (row['DESKRIPSI'] or '') }}"
+            data-status-dpp="{{ row['STATUS TERHADAP DPP'] }}"
+            data-status-ppn="{{ row['STATUS TERHADAP PPN'] }}"
+            data-kategori="{{ row['KATEGORI'] }}"
+            data-kode-biaya="{{ (row['KODE BIAYA'] or row['KODE BIAYA2'] or '')[:3] }}"
+            data-tgl-berkas="{{ row['TGL TERIMA BERKAS'] }}"
+            data-tgl-bayar-dpp="{{ row['TGL BAYAR DPP'] }}"
+            data-tgl-bayar-ppn="{{ row['TGL BAYAR PPN'] }}"
+            data-tgl-jth-tempo="{{ row['JTH TEMPO'] }}"
+            data-sisa-dpp="{{ row['SISA HUTANG DPP']|default(0,true)|float }}"
+            data-sisa-ppn="{{ row['SISA HUTANG PPN']|default(0,true)|float }}"
+            data-row-idx="{{ row._row }}"
+          >
+            <td class="col-sticky-left" data-type="num" data-v="{{ loop.index }}">
+              <span class="row-num">{{ loop.index }}</span>
+              {% if row._row in audited_rows %}<span
+                class="audit-flag"
+                title="Telah diaudit/diubah"
+                ><i class="bi bi-clock-history"></i></span
+              >{% endif %}
+              {% if row._row in excluded_rows %}<span
+                class="excl-flag"
+                title="Kategori/rekanan di-exclude dari perhitungan (Pengaturan)"
+                ><i class="bi bi-eye-slash"></i></span
+              >{% endif %}
+            </td>
+            <td class="col-sticky-left-2" data-type="text" data-v="{{ row['NAMA LEVELANSIR / REKANAN'] }}">
+              <div class="cell-rekanan">
+                {{ row['NAMA LEVELANSIR / REKANAN'] }}
+              </div>
+              <div class="cell-desc">
+                {{ (row['DESKRIPSI'] or '')[:60] }}{% if (row['DESKRIPSI'] or
+                '')|length > 60 %}...{% endif %}
+              </div>
+            </td>
+            <td class="cell-date" data-type="date" data-v="{{ row['TGL TERIMA BERKAS'] }}">{{ row['TGL TERIMA BERKAS'] }}</td>
+            <td class="cell-inv-internal" data-type="text" data-v="{{ row['NO INVOICE INTERNAL'] or '' }}">
+              {{ row['NO INVOICE INTERNAL'] or '-' }}
+            </td>
+            <td class="cell-invoice" data-type="text" data-v="{{ row['NO INVOICE'] or '' }}">{{ row['NO INVOICE'] or '-' }}</td>
+            <td class="cell-po" data-type="text" data-v="{{ row['NO PO / KONTRAK'] or '' }}">{{ row['NO PO / KONTRAK'] or '-' }}</td>
+            <td class="cell-date" data-type="date" data-v="{{ row['TGL INV'] or '' }}">{{ row['TGL INV'] or '-' }}</td>
+            <td class="cell-date" data-type="date" data-v="{{ row['TGL TERIMA'] or '' }}">{{ row['TGL TERIMA'] or '-' }}</td>
+            <td class="cell-faktur" data-type="text" data-v="{{ row['NO SERI FAKTUR PAJAK'] if (row['NO SERI FAKTUR PAJAK'] or '').strip() not in ('', '0') else '' }}">
+              {{ row['NO SERI FAKTUR PAJAK'] if (row['NO SERI FAKTUR PAJAK'] or '').strip() not in ('', '0') else '-' }}
+            </td>
+            <td class="text-center" data-type="text" data-v="{{ row['STATUS TERHADAP DPP'] or '' }}">
+              {% if row['STATUS TERHADAP DPP'] == 'Lunas' %}<span
+                class="badge-status badge-lunas"
+                >Lunas</span
+              >
+              {% elif row['STATUS TERHADAP DPP'] == 'Belum Lunas' %}<span
+                class="badge-status badge-belum"
+                >Belum</span
+              >
+              {% else %}<span class="badge-kategori">-</span>{% endif %}
+            </td>
+            <td class="text-center" data-type="text" data-v="{{ row['STATUS TERHADAP PPN'] or '' }}">
+              {% if row['STATUS TERHADAP PPN'] == 'Ada PPN' %}<span
+                class="badge-status badge-lunas"
+                >Ada PPN</span
+              >
+              {% elif row['STATUS TERHADAP PPN'] == 'Ditanggung Rekanan' %}<span
+                class="badge-status badge-belum"
+                >Ditanggung</span
+              >
+              {% else %}<span
+                class="badge-kategori"
+                style="background: #eef0f2; color: #4d5766"
+                >Tidak Ada PPN</span
+              >{% endif %}
+            </td>
+            <td class="cell-money" data-type="num" data-v="{{ row['HARGA (EXLD)']|default(0,true)|float }}">
+              {{ (row['HARGA (EXLD)']|default(0,true)|float)|money0 }}
+            </td>
+            <td class="cell-money" data-type="num" data-v="{{ row['PPN']|default(0,true)|float }}">
+              {{ (row['PPN']|default(0,true)|float)|money0 }}
+            </td>
+            <td class="cell-money" data-type="num" data-v="{{ row['POT. PPH']|default(0,true)|float }}">
+              {{ (row['POT. PPH']|default(0,true)|float)|money0 }}
+            </td>
+            {% if has_retensi %}
+            <td class="cell-money" data-type="num" data-v="{{ row['POT. RETENSI']|default(0,true)|float }}">
+              {{ (row['POT. RETENSI']|default(0,true)|float)|money0 }}
+            </td>
+            {% endif %}
+            <td class="cell-money" data-type="num" data-v="{{ row['TOTAL (INCLD)']|default(0,true)|float }}">
+              {{ (row['TOTAL (INCLD)']|default(0,true)|float)|money0 }}
+            </td>
+            <td class="cell-money" data-type="num" data-v="{{ row['PEMBAYARAN DPP']|default(0,true)|float }}">
+              {{ (row['PEMBAYARAN DPP']|default(0,true)|float)|money0 }}
+            </td>
+            <td class="cell-money" data-type="num" data-v="{{ row['PEMBAYARAN PPN']|default(0,true)|float }}">
+              {{ (row['PEMBAYARAN PPN']|default(0,true)|float)|money0 }}
+            </td>
+            <td
+              class="cell-money {% if (row['SISA HUTANG DPP']|default(0,true)|float) > 0 %}text-danger{% else %}text-success{% endif %}"
+              style="font-weight: 700"
+              data-type="num" data-v="{{ row['SISA HUTANG DPP']|default(0,true)|float }}"
+            >
+              {{ (row['SISA HUTANG DPP']|default(0,true)|float)|money0 }}
+            </td>
+            <td
+              class="cell-money {% if (row['SISA HUTANG PPN']|default(0,true)|float) > 0 %}text-danger{% else %}text-success{% endif %}"
+              style="font-weight: 700"
+              data-type="num" data-v="{{ row['SISA HUTANG PPN']|default(0,true)|float }}"
+            >
+              {{ (row['SISA HUTANG PPN']|default(0,true)|float)|money0 }}
+            </td>
+            <td
+              class="col-sticky-right text-center text-nowrap row-actions"
+              onclick="event.stopPropagation()"
+            >
+              <button
+                class="btn-action"
+                onclick="editRow({{ row._row }})"
+                title="Edit data"
+              >
+                <i class="bi bi-pencil"></i>
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="dt-invoice">
+  <div class="empty-state">
+    <i class="bi bi-inbox"></i>
+    <h6>Belum Ada Data Invoice</h6>
+    <p class="text-muted">
+      Import data Excel terlebih dahulu di menu
+      <a href="/import" class="fw-bold text-decoration-none">Import Invoice</a>.
+    </p>
+  </div>
+</div>
+{% endif %}

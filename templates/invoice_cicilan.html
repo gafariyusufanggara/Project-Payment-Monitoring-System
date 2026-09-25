@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+{% block title %}Invoice Cicilan - Project Payment Monitoring System{% endblock %}
+{% block topbar_title %}Invoice Cicilan{% endblock %}
+{% block topbar_icon %}bi-arrow-repeat{% endblock %}
+{% block topbar_badges %}
+<span class="topbar-badge"><i class="bi bi-people"></i> {{ total_rekanan }} Levelansir</span>
+<span class="topbar-badge"><i class="bi bi-file-earmark"></i> {{ total_invoices }} Invoice</span>
+<span class="topbar-badge"><i class="bi bi-layers"></i> {{ total_rows }} Baris</span>
+{% endblock %}
+
+{% block content %}
+<!--
+  Invoice Cicilan — Ledger Desk world (DESIGN.md).
+  THESIS: cicilan sebagai grup expandable rapi — 5 KPI rata, header paper, tabel ledger padat.
+  OWN-WORLD: navy/paper, satu aksen biru, serif hanya angka KPI, mono sel uang.
+  STORY: staf finance scan sisa DPP per invoice lalu buka cicilan lalu cek tiap pembayaran.
+  FIRST VIEWPORT: header + 5 KPI rata + search + awal kartu grup.
+  FORM: refinement Operate, mirror tokens projects.html/_dashboard.html.
+  FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+-->
+<style>
+  .cic-wrap { display: flex; flex-direction: column; gap: 16px; max-width: 1200px; margin: 0 auto; }
+  .cic-sub { margin: 2px 0 0; font-size: .78rem; color: #667080; }
+  .cic-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .cic-count { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: #667080; }
+  .cic-kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+  .ds-kpi--compact { padding: 12px 14px; display: flex; align-items: center; gap: 12px; }
+  .ds-kpi--compact > div:last-child { flex: 1; min-width: 0; }
+  .ds-kpi .ds-kpi__value.ds-kpi__value { font-size: 1rem; white-space: nowrap; }
+  .ds-kpi .ds-kpi__value.cic-val-sm { font-size: .85rem; }
+  .ds-kpi .ds-kpi__value.cic-val-xs { font-size: .72rem; }
+  .kpi-ico {
+    width: 38px; height: 38px; min-width: 38px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center; font-size: 1rem;
+  }
+  .kpi-ico--blue { background: #e2eff8; color: #005691; }
+  .kpi-ico--green { background: #e4f9e7; color: #1d7a2b; }
+  .kpi-ico--rose { background: #fdecea; color: #a12a1d; }
+  .kpi-ico--amber { background: #fdf6d8; color: #8a6d00; }
+  .kpi-ico--slate { background: #eef0f2; color: #4d5766; }
+  .cic-group {
+    background: #fff; border: 1px solid #e3e5e8; border-radius: 16px;
+    box-shadow: 0 1px 3px rgba(51, 51, 51,.05); overflow: hidden;
+    transition: box-shadow .25s cubic-bezier(.4,0,.2,1);
+  }
+  .cic-group:hover { box-shadow: 0 4px 12px -2px rgba(51, 51, 51,.08), 0 2px 6px -1px rgba(51, 51, 51,.04); }
+  .cic-head {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 12px 18px; background: #f7f8f9; border-bottom: 1px solid #e3e5e8;
+    cursor: pointer; user-select: none;
+  }
+  .cic-head:hover { background: #eef0f2; }
+  .cic-head:focus-visible { outline: none; box-shadow: inset 0 0 0 2px rgba(0, 86, 145,.5); }
+  .cic-chevron { font-size: .75rem; color: #4d5766; transition: transform .25s cubic-bezier(.4,0,.2,1); width: 20px; text-align: center; }
+  .cic-head.collapsed .cic-chevron { transform: rotate(-90deg); }
+  .cic-rekanan { font-weight: 700; font-size: .88rem; color: #333333; flex: 1 1 160px; min-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cic-inv {
+    font-family: "JetBrains Mono", "SF Mono", monospace; font-size: .7rem; font-weight: 600;
+    color: #005691; background: #e2eff8; padding: 3px 10px; border-radius: 6px; white-space: nowrap;
+  }
+  .cic-internal {
+    font-size: .7rem; font-weight: 600; color: #4d5766; background: #eef0f2;
+    padding: 3px 10px; border-radius: 6px; white-space: nowrap;
+  }
+  .cic-count-pill { font-size: .7rem; font-weight: 700; color: #4d5766; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .ds-badge { padding: 3px 10px; border-radius: 6px; font-size: .7rem; font-weight: 700; display: inline-block; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .ds-badge-green { background: #e4f9e7; color: #1d7a2b; }
+  .ds-badge-red { background: #fdecea; color: #a12a1d; }
+  .ds-badge-gray { background: #eef0f2; color: #4d5766; }
+  .cic-prog { height: 6px; background: #eef0f2; overflow: hidden; }
+  .cic-prog > span { display: block; height: 100%; background: #005691; }
+  .cic-prog > span.done { background: #2ECC40; }
+  .cic-body { overflow-x: auto; }
+  .cic-table { width: 100%; font-size: .78rem; border-collapse: separate; border-spacing: 0; min-width: 680px; }
+  .cic-table thead th {
+    background: #f7f8f9; color: #4d5766; font-size: .7rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .6px; padding: 10px 14px;
+    border-bottom: 2px solid #e3e5e8; white-space: nowrap; text-align: left;
+  }
+  .cic-table thead th.num { text-align: right; }
+  .cic-table tbody td { padding: 9px 14px; border-bottom: 1px solid #eef0f2; vertical-align: middle; color: #333333; }
+  .cic-table tbody tr:last-child td { border-bottom: none; }
+  .cic-table tbody tr:hover td { background: #f7f8f9; }
+  .cic-table .cell-money {
+    font-family: "JetBrains Mono", "SF Mono", monospace; text-align: right;
+    font-variant-numeric: tabular-nums; font-weight: 600; font-size: .75rem; white-space: nowrap;
+  }
+  .cic-table .cell-dim { font-family: "JetBrains Mono", monospace; font-size: .75rem; color: #4d5766; font-variant-numeric: tabular-nums; }
+  ::selection { background: #e2eff8; }
+  @media (max-width: 1024px) { .cic-kpis { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 640px) {
+    .cic-kpis { grid-template-columns: repeat(2, 1fr); }
+    .cic-rekanan { flex-basis: 100%; white-space: normal; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .cic-group, .cic-chevron, .cic-head { transition: none; }
+  }
+</style>
+
+<div class="cic-wrap animate-in">
+
+  <div class="cic-kpis">
+    <div class="ds-kpi ds-kpi--compact" tabindex="0">
+      <div class="kpi-ico kpi-ico--slate"><i class="bi bi-people"></i></div>
+      <div><div class="ds-kpi__label">Total Levelansir</div><div class="ds-kpi__value">{{ total_rekanan }}</div></div>
+    </div>
+    <div class="ds-kpi ds-kpi--compact" tabindex="0">
+      <div class="kpi-ico kpi-ico--blue"><i class="bi bi-file-earmark"></i></div>
+      <div><div class="ds-kpi__label">Total Invoice</div><div class="ds-kpi__value">{{ total_invoices }}</div><div class="ds-kpi__hint">{{ total_rows }} baris cicilan</div></div>
+    </div>
+    <div class="ds-kpi ds-kpi--compact" tabindex="0">
+      <div class="kpi-ico kpi-ico--amber"><i class="bi bi-calculator"></i></div>
+      <div><div class="ds-kpi__label">Total DPP</div><div class="ds-kpi__value {{ 'cic-val-xs' if total_harga|money|length > 17 else ('cic-val-sm' if total_harga|money|length > 12 else '') }}">{{ total_harga|money }}</div></div>
+    </div>
+    <div class="ds-kpi ds-kpi--compact ds-kpi--ok" tabindex="0">
+      <div class="kpi-ico kpi-ico--green"><i class="bi bi-cash"></i></div>
+      <div><div class="ds-kpi__label">Terbayar DPP</div><div class="ds-kpi__value {{ 'cic-val-xs' if total_bayar|money|length > 17 else ('cic-val-sm' if total_bayar|money|length > 12 else '') }}">{{ total_bayar|money }}</div></div>
+    </div>
+    <div class="ds-kpi ds-kpi--compact{% if total_sisa > 0 %} ds-kpi--err{% endif %}" tabindex="0">
+      <div class="kpi-ico kpi-ico--rose"><i class="bi bi-exclamation-circle"></i></div>
+      <div><div class="ds-kpi__label">Sisa DPP</div><div class="ds-kpi__value {{ 'cic-val-xs' if total_sisa|money|length > 17 else ('cic-val-sm' if total_sisa|money|length > 12 else '') }}">{{ total_sisa|money }}</div></div>
+    </div>
+  </div>
+
+  <div class="cic-toolbar">
+    <div class="ds-search">
+      <i class="bi bi-search"></i>
+      <input type="text" id="icSearch" placeholder="Cari rekanan / invoice..." oninput="filterCicilan()" aria-label="Cari rekanan atau invoice" />
+    </div>
+    <span class="cic-count" id="icCount" aria-live="polite"></span>
+  </div>
+
+  {% if cicilan %}
+    {% for g in cicilan %}
+    {% set pct = (g.total_bayar_dpp / g.dpp_total * 100) if g.dpp_total > 0 else 0 %}
+    <section class="cic-group" data-name="{{ g.rekanan|lower }}" data-invoice="{{ g.invoice|lower }}">
+      <div class="cic-head" role="button" tabindex="0" aria-expanded="true"
+        onclick="this.classList.toggle('collapsed');this.setAttribute('aria-expanded', !this.classList.contains('collapsed'));this.parentElement.querySelector('.cic-body').classList.toggle('d-none');this.parentElement.querySelector('.cic-prog').classList.toggle('d-none');"
+        onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
+        <i class="bi bi-chevron-down cic-chevron" aria-hidden="true"></i>
+        <span class="cic-rekanan">{{ g.rekanan }}</span>
+        <span class="cic-inv">{{ g.invoice }}</span>
+        {% if g.invoice_internal %}<span class="cic-internal">{{ g.invoice_internal }}</span>{% endif %}
+        <span class="cic-count-pill">{{ g.row_count }}&times; cicilan</span>
+        {% if g.sisa_dpp > 0 %}
+        <span class="ds-badge ds-badge-red">Sisa {{ g.sisa_dpp|money }}</span>
+        {% else %}
+        <span class="ds-badge ds-badge-green">Lunas</span>
+        {% endif %}
+      </div>
+      <div class="cic-prog" role="progressbar" aria-valuenow="{{ '%.1f'|format(pct) }}" aria-valuemin="0" aria-valuemax="100" aria-label="Progres bayar {{ g.invoice }}">
+        <span class="{% if g.sisa_dpp <= 0 %}done{% endif %}" style="width:{{ pct if pct <= 100 else 100 }}%"></span>
+      </div>
+      <div class="cic-body">
+        <table class="cic-table">
+          <thead>
+            <tr>
+              <th>Vol. Progress</th>
+              <th>No. PO / Kontrak</th>
+              <th>Deskripsi</th>
+              <th class="num">Nilai DPP</th>
+              <th class="num">Pembayaran DPP</th>
+              <th class="num">Sisa DPP</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in g.payments %}
+            <tr>
+              <td class="cell-dim">{{ '%.2f'|format(p.volume|float) if p.volume else '-' }}</td>
+              <td>{{ p.no_po or '-' }}</td>
+              <td>{{ p.deskripsi or '-' }}</td>
+              <td class="cell-money">{{ p.harga_excl|money }}</td>
+              <td class="cell-money">{{ p.amount|money }}</td>
+              <td class="cell-money">{{ p.sisa|money }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+    {% endfor %}
+  {% else %}
+  <div class="ds-empty">
+    <i class="bi bi-check-circle-fill" style="color:#2ECC40"></i>
+    <div class="ds-empty__title">Tidak Ada Invoice Cicilan</div>
+    <p class="ds-empty__text">Tidak ada invoice dengan cicilan (semua invoice hanya 1 baris).</p>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+function filterCicilan() {
+  var q = document.getElementById('icSearch').value.toLowerCase();
+  var cards = document.querySelectorAll('.cic-group');
+  var shown = 0;
+  cards.forEach(function(c) {
+    var name = (c.getAttribute('data-name') || '') + ' ' + (c.getAttribute('data-invoice') || '');
+    var hit = name.indexOf(q) !== -1;
+    c.style.display = hit ? '' : 'none';
+    if (hit) shown++;
+  });
+  var el = document.getElementById('icCount');
+  if (el) el.textContent = shown + ' / ' + cards.length + ' grup';
+}
+// Re-init pada full load & setiap HTMX swap (konten di-swap tanpa reload penuh).
+if (window.onPageReady) onPageReady(filterCicilan);
+else document.addEventListener('DOMContentLoaded', filterCicilan);
+</script>
+{% endblock %}

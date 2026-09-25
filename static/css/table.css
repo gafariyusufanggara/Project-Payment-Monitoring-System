@@ -1,0 +1,632 @@
+/* ==========================================================================
+   table.css — shared data-table layer
+   --------------------------------------------------------------------------
+   Extracted from per-template <style> blocks (which duplicated ~19.9 KB of
+   identical rules across laporan_mingguan / laporan_bulanan / laporan_ppn).
+
+   Scope: everything is namespaced so it can be dropped onto a page without
+   disturbing existing template CSS. Opt in per table with [data-enhance].
+
+   Design mode: OPERATE. User is completing a task — scanning financial rows.
+   Scanability and consistency outrank expression. Colour is reserved for
+   state (lunas / belum / overdue), never decoration.
+   ========================================================================== */
+
+:root {
+  /* --frozen-1 is published at runtime by table-enhance.js by measuring the
+     real width of column #1 (replaces the previous hard-coded `left: 40px`). */
+  --frozen-1: 40px;
+
+  --te-border: #e3e5e8;
+  --te-head-from: #0a6aa8;
+  --te-head-to: #004a7c;
+  --te-head-fg: #eaf2f9;
+  --te-row: #ffffff;
+  --te-row-alt: #f7f8f9;
+  --te-hover: #eef0f2;
+  --te-fg: #333333;
+  /* #667080 is 4.76:1 on white but only 4.34:1 on the #eef0f2 hover/zebra
+     surface — below AA. #4d5766 clears it everywhere (6.9:1 on #eef0f2). */
+  --te-muted: #4d5766;
+  --te-danger: #e74c3c;
+  --te-danger-soft: #fdecea;
+  --te-danger-alt: #fdecea;
+  --te-danger-hover: #f8cfc9;
+  --te-accent: #005691;
+  --te-accent-soft: #eaf2f9;
+
+  /* Typography: previous 0.68 / 0.78 rem was too small to read currency at
+     a glance. 0.75 / 0.85 keeps density while restoring legibility.
+
+     Padding is set COMPACT by default: these are dense financial ledgers
+     (18-22 columns) meant to be scanned. The density toggle was removed —
+     comfortable padding was never used. */
+  --te-fs-head: 0.75rem;
+  --te-fs-body: 0.85rem;
+  --te-pad-y: 4px;
+  --te-pad-x: 7px;
+  --te-shadow: 0 1px 2px rgba(51, 51, 51, 0.06);
+}
+
+/* ---------- scroll container ---------- */
+
+.table-scroll {
+  overflow: auto;
+  max-height: 72vh;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ---------- base table ---------- */
+
+#dataTable,
+table[data-enhance] {
+  margin: 0;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--te-fs-body);
+  color: var(--te-fg);
+  /* Currency columns must not jitter as digits change row to row. */
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+#dataTable thead,
+table[data-enhance] thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+#dataTable thead th,
+table[data-enhance] thead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: linear-gradient(180deg, var(--te-head-from) 0%, var(--te-head-to) 100%);
+  color: var(--te-head-fg);
+  font-size: var(--te-fs-head);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 12px var(--te-pad-x);
+  white-space: nowrap;
+  border: none;
+}
+
+#dataTable thead th.text-end,
+table[data-enhance] thead th.text-end {
+  text-align: right !important;
+}
+
+#dataTable thead th.text-center,
+table[data-enhance] thead th.text-center {
+  text-align: center !important;
+}
+
+#dataTable tbody td,
+table[data-enhance] tbody td {
+  padding: var(--te-pad-y) var(--te-pad-x);
+  font-size: var(--te-fs-body);
+  vertical-align: middle;
+  background: var(--te-row);
+  border-bottom: 1px solid #eef0f2;
+  border-top: none;
+  transition: background 0.15s;
+}
+
+#dataTable tbody tr:nth-child(even) td,
+table[data-enhance] tbody tr:nth-child(even) td {
+  background: var(--te-row-alt);
+}
+
+#dataTable tbody tr:hover td,
+table[data-enhance] tbody tr:hover td {
+  background: var(--te-hover) !important;
+}
+
+/* ---------- overdue state ---------- */
+
+#dataTable tbody tr.overdue-row td,
+table[data-enhance] tbody tr.overdue-row td {
+  background: var(--te-danger-soft);
+}
+
+#dataTable tbody tr.overdue-row:nth-child(even) td,
+table[data-enhance] tbody tr.overdue-row:nth-child(even) td {
+  background: var(--te-danger-alt);
+}
+
+#dataTable tbody tr.overdue-row:hover td,
+table[data-enhance] tbody tr.overdue-row:hover td {
+  background: var(--te-danger-hover) !important;
+}
+
+/* ---------- frozen columns ----------
+   Left offset driven by --frozen-1, measured at runtime.
+   Opaque background is mandatory: sticky cells sit above scrolling content. */
+
+#dataTable th.col-sticky-left,
+#dataTable td.col-sticky-left,
+table[data-enhance] th.col-sticky-left,
+table[data-enhance] td.col-sticky-left {
+  position: sticky;
+  left: 0;
+  z-index: 5;
+  background: var(--te-row);
+  box-shadow: inset -1px 0 0 var(--te-border);
+}
+
+#dataTable thead th.col-sticky-left,
+table[data-enhance] thead th.col-sticky-left {
+  z-index: 22;
+  background: linear-gradient(180deg, var(--te-head-from) 0%, var(--te-head-to) 100%);
+}
+
+#dataTable th.col-sticky-left-2,
+#dataTable td.col-sticky-left-2,
+table[data-enhance] th.col-sticky-left-2,
+table[data-enhance] td.col-sticky-left-2 {
+  position: sticky;
+  left: var(--frozen-1);
+  z-index: 4;
+  background: var(--te-row);
+  box-shadow: inset -1px 0 0 var(--te-border);
+}
+
+#dataTable thead th.col-sticky-left-2,
+table[data-enhance] thead th.col-sticky-left-2 {
+  z-index: 22;
+  background: linear-gradient(180deg, var(--te-head-from) 0%, var(--te-head-to) 100%);
+}
+
+#dataTable tbody tr:nth-child(even) td.col-sticky-left,
+#dataTable tbody tr:nth-child(even) td.col-sticky-left-2,
+table[data-enhance] tbody tr:nth-child(even) td.col-sticky-left,
+table[data-enhance] tbody tr:nth-child(even) td.col-sticky-left-2 {
+  background: var(--te-row-alt);
+}
+
+#dataTable tbody tr:hover td.col-sticky-left,
+#dataTable tbody tr:hover td.col-sticky-left-2,
+table[data-enhance] tbody tr:hover td.col-sticky-left,
+table[data-enhance] tbody tr:hover td.col-sticky-left-2 {
+  background: var(--te-hover) !important;
+}
+
+/* Frozen cells must inherit the overdue tint, or the row reads as two halves. */
+#dataTable tbody tr.overdue-row td.col-sticky-left,
+#dataTable tbody tr.overdue-row td.col-sticky-left-2,
+table[data-enhance] tbody tr.overdue-row td.col-sticky-left,
+table[data-enhance] tbody tr.overdue-row td.col-sticky-left-2 {
+  background: var(--te-danger-soft);
+}
+
+#dataTable tbody tr.overdue-row:nth-child(even) td.col-sticky-left,
+#dataTable tbody tr.overdue-row:nth-child(even) td.col-sticky-left-2,
+table[data-enhance] tbody tr.overdue-row:nth-child(even) td.col-sticky-left,
+table[data-enhance] tbody tr.overdue-row:nth-child(even) td.col-sticky-left-2 {
+  background: var(--te-danger-alt);
+}
+
+#dataTable tbody tr.overdue-row:hover td.col-sticky-left,
+#dataTable tbody tr.overdue-row:hover td.col-sticky-left-2,
+table[data-enhance] tbody tr.overdue-row:hover td.col-sticky-left,
+table[data-enhance] tbody tr.overdue-row:hover td.col-sticky-left-2 {
+  background: var(--te-danger-hover) !important;
+}
+
+/* ---------- sort affordance ---------- */
+
+.th-sort {
+  cursor: pointer;
+  user-select: none;
+}
+
+.th-sort:hover {
+  color: #ffffff;
+}
+
+.th-sort .sort-arrow {
+  opacity: 0.25;
+  font-size: 0.7em;
+  margin-left: 2px;
+  transition: opacity 0.15s, transform 0.15s;
+}
+
+.th-sort:hover .sort-arrow {
+  opacity: 0.6;
+}
+
+.th-sort.sort-asc .sort-arrow,
+.th-sort.sort-desc .sort-arrow {
+  opacity: 1;
+  color: #7fc4ee;
+}
+
+.th-sort.sort-desc .sort-arrow {
+  display: inline-block;
+  transform: rotate(180deg);
+}
+
+/* Keyboard focus must be visible — the header is an interactive control. */
+.th-sort:focus-visible {
+  outline: 2px solid #7fc4ee;
+  outline-offset: -2px;
+}
+
+/* ---------- compact density (default, no toggle) ----------
+   Every table is dense. These are financial ledgers with 18-22 columns meant
+   to be scanned, so comfortable padding was never the right default.
+   Applies to enhanced tables, #dataTable, and the report tables alike. */
+
+table.te-compact,
+#dataTable,
+table[data-enhance],
+.lp-tbl,
+.lp-mtbl,
+.jt-tbl,
+.jt-mtbl,
+.vf-table {
+  --te-pad-y: 4px;
+  --te-pad-x: 7px;
+}
+
+table.te-compact thead th,
+#dataTable thead th,
+table[data-enhance] thead th,
+.lp-tbl thead th,
+.lp-mtbl thead th,
+.jt-tbl thead th,
+.jt-mtbl thead th,
+.vf-table thead th {
+  padding: 6px var(--te-pad-x);
+}
+
+table.te-compact tbody td,
+#dataTable tbody td,
+table[data-enhance] tbody td,
+.lp-tbl tbody td,
+.lp-mtbl tbody td,
+.jt-tbl tbody td,
+.jt-mtbl tbody td,
+.vf-table tbody td {
+  padding: var(--te-pad-y) var(--te-pad-x);
+  line-height: 1.35;
+}
+
+/* ---------- toolbar ---------- */
+
+.te-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  background: #f7f8f9;
+  border: 1px solid var(--te-border);
+  border-bottom: none;
+  border-radius: 10px 10px 0 0;
+}
+
+.te-spacer {
+  flex: 1 1 auto;
+}
+
+.te-info {
+  font-size: 0.78rem;
+  color: var(--te-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.te-info--hdr {
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 0.66rem;
+  font-weight: 600;
+  color: #667080;
+  margin-left: auto;
+}
+
+.te-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--te-fg);
+  background: #ffffff;
+  border: 1px solid var(--te-border);
+  border-radius: 7px;
+  cursor: pointer;
+  min-height: 30px;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.te-btn:hover {
+  background: #eef0f2;
+  border-color: #c9ccd1;
+}
+
+.te-btn:focus-visible {
+  outline: 2px solid var(--te-accent);
+  outline-offset: 1px;
+}
+
+.te-btn.is-active {
+  background: var(--te-accent-soft);
+  border-color: #c4ddef;
+  color: var(--te-accent);
+}
+
+.te-btn .bi {
+  font-size: 0.85em;
+}
+
+/* ---------- pager ---------- */
+
+.te-pager {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  background: #f7f8f9;
+  border: 1px solid var(--te-border);
+  border-top: none;
+  border-radius: 0 0 10px 10px;
+}
+
+.te-select {
+  padding: 4px 8px;
+  font-size: 0.78rem;
+  color: var(--te-fg);
+  background: #ffffff;
+  border: 1px solid var(--te-border);
+  border-radius: 6px;
+  cursor: pointer;
+  min-height: 28px;
+}
+
+.te-select:focus-visible {
+  outline: 2px solid var(--te-accent);
+  outline-offset: 1px;
+}
+
+.te-page-nums {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.te-page-btn,
+.te-page-num {
+  min-width: 28px;
+  min-height: 28px;
+  padding: 3px 7px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--te-fg);
+  background: #ffffff;
+  border: 1px solid var(--te-border);
+  border-radius: 6px;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.te-page-btn:hover:not(:disabled),
+.te-page-num:hover:not(.is-current) {
+  background: #eef0f2;
+  border-color: #c9ccd1;
+}
+
+.te-page-btn:disabled,
+.te-page-btn.is-disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.te-page-num.is-current {
+  background: var(--te-accent);
+  border-color: var(--te-accent);
+  color: #ffffff;
+  cursor: default;
+}
+
+.te-page-btn:focus-visible,
+.te-page-num:focus-visible {
+  outline: 2px solid var(--te-accent);
+  outline-offset: 1px;
+}
+
+.te-gap {
+  padding: 0 2px;
+  color: var(--te-muted);
+  user-select: none;
+}
+
+/* ---------- column panel (fixed: escapes overflow/sticky clipping) ---------- */
+
+.te-panel {
+  position: fixed;
+  z-index: 1080;
+  width: 240px;
+  max-height: 320px;
+  overflow-y: auto;
+  background: #ffffff;
+  border: 1px solid var(--te-border);
+  border-radius: 10px;
+  box-shadow: 0 10px 25px rgba(51, 51, 51, 0.12);
+  padding: 8px;
+}
+
+.te-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 4px 8px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--te-border);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--te-muted);
+}
+
+.te-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--te-accent);
+  cursor: pointer;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.te-link:hover {
+  text-decoration: underline;
+}
+
+.te-panel-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.te-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 6px;
+  font-size: 0.82rem;
+  color: var(--te-fg);
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.te-check:hover {
+  background: #eef0f2;
+}
+
+.te-check input {
+  flex: 0 0 auto;
+  cursor: pointer;
+  accent-color: var(--te-accent);
+}
+
+.te-check input:disabled {
+  cursor: not-allowed;
+}
+
+.te-check input:disabled + span {
+  opacity: 0.55;
+}
+
+/* ---------- sticky right action column ---------- */
+
+#dataTable th.col-sticky-right,
+#dataTable td.col-sticky-right,
+table[data-enhance] th.col-sticky-right,
+table[data-enhance] td.col-sticky-right {
+  position: sticky;
+  right: 0;
+  z-index: 5;
+  background: var(--te-row);
+  box-shadow: inset 1px 0 0 var(--te-border);
+}
+
+#dataTable thead th.col-sticky-right,
+table[data-enhance] thead th.col-sticky-right {
+  z-index: 22;
+  background: linear-gradient(180deg, var(--te-head-from) 0%, var(--te-head-to) 100%);
+}
+
+#dataTable tbody tr:nth-child(even) td.col-sticky-right,
+table[data-enhance] tbody tr:nth-child(even) td.col-sticky-right {
+  background: var(--te-row-alt);
+}
+
+#dataTable tbody tr:hover td.col-sticky-right,
+table[data-enhance] tbody tr:hover td.col-sticky-right {
+  background: var(--te-hover) !important;
+}
+
+/* ---------- report tables (laporan_*) ----------
+   These keep their own visual identity (grp-* header groups, per-brand
+   colours). We only contribute the frozen first column, which is the part
+   that was missing and made 19-22 column reports painful to scan.
+   Inherits --frozen-1 published by table-enhance.js. */
+
+.lp-tbl th:first-child,
+.lp-tbl td:first-child,
+.lp-mtbl th:first-child,
+.lp-mtbl td:first-child,
+.jt-tbl th:first-child,
+.jt-tbl td:first-child,
+.jt-mtbl th:first-child,
+.jt-mtbl td:first-child,
+.vf-table th:first-child,
+.vf-table td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 4;
+}
+
+/* Header cells must sit above both frozen body cells and normal headers. */
+.lp-tbl thead th:first-child,
+.lp-mtbl thead th:first-child,
+.jt-tbl thead th:first-child,
+.jt-mtbl thead th:first-child,
+.vf-table thead th:first-child {
+  z-index: 12;
+}
+
+/* laporan_bulanan / _laporan_bulanan_body use a 2-row head where the first
+   cell is rowspanned — the second row has no first cell, so single-row heads
+   (jt-*, vf-table) are unaffected by this reset. */
+.lp-tbl thead tr:nth-child(2) th:first-child,
+.lp-mtbl thead tr:nth-child(2) th:first-child {
+  position: static;
+}
+
+/* ---------- reduced motion ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  #dataTable tbody td,
+  table[data-enhance] tbody td,
+  .te-btn,
+  .te-page-btn,
+  .te-page-num,
+  .th-sort .sort-arrow {
+    transition: none;
+  }
+}
+
+/* ---------- narrow viewports ---------- */
+
+@media (max-width: 768px) {
+  .te-toolbar,
+  .te-pager {
+    padding: 8px 10px;
+  }
+
+  .te-info {
+    width: 100%;
+    order: -1;
+  }
+
+  /* Touch targets need room, even in compact mode. */
+  .te-btn,
+  .te-page-btn,
+  .te-page-num,
+  .te-select {
+    min-height: 34px;
+  }
+}

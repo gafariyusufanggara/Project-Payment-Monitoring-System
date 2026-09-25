@@ -1,0 +1,647 @@
+{% extends "base.html" %} {% block title %}Import Kontrak - Project Payment Monitoring System{% endblock %} {% block sidebar_footer %}
+<div class="sidebar-footer">
+  <i class="bi bi-dot"></i> v2.2 &middot; Import Kontrak
+</div>
+{% endblock %} {% block topbar_icon %}bi-cloud-upload{% endblock %} {% block
+topbar_title %}Import Kontrak{% endblock %} {% block topbar_badges %}
+<span class="topbar-badge tb-xlsx">
+  <i class="bi bi-file-earmark-excel"></i> .xlsx
+</span>
+{% endblock %} {% block content %}
+<div class="animate-in imp-wrap">
+  <div class="imp-card">
+    <div class="imp-card-body">
+      <form
+        method="POST"
+        action="{{ url_for('contract.import_excel') }}"
+        enctype="multipart/form-data"
+        id="importKontrakForm"
+      >
+        <!-- Step 1: Project Binding -->
+        <div class="imp-step">
+          <label class="imp-step-label" for="projectSelect">
+            <span class="step-num" aria-hidden="true">1</span>
+            <span>Pilih Proyek <span class="text-danger" aria-hidden="true">*</span></span>
+          </label>
+          {% if project_list %}
+          <select
+            class="form-select"
+            name="project_id"
+            id="projectSelect"
+            required
+          >
+            <option value="">-- Pilih Proyek --</option>
+            {% for pid, label in project_list %}
+            <option value="{{ pid }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+          <div class="form-text" role="note">
+            Kontrak akan <strong>terikat ke proyek ini</strong>.
+          </div>
+          {% else %}
+          <div class="alert alert-warning mb-0 imp-empty" role="alert">
+            <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+            <span>Belum ada proyek.
+              <a href="/project/create">Buat proyek dulu</a> sebelum import.</span>
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Step 2: Upload -->
+        <div class="imp-step">
+          <div class="imp-step-label" id="fileLabel">
+            <span class="step-num" aria-hidden="true">2</span>
+            <span>Pilih File Excel <span class="text-danger" aria-hidden="true">*</span></span>
+          </div>
+          <div
+            class="upload-area"
+            id="uploadArea"
+            role="button"
+            tabindex="0"
+            aria-labelledby="fileLabel"
+            aria-describedby="uploadHint"
+            aria-label="Area unggah file Excel: klik atau drag and drop"
+          >
+            <i class="bi bi-cloud-arrow-up" aria-hidden="true"></i>
+            <div class="upload-text mt-2" id="uploadText">
+              Klik atau drag & drop file Excel di sini
+            </div>
+            <div class="upload-hint" id="uploadHint">
+              Format: .xlsx / .xls, maks 50MB
+            </div>
+            <div class="upload-meta" id="uploadMeta" aria-live="polite" hidden></div>
+          </div>
+          <input
+            type="file"
+            name="file"
+            id="fileInput"
+            accept=".xlsx,.xls"
+            class="d-none"
+            required
+          />
+        </div>
+
+        <!-- Step 3: Sheet Selection (opsional) -->
+        <div class="imp-step">
+          <label class="imp-step-label" for="sheetName">
+            <span class="step-num" aria-hidden="true">3</span>
+            <span>Sheet Name</span>
+          </label>
+          <div class="input-group">
+            <input
+              type="text"
+              class="form-control"
+              name="sheet_name"
+              id="sheetName"
+              placeholder="Kosongkan untuk auto-detect"
+              autocomplete="off"
+            />
+            <button type="button" class="btn imp-btn-sheet" id="listSheetsBtn">
+              <i class="bi bi-list" aria-hidden="true"></i> List Sheets
+            </button>
+          </div>
+          <div id="sheetList" class="mt-2" style="display: none">
+            <label class="visually-hidden" for="sheetSelect">Pilih sheet dari file</label>
+            <select class="form-select form-select-sm" id="sheetSelect">
+              <option value="">-- Pilih Sheet --</option>
+            </select>
+          </div>
+          <div class="form-text" id="sheetHelp">Klik List Sheets setelah memilih file, atau kosongkan untuk deteksi otomatis.</div>
+        </div>
+
+        <!-- Info Aturan -->
+        <div class="mapping-info">
+          <div class="mapping-info__title">
+            <i class="bi bi-info-circle" aria-hidden="true"></i>
+            <strong>Aturan Import</strong>
+          </div>
+          <p>
+            Cara termudah: klik <strong>Download Template</strong>, isi sesuai
+            contoh di sheet <strong>Petunjuk</strong>, lalu upload kembali.
+            Parser membaca kolom berdasarkan <strong>nama header</strong>
+            (format terbaru). Format lama
+            (<strong>Total Termin (Rp)</strong>) tetap dikenali.
+          </p>
+          <div class="col-list">
+            <code>No PO</code>, <code>Vendor</code>,
+            <code>Tipe Kontrak</code>, <code>Nilai Kontrak</code>,
+            <code>Metode Penetapan Nilai Kontrak</code>, <code>PPN (%)</code>,
+            <code>Metode Pembayaran</code>, <code>Termin</code>,
+            <code>Tgl Maksimal Termin</code>, <code>Termin (%)</code>,
+            <code>Nilai DPP Termin</code>, <code>Nilai PPN Termin</code>,
+            <code>Durasi Termin Pembayaran (Hari)</code>
+          </div>
+          <p class="mt-2 mb-0">
+            <strong>1 baris = 1 termin.</strong> No. kontrak yang sudah
+            terdaftar akan <strong>diganti datanya</strong> (bukan dobel).
+            Pencocokan dengan invoice memakai kolom
+            <strong>NO PO / KONTRAK</strong> di halaman Data Invoice.
+          </p>
+        </div>
+
+        <div class="imp-actions">
+          <button
+            type="submit"
+            class="btn btn-import"
+            id="importBtn"
+            {% if not project_list %}disabled{% endif %}
+          >
+            <i class="bi bi-upload" aria-hidden="true"></i> Import Kontrak
+          </button>
+          <a href="{{ url_for('contract.import_template') }}" class="btn btn-secondary-premium">
+            <i class="bi bi-download" aria-hidden="true"></i> Download Template
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<!-- Page CSS + script di dalam block content agar ikut di-swap & dieksekusi HTMX. -->
+<style>
+  .tb-xlsx { background: #eaf2f9; color: #005691; }
+  /* ── Import page (Ledger Desk, sama dengan Import Invoice) ── */
+  .imp-wrap {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  /* ── Card ── */
+  .imp-card {
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+  }
+  .imp-card-body {
+    padding: 24px;
+  }
+
+  /* ── Steps ── */
+  .imp-step {
+    margin-bottom: 24px;
+  }
+  .imp-step:last-of-type {
+    margin-bottom: 20px;
+  }
+  .imp-step-label {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+  label.imp-step-label { cursor: pointer; }
+  div.imp-step-label { cursor: default; }
+  .step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    background: var(--deep);
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 800;
+    margin-right: 8px;
+    flex-shrink: 0;
+  }
+
+  /* ── Upload Area ── */
+  .upload-area {
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 36px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+    background: #ffffff;
+  }
+  .upload-area:hover {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0, 86, 145, 0.12);
+  }
+  .upload-area:focus-visible {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0, 86, 145, 0.18);
+  }
+  .upload-area.dragover {
+    background: #eaf2f9;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px rgba(0, 86, 145, 0.15);
+  }
+  .upload-area.is-file {
+    border-style: solid;
+    border-color: var(--success);
+    background: #eef9ef;
+  }
+  .upload-area i {
+    font-size: 2.5rem;
+    color: var(--accent);
+  }
+  .upload-area.is-file i { color: var(--success); }
+  .upload-area .upload-text {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--text);
+    overflow-wrap: anywhere;
+  }
+  .upload-area .upload-hint {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+  .upload-area .upload-meta {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-top: 6px;
+    font-variant-numeric: tabular-nums;
+  }
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  /* ── Form Controls ── */
+  .imp-card .form-control,
+  .imp-card .form-select {
+    font-size: 0.85rem;
+    border-radius: 8px;
+    padding: 9px 14px;
+    border-color: var(--border);
+    font-family: inherit;
+    min-height: 40px;
+  }
+  .imp-card .form-control:focus,
+  .imp-card .form-select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0, 86, 145, 0.12);
+  }
+  .imp-card .form-text {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-top: 8px;
+    line-height: 1.5;
+  }
+  .imp-card .form-text strong { color: var(--text); }
+  .imp-card .input-group .form-control {
+    border-radius: 8px 0 0 8px;
+  }
+
+  /* ── Sheet Button ── */
+  .imp-btn-sheet {
+    border: 1px solid var(--border);
+    background: #ffffff;
+    color: var(--muted);
+    font-weight: 600;
+    font-size: 0.78rem;
+    padding: 9px 16px;
+    border-radius: 0 8px 8px 0;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-height: 40px;
+    white-space: nowrap;
+  }
+  .imp-btn-sheet:hover {
+    background: #eaf2f9;
+    color: var(--accent-dark);
+    border-color: var(--accent);
+  }
+  .imp-btn-sheet:focus-visible {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0, 86, 145, 0.18);
+  }
+  .imp-btn-sheet:disabled {
+    opacity: 0.6;
+    cursor: wait;
+  }
+
+  /* ── Mapping Info ── */
+  .mapping-info {
+    background: #f7f8f9;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    font-size: 0.78rem;
+    margin-bottom: 20px;
+  }
+  .mapping-info__title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .mapping-info__title i { color: var(--accent); }
+  .mapping-info__title strong { font-size: 0.82rem; color: var(--text); }
+  .mapping-info p {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-bottom: 0;
+    max-width: 62ch;
+  }
+  .mapping-info p strong { color: var(--text); }
+  .mapping-info code {
+    font-size: 0.7rem;
+    background: #eaf2f9;
+    color: #005691;
+    padding: 2px 8px;
+    border-radius: 6px;
+    border: 1px solid rgba(0, 86, 145, 0.12);
+    font-family: "JetBrains Mono", "SF Mono", monospace;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .mapping-info .col-list {
+    max-height: 120px;
+    overflow-y: auto;
+    font-size: 0.75rem;
+    line-height: 1.8;
+    margin-top: 10px;
+    padding-right: 8px;
+    scrollbar-width: thin;
+    scrollbar-color: #c9ccd1 transparent;
+  }
+  .mapping-info .col-list::-webkit-scrollbar {
+    width: 6px;
+  }
+  .mapping-info .col-list::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .mapping-info .col-list::-webkit-scrollbar-thumb {
+    background: #c9ccd1;
+    border-radius: 6px;
+  }
+
+  /* ── Actions ── */
+  .imp-actions {
+    display: flex;
+    gap: 10px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+  .btn-import {
+    background: var(--accent);
+    border: 1px solid var(--accent);
+    color: #333333;
+    font-weight: 700;
+    font-size: 0.85rem;
+    padding: 10px 28px;
+    border-radius: 8px;
+    min-height: 40px;
+    transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn-import:hover {
+    background: var(--accent-dark);
+    border-color: var(--accent-dark);
+    color: #ffffff;
+  }
+  .btn-import:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 86, 145, 0.18);
+  }
+  .btn-import:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  .btn-secondary-premium {
+    border: 1px solid var(--border);
+    background: #ffffff;
+    color: var(--muted);
+    font-weight: 600;
+    font-size: 0.85rem;
+    padding: 10px 22px;
+    border-radius: 8px;
+    min-height: 40px;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+  }
+  .btn-secondary-premium:hover {
+    background: #eef0f2;
+    border-color: #c9ccd1;
+    color: var(--text);
+  }
+  .btn-secondary-premium:focus-visible {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0, 86, 145, 0.18);
+  }
+  .imp-empty {
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .imp-empty a { font-weight: 700; }
+
+  ::selection { background: rgba(0, 86, 145, 0.2); }
+
+  /* ── Responsive ── */
+  @media (max-width: 576px) {
+    .imp-card-body {
+      padding: 20px;
+    }
+    .upload-area {
+      padding: 28px 16px;
+    }
+    .imp-actions {
+      flex-direction: column;
+    }
+    .btn-import,
+    .btn-secondary-premium {
+      width: 100%;
+      justify-content: center;
+      min-height: 44px;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .imp-card *,
+    .upload-area,
+    .btn-import,
+    .btn-secondary-premium,
+    .imp-btn-sheet {
+      transition: none;
+    }
+  }
+</style>
+<!-- Page script di dalam block content agar ikut di-swap & dieksekusi HTMX. -->
+<script>
+  (function () {
+    var fileInput = document.getElementById("fileInput");
+    var uploadArea = document.getElementById("uploadArea");
+    var uploadText = document.getElementById("uploadText");
+    var uploadMeta = document.getElementById("uploadMeta");
+    var defaultText = uploadText.textContent;
+    var MAX_BYTES = 50 * 1024 * 1024;
+
+    function fmtSize(bytes) {
+      if (bytes == null || isNaN(bytes)) return "";
+      if (bytes >= 1048576) return (bytes / 1048576).toFixed(1) + " MB";
+      if (bytes >= 1024) return Math.round(bytes / 1024) + " KB";
+      return bytes + " B";
+    }
+
+    function openPicker() {
+      fileInput.click();
+    }
+
+    function showFile(file) {
+      uploadText.textContent = file.name;
+      uploadMeta.hidden = false;
+      uploadMeta.textContent = fmtSize(file.size) + " — siap diimport";
+      uploadArea.classList.add("is-file");
+      uploadArea.setAttribute("aria-label", "File terpilih: " + file.name);
+    }
+
+    function resetFile(msg) {
+      fileInput.value = "";
+      uploadText.textContent = defaultText;
+      uploadMeta.hidden = true;
+      uploadMeta.textContent = "";
+      uploadArea.classList.remove("is-file");
+      uploadArea.removeAttribute("aria-label");
+      if (msg) Toast.warn(msg);
+    }
+
+    function acceptFiles(files) {
+      if (!files || !files.length) return;
+      var file = files[0];
+      if (!/\.xlsx?$/i.test(file.name)) {
+        resetFile("File harus .xlsx atau .xls.");
+        return;
+      }
+      if (file.size > MAX_BYTES) {
+        resetFile("File melebihi 50MB. Kecilkan file lalu coba lagi.");
+        return;
+      }
+      showFile(file);
+    }
+
+    fileInput.addEventListener("change", function () {
+      acceptFiles(this.files);
+    });
+
+    uploadArea.addEventListener("click", openPicker);
+    uploadArea.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        openPicker();
+      }
+    });
+    ["dragenter", "dragover"].forEach(function (ev) {
+      uploadArea.addEventListener(ev, function (e) {
+        e.preventDefault();
+        uploadArea.classList.add("dragover");
+      });
+    });
+    uploadArea.addEventListener("dragleave", function () {
+      uploadArea.classList.remove("dragover");
+    });
+    uploadArea.addEventListener("drop", function (e) {
+      e.preventDefault();
+      uploadArea.classList.remove("dragover");
+      var dt = e.dataTransfer;
+      if (dt && dt.files && dt.files.length) {
+        try {
+          fileInput.files = dt.files;
+        } catch (err) {
+          resetFile("Browser menolak file drop. Klik untuk memilih file.");
+          return;
+        }
+        acceptFiles(fileInput.files);
+      }
+    });
+
+    var listBtn = document.getElementById("listSheetsBtn");
+    var sheetList = document.getElementById("sheetList");
+    var sheetSelect = document.getElementById("sheetSelect");
+    var sheetName = document.getElementById("sheetName");
+    var sheetHelp = document.getElementById("sheetHelp");
+    var loadingSheets = false;
+
+    listBtn.addEventListener("click", function () {
+      if (loadingSheets) return;
+      if (!fileInput.files.length) {
+        Toast.warn("Pilih file dulu!");
+        fileInput.focus();
+        return;
+      }
+      loadingSheets = true;
+      listBtn.disabled = true;
+      listBtn.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Membaca...';
+      var formData = new FormData();
+      formData.append("file", fileInput.files[0]);
+      fetch("/api/list-sheets", { method: "POST", body: formData })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data.error) {
+            Toast.err(data.error);
+            return;
+          }
+          sheetSelect.innerHTML = "";
+          var first = document.createElement("option");
+          first.value = "";
+          first.textContent = "-- Pilih Sheet --";
+          sheetSelect.appendChild(first);
+          (data.sheets || []).forEach(function (s) {
+            var opt = document.createElement("option");
+            opt.value = s;
+            opt.textContent = s;
+            sheetSelect.appendChild(opt);
+          });
+          sheetList.style.display = "block";
+          sheetHelp.textContent = data.sheets.length + " sheet ditemukan. Pilih salah satu, atau kosongkan untuk auto-detect.";
+          Toast.ok(data.sheets.length + " sheet ditemukan.");
+        })
+        .catch(function (err) { Toast.err("Gagal membaca file: " + err); })
+        .finally(function () {
+          loadingSheets = false;
+          listBtn.disabled = false;
+          listBtn.innerHTML = '<i class="bi bi-list" aria-hidden="true"></i> List Sheets';
+        });
+    });
+
+    sheetSelect.addEventListener("change", function () {
+      sheetName.value = this.value;
+    });
+
+    document.getElementById("importKontrakForm").addEventListener("submit", function (e) {
+      if (!fileInput.files.length) {
+        e.preventDefault();
+        Toast.warn("Pilih file Excel terlebih dahulu.");
+        fileInput.focus();
+        return;
+      }
+      var proj = document.getElementById("projectSelect");
+      if (proj && !proj.value) {
+        e.preventDefault();
+        Toast.warn("Pilih proyek terlebih dahulu.");
+        proj.focus();
+        return;
+      }
+      var btn = document.getElementById("importBtn");
+      btn.disabled = true;
+      btn.innerHTML =
+        '<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span> Mengimport...';
+    });
+  })();
+</script>
+{% endblock %}

@@ -1,0 +1,154 @@
+{% extends "base.html" %} {% block title %}Daftar Proyek - Project Payment Monitoring System{% endblock %} {% block topbar_icon %}bi-building{% endblock %} {% block topbar_title %}Daftar Proyek{% endblock %} {% block topbar_scope %}{% endblock %} {% block content %}
+<!--
+  Daftar Proyek — Ledger Desk world (DESIGN.md).
+  THESIS: ringkasan portofolio rapi — header halaman + 3 KPI ringkas, grid kartu proyek konsisten dgn dashboard.
+  OWN-WORLD: navy/paper, satu aksen biru, serif hanya angka KPI, mono sel uang.
+  STORY: pimpinan lihat total portofolio lalu progres realisasi per proyek lalu aksi.
+  FIRST VIEWPORT: header (judul + Proyek Baru) + 3 KPI ringkas + awal grid kartu.
+  FORM: refinement Operate, mirror tokens project_dashboard.html.
+-->
+<style>
+  /* Judul halaman ditampilkan di topbar (konsisten dgn halaman lain); kluster
+     kanan tetap mepet kanan. Pemilih proyek disembunyikan via topbar_scope. */
+  .topbar-right { margin-left: auto; }
+  .prj-wrap { display: flex; flex-direction: column; gap: 16px; max-width: 1200px; margin: 0 auto; }
+  .prj-toolbar { display: flex; justify-content: flex-end; }
+  .prj-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .ds-kpi--compact { padding: 12px 14px; display: flex; align-items: center; gap: 12px; }
+  .ds-kpi--compact .ds-kpi__value { font-size: 1.05rem; }
+  .ds-kpi--compact .ds-kpi__hint { margin-top: 1px; }
+  .kpi-ico {
+    width: 38px; height: 38px; min-width: 38px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center; font-size: 1rem;
+  }
+  .kpi-ico--blue { background: #e2eff8; color: #005691; }
+  .kpi-ico--rose { background: #fdecea; color: #a12a1d; }
+  .kpi-ico--amber { background: #fdf6d8; color: #8a6d00; }
+  .prj-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+  .ds-card { background: #fff; border: 1px solid #e3e5e8; border-radius: 16px; box-shadow: 0 1px 3px rgba(51, 51, 51,.05); overflow: hidden; display: flex; flex-direction: column; transition: box-shadow .25s cubic-bezier(.4,0,.2,1), transform .25s cubic-bezier(.4,0,.2,1); }
+  .ds-card:hover { box-shadow: 0 4px 12px -2px rgba(51, 51, 51,.08), 0 2px 6px -1px rgba(51, 51, 51,.04); transform: translateY(-2px); }
+  .prj-card-top { padding: 16px 18px 12px; border-bottom: 1px solid #e3e5e8; display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .prj-card-title { flex: 1 1 auto; min-width: 0; font-weight: 700; font-size: 1rem; color: #333333; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .prj-card-kode { font-family: "JetBrains Mono", "SF Mono", monospace; font-size: .7rem; color: #005691; font-weight: 600; background: #e2eff8; padding: 3px 10px; border-radius: 6px; white-space: nowrap; flex: none; }
+  .prj-card-body { padding: 12px 18px 16px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+  .prj-meta { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px 12px; }
+  .prj-meta > div { min-width: 0; }
+  .prj-meta-label { font-size: .7rem; color: #667080; text-transform: uppercase; letter-spacing: .6px; font-weight: 700; }
+  .prj-meta-value { font-size: .85rem; color: #333333; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .prj-meta-value--money { font-family: "JetBrains Mono", "SF Mono", monospace; font-size: .74rem; overflow-wrap: anywhere; }
+  .ds-badge { padding: 3px 10px; border-radius: 6px; font-size: .7rem; font-weight: 700; display: inline-block; white-space: nowrap; }
+  .ds-badge-green { background: #e4f9e7; color: #1d7a2b; }
+  .ds-badge-blue { background: #e2eff8; color: #005691; }
+  .ds-badge-amber { background: #fdf6d8; color: #8a6d00; }
+  .prj-prog-lbl { display: flex; justify-content: space-between; font-size: .7rem; font-weight: 700; color: #667080; margin-bottom: 6px; text-transform: uppercase; letter-spacing: .6px; }
+  .prj-prog-lbl .pct { font-variant-numeric: tabular-nums; color: #333333; }
+  .prj-prog-note { margin: 0; font-size: .72rem; color: #667080; }
+  .prj-progress { height: 8px; background: #eef0f2; border-radius: 6px; overflow: hidden; }
+  .prj-progress > span { display: block; height: 100%; border-radius: 6px; background: #005691; }
+  .prj-progress > span.warn { background: #E5B800; }
+  .prj-progress > span.over { background: linear-gradient(90deg, #e74c3c, #f0705f); }
+  .prj-card-actions { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 18px; background: #f7f8f9; border-top: 1px solid #e3e5e8; }
+  .prj-card-actions a { flex: 1 1 90px; justify-content: center; }
+  .ds-btn:focus-visible, .ds-kpi:focus-visible, .prj-card-actions a:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 86, 145,.18); }
+  @media (max-width: 900px) { .prj-kpis { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 600px) { .prj-grid { grid-template-columns: 1fr; } .ds-kpi--compact .ds-kpi__value { font-size: 1rem; } }
+  @media (prefers-reduced-motion: reduce) { .ds-card { transition: none; } .ds-card:hover { transform: none; } }
+</style>
+<div class="prj-wrap animate-in">
+  {% set ns = namespace(realisasi=0, sisa=0) %}
+  {% for p in projects %}
+    {% set ns.realisasi = ns.realisasi + (p.total_realisasi or 0) %}
+    {% set ns.sisa = ns.sisa + (p.total_sisa or 0) %}
+  {% endfor %}
+
+  <!-- Toolbar aksi (judul halaman kini di topbar, konsisten dgn halaman lain) -->
+  <div class="prj-toolbar">
+    <a href="{{ url_for('project.create_project') }}" class="ds-btn ds-btn--primary">
+      <i class="bi bi-plus-lg"></i> Proyek Baru
+    </a>
+  </div>
+
+  <!-- Ringkasan portofolio -->
+  <div class="prj-kpis">
+    <div class="ds-kpi ds-kpi--compact">
+      <div class="kpi-ico kpi-ico--blue"><i class="bi bi-building"></i></div>
+      <div><div class="ds-kpi__label">Total Proyek</div><div class="ds-kpi__value">{{ projects|length }}</div></div>
+    </div>
+    <div class="ds-kpi ds-kpi--compact">
+      <div class="kpi-ico kpi-ico--amber"><i class="bi bi-graph-up"></i></div>
+      <div><div class="ds-kpi__label">Total Realisasi</div><div class="ds-kpi__value">{{ ns.realisasi|money }}</div></div>
+    </div>
+    <div class="ds-kpi ds-kpi--compact{% if ns.sisa > 0 %} ds-kpi--warn{% endif %}">
+      <div class="kpi-ico kpi-ico--rose"><i class="bi bi-exclamation-circle"></i></div>
+      <div><div class="ds-kpi__label">Total Sisa Hutang</div><div class="ds-kpi__value">{{ ns.sisa|money }}</div></div>
+    </div>
+  </div>
+
+  <!-- Grid kartu -->
+  <div class="prj-grid">
+    {% if projects %} {% for p in projects %}
+    {% set denom = p.nilai_kontrak if p.nilai_kontrak and p.nilai_kontrak > 0 else 0 %}
+    {% set pct = (p.total_realisasi / denom * 100) if denom and denom > 0 else 0 %}
+    {% set bar_class = 'over' if pct > 100 else ('warn' if pct > 85 else '') %}
+    <div class="ds-card">
+      <div class="prj-card-top">
+        <div class="prj-card-title">{{ p.nama_proyek }}</div>
+        <span class="prj-card-kode">{{ p.kode_proyek }}</span>
+      </div>
+      <div class="prj-card-body">
+        <div>
+          {% if p.status == 'Aktif' %}
+          <span class="ds-badge ds-badge-green">Aktif</span>
+          {% elif p.status == 'Selesai' %}
+          <span class="ds-badge ds-badge-blue">Selesai</span>
+          {% else %}
+          <span class="ds-badge ds-badge-amber">{{ p.status }}</span>
+          {% endif %}
+        </div>
+        <div class="prj-meta">
+          <div>
+            <div class="prj-meta-label">Realisasi</div>
+            <div class="prj-meta-value prj-meta-value--money">{{ p.total_realisasi|money }}</div>
+          </div>
+          <div>
+            <div class="prj-meta-label">Sisa Hutang</div>
+            <div class="prj-meta-value prj-meta-value--money">{{ p.total_sisa|money }}</div>
+          </div>
+          <div>
+            <div class="prj-meta-label">Nilai Kontrak</div>
+            <div class="prj-meta-value prj-meta-value--money">{{ (p.nilai_kontrak or 0)|money }}</div>
+          </div>
+        </div>
+      <div>
+        <div class="prj-prog-lbl"><span>Progres thd Nilai Kontrak</span><span class="pct">{% if denom > 0 %}{{ '%.1f'|format(pct) }}%{% else %}—{% endif %}</span></div>
+        {% if denom > 0 %}
+        <div class="prj-progress" role="progressbar" aria-valuenow="{{ '%.1f'|format(pct) }}" aria-valuemin="0" aria-valuemax="100" aria-label="Progres realisasi {{ p.nama_proyek }} terhadap nilai kontrak">
+          <span class="{{ bar_class }}" style="width:{{ pct if pct <= 100 else 100 }}%"></span>
+        </div>
+        {% else %}
+        <p class="prj-prog-note">Isi Nilai Kontrak untuk melihat progres.</p>
+        {% endif %}
+      </div>
+      </div>
+      <div class="prj-card-actions">
+        <a class="ds-btn ds-btn--sm" href="{{ url_for('project.edit_project', project_id=p.id) }}">
+          <i class="bi bi-pencil-square"></i> Edit
+        </a>
+        <a class="ds-btn ds-btn--sm" href="{{ url_for('project.project_dashboard', project_id=p.id) }}">
+          <i class="bi bi-speedometer2"></i> Dashboard
+        </a>
+        <a class="ds-btn ds-btn--sm" href="{{ url_for('project.list_retention', project_id=p.id) }}">
+          <i class="bi bi-person-lock"></i> Retensi
+        </a>
+      </div>
+    </div>
+    {% endfor %} {% else %}
+    <div class="ds-empty" style="grid-column: 1 / -1">
+      <i class="bi bi-folder2-open"></i>
+      <div class="ds-empty__title">Belum ada proyek</div>
+      <p class="ds-empty__text">Klik "Proyek Baru" untuk membuat proyek pertama.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,799 @@
+/* ============================================================
+   APP DESIGN SYSTEM - Monitoring Hutang
+   ------------------------------------------------------------
+   Token + komponen bersama untuk diserap semua halaman (Fase 2).
+
+   CATATAN PENTING - urutan kaskade:
+     bootstrap -> table.css -> base.css -> [CSS halaman] -> base-late.css
+   File ini dimuat SETELAH base.css dan SEBELUM base-late.css, supaya
+   komponen di sini menang atas gaya lama base, tapi tetap bisa
+   di-override halaman bila benar-benar perlu.
+
+   Konvensi: semua kelas diawali `ds-` (design system) agar tidak
+   berbenturan dengan kelas lama yang masih dipakai halaman.
+   ============================================================ */
+
+:root {
+  /* ── Spacing: 5 nilai teratur, gantikan 12 nilai acak ── */
+  --ds-sp-1: 4px;
+  --ds-sp-2: 8px;
+  --ds-sp-3: 12px;
+  --ds-sp-4: 16px;
+  --ds-sp-5: 24px;
+  --ds-sp-6: 32px;
+
+  /* ── Radius: 4 nilai ── */
+  --ds-r-sm: 6px;
+  --ds-r-md: 8px;
+  --ds-r-lg: 12px;
+  --ds-r-xl: 16px;
+
+  /* ── Shadow: 3 tingkat, warisi base.css ── */
+  --ds-sh-1: var(--shadow-sm);
+  --ds-sh-2: var(--shadow-md);
+  --ds-sh-3: var(--shadow-lg);
+
+  /* ── Font size: 5 langkah ── */
+  --ds-fs-xs: 0.7rem;
+  --ds-fs-sm: 0.78rem;
+  --ds-fs-md: 0.85rem;
+  --ds-fs-lg: 1rem;
+  --ds-fs-xl: 1.25rem;
+
+  /* ── Aksen tunggal (tema 1-tone) + status colors ── */
+  --ds-accent: var(--accent);
+  --ds-accent-dark: var(--accent-dark);
+  --ds-ok: var(--success);
+  --ds-warn: var(--warning);
+  --ds-err: var(--danger);
+
+  /* ── Teks (semua lulus kontras WCAG AA di atas putih) ──
+     #a3a8af (2.56:1) TIDAK dipakai lagi untuk teks - hanya dekorasi. */
+  --ds-text: var(--text);
+  --ds-text-soft: var(--muted); /* #667080 = 4.76:1 AA */
+
+  --ds-font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  /* Angka KPI: Inter 700 tabular - kesan "laporan keuangan" flat */
+  --ds-font-display: "Inter", -apple-system, "Segoe UI", sans-serif;
+}
+
+/* ══════════════════════════════════════════════════════════
+   1. PAGE HEADER - satukan 6 pola judul halaman
+   ══════════════════════════════════════════════════════════ */
+.ds-page-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ds-sp-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--ds-sp-4);
+}
+
+.ds-page-head__title {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-sp-2);
+  margin: 0;
+  font-family: var(--ds-font);
+  font-size: var(--ds-fs-xl);
+  font-weight: 700;
+  color: var(--ds-text);
+  letter-spacing: -0.01em;
+}
+
+.ds-page-head__title i {
+  color: var(--ds-accent);
+  font-size: 1.1em;
+}
+
+.ds-page-head__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-sp-2);
+  flex-wrap: wrap;
+}
+
+.ds-page-head__sub {
+  margin: 2px 0 0;
+  font-size: var(--ds-fs-sm);
+  color: var(--ds-text-soft);
+}
+
+/* ══════════════════════════════════════════════════════════
+   2. SECTION TITLE - pengganti .lp-tbl-hdr / .vf-section-title
+   ══════════════════════════════════════════════════════════ */
+.ds-section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-sp-2);
+  margin: 0 0 var(--ds-sp-3);
+  font-size: var(--ds-fs-lg);
+  font-weight: 700;
+  color: var(--ds-text);
+}
+
+.ds-section-title::before {
+  content: "";
+  width: 3px;
+  height: 1em;
+  border-radius: 2px;
+  background: var(--ds-accent);
+  flex: none;
+}
+
+/* ══════════════════════════════════════════════════════════
+   3. KPI CARD - satukan 8 pola KPI
+   ══════════════════════════════════════════════════════════ */
+.ds-kpi {
+  position: relative;
+  overflow: hidden;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--ds-r-xl);
+  padding: var(--ds-sp-4) var(--ds-sp-4);
+  box-shadow: var(--ds-sh-1);
+  transition: var(--transition-smooth);
+}
+
+/* aksen bar tipis di atas - konsisten dgn bahasa visual lama */
+.ds-kpi::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: var(--ds-r-xl) var(--ds-r-xl) 0 0;
+  background: var(--ds-accent);
+}
+
+.ds-kpi--ok::before {
+  background: var(--ds-ok);
+}
+.ds-kpi--warn::before {
+  background: var(--ds-warn);
+}
+.ds-kpi--err::before {
+  background: var(--ds-err);
+}
+
+.ds-kpi:hover {
+  box-shadow: var(--ds-sh-2);
+  transform: translateY(-2px);
+}
+
+.ds-kpi__label {
+  font-size: var(--ds-fs-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--ds-text-soft);
+  margin-bottom: var(--ds-sp-1);
+}
+
+/* Inter 700 tabular - bahasa angka laporan */
+.ds-kpi__value {
+  font-family: var(--ds-font-display);
+  font-size: 1.45rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--ds-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.ds-kpi__hint {
+  margin-top: var(--ds-sp-1);
+  font-size: var(--ds-fs-xs);
+  color: var(--ds-text-soft);
+}
+
+/* ── Penetral gaya lama ──────────────────────────────────
+   Halaman laporan punya selector ber-specificity lebih tinggi, mis.
+     .lp-kpi-cell .kpi-lbl  (0,2,0)  vs  .ds-kpi__label  (0,1,0)
+   Tanpa ini, token design system KALAH dan perataan tak terlihat.
+   Selector di bawah sengaja dibuat setara/lebih tinggi supaya ds-*
+   benar-benar berlaku, TANPA menghapus CSS lama (tetap aman rollback).
+   ------------------------------------------------------------ */
+.lp-kpi-cell .ds-kpi__label.ds-kpi__label,
+.lp-sisa-card .ds-kpi__label.ds-kpi__label,
+.ds-kpi .ds-kpi__label.ds-kpi__label {
+  font-size: var(--ds-fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  color: var(--ds-text-soft);
+  margin-bottom: var(--ds-sp-1);
+}
+
+.lp-kpi-cell .ds-kpi__value.ds-kpi__value,
+.lp-sisa-card .ds-kpi__value.ds-kpi__value,
+.ds-kpi .ds-kpi__value.ds-kpi__value {
+  font-family: var(--ds-font-display);
+  font-size: 1.45rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--ds-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* aksen bar: halaman laporan pakai ::before sendiri, samakan warnanya */
+.lp-kpi-cell.ds-kpi--err.ds-kpi--err::before,
+.lp-sisa-card.ds-kpi--err.ds-kpi--err::before {
+  background: var(--ds-err);
+}
+
+.lp-kpi-cell.ds-kpi--ok.ds-kpi--ok::before,
+.lp-sisa-card.ds-kpi--ok.ds-kpi--ok::before {
+  background: var(--ds-ok);
+}
+
+/* Sisa card: samakan ke bentuk KPI (ia tadinya baris mendatar) */
+.lp-sisa-card.ds-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-sp-1);
+  border-radius: var(--ds-r-xl);
+}
+
+/* ══════════════════════════════════════════════════════════
+   4. SEARCH INPUT - gantikan 8 salinan hampir-identik
+   ══════════════════════════════════════════════════════════ */
+.ds-search {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.ds-search i {
+  position: absolute;
+  left: 10px;
+  font-size: 0.8rem;
+  color: var(--ds-text-soft);
+  pointer-events: none;
+}
+
+.ds-search input,
+.ds-search select {
+  font-family: var(--ds-font);
+  font-size: var(--ds-fs-md);
+  color: var(--ds-text);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--ds-r-md);
+  padding: 7px 12px 7px 32px;
+  min-width: 190px;
+  transition: var(--transition-smooth);
+}
+
+.ds-search select {
+  padding-left: 32px;
+}
+
+.ds-search input::placeholder {
+  color: var(--ds-text-soft);
+}
+
+.ds-search input:focus,
+.ds-search select:focus {
+  outline: none;
+  border-color: var(--ds-accent);
+  box-shadow: 0 0 0 3px rgba(0, 86, 145, 0.12);
+}
+
+/* ══════════════════════════════════════════════════════════
+   5. EMPTY STATE - gantikan 9 implementasi
+   ══════════════════════════════════════════════════════════ */
+.ds-empty {
+  text-align: center;
+  padding: 56px 20px;
+  color: var(--ds-text-soft);
+}
+
+.ds-empty i {
+  display: block;
+  font-size: 2.75rem;
+  color: #c9ccd1; /* dekoratif murni, bukan teks - bebas aturan kontras */
+  margin-bottom: var(--ds-sp-3);
+}
+
+.ds-empty__title {
+  font-size: var(--ds-fs-lg);
+  font-weight: 700;
+  color: var(--ds-text);
+  margin-bottom: var(--ds-sp-1);
+}
+
+.ds-empty__text {
+  font-size: var(--ds-fs-sm);
+  margin: 0;
+}
+
+/* ══════════════════════════════════════════════════════════
+   6. BUTTON - satukan 11 kelas tombol
+   ══════════════════════════════════════════════════════════ */
+.ds-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--ds-font);
+  font-size: var(--ds-fs-sm);
+  font-weight: 600;
+  color: var(--ds-text);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--ds-r-md);
+  padding: 7px 14px;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+  white-space: nowrap;
+}
+
+.ds-btn:hover {
+  background: var(--hover);
+  border-color: #c9ccd1;
+}
+
+.ds-btn:focus-visible {
+  outline: none;
+  border-color: var(--deep);
+  box-shadow: 0 0 0 3px rgba(0, 86, 145, 0.18);
+}
+
+.ds-btn--primary {
+  color: #333333;
+  background: var(--ds-accent);
+  border-color: var(--ds-accent);
+}
+
+.ds-btn--primary:hover {
+  background: var(--ds-accent-dark);
+  border-color: var(--ds-accent-dark);
+}
+
+.ds-btn--sm {
+  font-size: var(--ds-fs-xs);
+  padding: 5px 10px;
+  border-radius: var(--ds-r-sm);
+}
+
+.ds-btn--active {
+  color: #333333;
+  background: var(--ds-accent);
+  border-color: var(--ds-accent);
+}
+
+.ds-btn--active:hover {
+  background: var(--ds-accent-dark);
+  border-color: var(--ds-accent-dark);
+}
+
+/* ══════════════════════════════════════════════════════════
+   6b. TOAST - pengganti alert() & banner flash statis
+   Digunakan oleh static/js/toast.js (window.Toast).
+   ══════════════════════════════════════════════════════════ */
+.ds-toast-host {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-sp-2);
+  pointer-events: none;
+  max-width: min(380px, calc(100vw - 32px));
+}
+
+.ds-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 14px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--ds-accent);
+  border-radius: var(--ds-r-md);
+  box-shadow: var(--ds-sh-3);
+  font-family: var(--ds-font);
+  font-size: var(--ds-fs-md);
+  color: var(--ds-text);
+  pointer-events: auto;
+  animation: ds-toast-in 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.ds-toast--ok {
+  border-left-color: var(--ds-ok);
+}
+.ds-toast--warn {
+  border-left-color: var(--ds-warn);
+}
+.ds-toast--err {
+  border-left-color: var(--ds-err);
+}
+
+.ds-toast i {
+  font-size: 1.05rem;
+  line-height: 1.35;
+  flex: none;
+}
+
+.ds-toast--ok i {
+  color: var(--ds-ok);
+}
+.ds-toast--warn i {
+  color: var(--ds-warn);
+}
+.ds-toast--err i {
+  color: var(--ds-err);
+}
+.ds-toast--info i {
+  color: var(--ds-accent);
+}
+
+.ds-toast__msg {
+  flex: 1 1 auto;
+  word-break: break-word;
+}
+
+.ds-toast__close {
+  flex: none;
+  background: none;
+  border: 0;
+  padding: 0 0 0 4px;
+  color: var(--ds-text-soft);
+  cursor: pointer;
+  font-size: 0.95rem;
+  line-height: 1.35;
+}
+
+.ds-toast.is-out {
+  animation: ds-toast-out 0.18s ease-in both;
+}
+
+@keyframes ds-toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes ds-toast-out {
+  to {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   6c. SKELETON - placeholder saat tabel memuat
+   ══════════════════════════════════════════════════════════ */
+.ds-skel {
+  position: relative;
+  overflow: hidden;
+  background: #eceef0;
+  border-radius: var(--ds-r-sm);
+}
+
+.ds-skel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.65),
+    transparent
+  );
+  animation: ds-skel 1.15s infinite;
+}
+
+@keyframes ds-skel {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.ds-skel-row {
+  height: 13px;
+  margin-bottom: 9px;
+}
+
+.ds-skel-row:last-child {
+  margin-bottom: 0;
+}
+
+/* overlay skeleton untuk area tabel */
+.ds-skel-wrap {
+  position: relative;
+}
+
+.ds-skel-wrap > .ds-skel-overlay {
+  position: absolute;
+  inset: 0;
+  background: var(--card);
+  padding: var(--ds-sp-4);
+  z-index: 5;
+}
+
+/* ══════════════════════════════════════════════════════════
+   7. UTILITIES kecil
+   ══════════════════════════════════════════════════════════ */
+.ds-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-sp-4);
+}
+
+.ds-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-sp-2);
+  flex-wrap: wrap;
+}
+
+.ds-spacer {
+  flex: 1 1 auto;
+}
+
+.ds-muted {
+  color: var(--ds-text-soft);
+}
+
+.ds-num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ══════════════════════════════════════════════════════════
+   8. RESPONSIVE - desktop-first, perbaikan minimum
+   ══════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .ds-page-head {
+    align-items: flex-start;
+  }
+
+  .ds-kpi__value {
+    font-size: 1.25rem;
+  }
+
+  .ds-search input,
+  .ds-search select {
+    min-width: 0;
+    width: 100%;
+  }
+
+  /* Target sentuh >=44px untuk input & tombol di layar sentuh */
+  .ds-btn {
+    min-height: 44px;
+    padding: 10px 16px;
+  }
+
+  .ds-btn--sm {
+    min-height: 44px;
+    padding: 10px 12px;
+  }
+
+  .ds-search input,
+  .ds-search select {
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-kpi,
+  .ds-btn {
+    transition: none;
+  }
+
+  .ds-kpi:hover {
+    transform: none;
+  }
+
+  /* toast & skeleton: hentikan animasi, tapi tetap tampil */
+  .ds-toast,
+  .ds-toast.is-out {
+    animation: none;
+  }
+
+  .ds-skel::after {
+    animation: none;
+  }
+}
+
+/* ── Auth: halaman login + tombol Keluar ── */
+.auth-wrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--ds-sp-5);
+  background: var(--bg);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 380px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--ds-r-xl);
+  padding: var(--ds-sp-6) var(--ds-sp-5);
+  box-shadow: var(--ds-sh-3);
+  text-align: center;
+}
+
+.auth-brand {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto var(--ds-sp-2);
+  border-radius: var(--ds-r-lg);
+  background: #004a7c;
+  color: #2ecc40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+
+.auth-kicker {
+  font-size: var(--ds-fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  color: var(--deep);
+  margin: 0 0 2px;
+}
+
+.auth-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  margin-bottom: var(--ds-sp-1);
+}
+
+.auth-sub {
+  color: var(--ds-text-soft);
+  font-size: var(--ds-fs-sm);
+  margin-bottom: var(--ds-sp-4);
+}
+
+.auth-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ds-sp-2);
+  text-align: left;
+  font-size: var(--ds-fs-sm);
+  font-weight: 600;
+  color: var(--danger-ink, #a12a1d);
+  background: var(--danger-soft);
+  border-radius: var(--ds-r-md);
+  padding: var(--ds-sp-2) var(--ds-sp-3);
+  margin-bottom: var(--ds-sp-3);
+}
+
+.auth-alert i {
+  color: var(--danger);
+  margin-top: 1px;
+}
+
+.auth-label {
+  display: block;
+  text-align: left;
+  font-size: var(--ds-fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  margin-bottom: var(--ds-sp-1);
+}
+
+.auth-field {
+  position: relative;
+  margin-bottom: var(--ds-sp-3);
+}
+
+.auth-field-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--deep);
+  font-size: 0.85rem;
+  pointer-events: none;
+}
+
+.auth-field .auth-input {
+  padding-left: 34px;
+  padding-right: 40px;
+  height: 44px;
+  font-size: 0.85rem;
+  border-radius: 10px;
+}
+
+.auth-field .auth-input:focus {
+  border-color: var(--deep);
+  box-shadow: 0 0 0 3px rgba(0, 86, 145, 0.15);
+}
+
+.auth-toggle {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: var(--ds-r-sm);
+  background: transparent;
+  color: var(--ds-text-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.auth-toggle:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+
+.auth-toggle:focus-visible {
+  outline: 2px solid var(--deep);
+  outline-offset: 1px;
+}
+
+.auth-btn {
+  width: 100%;
+  justify-content: center;
+  min-height: 44px;
+}
+
+.auth-btn:disabled {
+  opacity: 0.75;
+  cursor: wait;
+}
+
+.auth-spin {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(51, 51, 51, 0.25);
+  border-top-color: var(--text);
+  animation: auth-spin 0.7s linear infinite;
+}
+
+@keyframes auth-spin {
+  to { transform: rotate(360deg); }
+}
+
+.auth-hint {
+  margin: var(--ds-sp-3) 0 0;
+  font-size: var(--ds-fs-xs);
+  color: var(--ds-text-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+@media (max-width: 480px) {
+  .auth-wrap {
+    padding: var(--ds-sp-3);
+  }
+
+  .auth-card {
+    padding: var(--ds-sp-5) var(--ds-sp-4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-spin {
+    animation: none;
+  }
+}
+
+.topbar-logout {
+  background: #fdecea;
+  color: #a12a1d;
+  text-decoration: none;
+}

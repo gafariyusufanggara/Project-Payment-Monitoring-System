@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+
+{% block title %}Laporan PPN Bulanan - Project Payment Monitoring System{% endblock %}
+
+{% block topbar_title %}Laporan PPN Bulanan{% endblock %}
+{% block topbar_icon %}bi-file-earmark-bar-graph{% endblock %}
+
+{# Compute total unique levelansir + months #}
+{% set all_rekanan = [] %}
+{% for r in report_rows %}
+  {% for s in r.rekanan_list %}
+    {% if s.rekanan not in all_rekanan %}
+      {% set _ = all_rekanan.append(s.rekanan) %}
+    {% endif %}
+  {% endfor %}
+{% endfor %}
+{% set months = report_rows|map(attribute='key')|list %}
+
+{% block topbar_badges %}
+<span class="topbar-badge tb-rekanan"
+  ><i class="bi bi-people"></i> {{ all_rekanan|length }} Levelansir</span
+>
+<span class="topbar-badge tb-data"
+  ><i class="bi bi-database"></i> {{ data_count }} Data</span
+>
+<span class="topbar-badge tb-bulan"
+  ><i class="bi bi-calendar-month"></i> {{ months|length }} Bulan</span
+>
+{% endblock %}
+
+{% block content %}
+{# laporan.css dimuat global di base.html <head> (cegah FOUC saat swap HTMX) #}
+
+{% set current_month = current_month if current_month is defined and current_month else (months[-1] if months else '') %}
+
+<div class="lp-rail lp-rail--select lp-rail--single lp-rail--bulanan" id="topRail">
+  <div class="lp-rail-group">
+    <label class="lp-rail-label" for="monthSel"><i class="bi bi-calendar3"></i> Periode</label>
+    <select id="monthSel" class="lp-sel" aria-label="Pilih periode bulanan">
+      {% for r in report_rows %}
+      <option value="{{ r.key }}" {% if r.key == current_month %}selected{% endif %}>{{ r.label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="lp-rail-group lp-rail-group--end">
+    <span class="lp-rail-period" id="cutoffMonthLabel">{{ current_month }}</span>
+    <button class="lp-btn lp-btn--primary" id="exportBtn" onclick="exportExcel(this)" title="Export periode aktif ke Excel"><i class="bi bi-download"></i> Export</button>
+  </div>
+</div>
+
+<div class="animate-in lp-body lp-bulanan" id="reportBody">
+  {% for r in report_rows %}
+  <div class="month-section" id="section-{{ r.key }}"{% if r.key != current_month %} hidden{% endif %}>
+    {% set k = r.kpi %}
+
+    <div class="lp-sisa-card lp-hero ds-kpi {% if k.sisa_ppn > 0 %}pos ds-kpi--err{% else %}zero ds-kpi--ok{% endif %}">
+      <div class="lp-hero-main">
+        <span class="kpi-lbl ds-kpi__label"><i class="bi bi-wallet2"></i> Sisa PPN · {{ r.label }}</span>
+        <span class="kpi-num ds-kpi__value">{{ k.sisa_ppn|money }}</span>
+      </div>
+      <div class="lp-hero-side">
+        <span class="lp-hero-tot"><strong>{{ k.sd_ppn|money }}</strong> PPN</span>
+        <span class="lp-hero-sep" aria-hidden="true">−</span>
+        <span class="lp-hero-tot"><strong>{{ k.sd_bayar_ppn|money }}</strong> bayar</span>
+      </div>
+    </div>
+
+    <div class="lp-kpi-groups" role="group" aria-label="Ringkasan {{ r.label }}">
+      <section class="lp-kpi-group lp-kpi-group--hutang" aria-label="Realisasi PPN">
+        <h3 class="lp-kpi-group-title"><i class="bi bi-arrow-up-circle"></i> PPN</h3>
+        <div class="lp-kpi-row">
+          <div class="lp-kpi-cell ds-kpi ds-kpi--err h lp-cell--dim">
+            <div class="kpi-top">
+              <span class="kpi-lbl ds-kpi__label">Lalu</span>
+              <div class="kpi-icon-wrap" aria-hidden="true"><i class="bi bi-arrow-up-circle"></i></div>
+            </div>
+            <div class="kpi-num ds-kpi__value">{{ k.lalu_ppn|money }}</div>
+          </div>
+          <div class="lp-kpi-cell ds-kpi ds-kpi--err h lp-cell--now">
+            <div class="kpi-top">
+              <span class="kpi-lbl ds-kpi__label">Saat Ini</span>
+              <div class="kpi-icon-wrap" aria-hidden="true"><i class="bi bi-calendar-check"></i></div>
+            </div>
+            <div class="kpi-num ds-kpi__value">{{ k.saat_ini_ppn|money }}</div>
+          </div>
+          <div class="lp-kpi-cell ds-kpi ds-kpi--err h lp-cell--dim">
+            <div class="kpi-top">
+              <span class="kpi-lbl ds-kpi__label">S/D Ini</span>
+              <div class="kpi-icon-wrap" aria-hidden="true"><i class="bi bi-clock-history"></i></div>
+            </div>
+            <div class="kpi-num ds-kpi__value">{{ k.sd_ppn|money }}</div>
+          </div>
+        </div>
+      </section>
+      <section class="lp-kpi-group lp-kpi-group--bayar" aria-label="Realisasi pembayaran PPN">
+        <h3 class="lp-kpi-group-title"><i class="bi bi-arrow-down-circle"></i> Pembayaran PPN</h3>
+        <div class="lp-kpi-row">
+          <div class="lp-kpi-cell ds-kpi ds-kpi--ok p lp-cell--dim">
+            <div class="kpi-top">
+              <span class="kpi-lbl ds-kpi__label">Lalu</span>
+              <div class="kpi-icon-wrap" aria-hidden="true"><i class="bi bi-arrow-down-circle"></i></div>
+            </div>
+            <div class="kpi-num ds-kpi__value">{{ k.lalu_bayar_ppn|money }}</div>
+          </div>
+          <div class="lp-kpi-cell ds-kpi ds-kpi--ok p lp-cell--now">
+            <div class="kpi-top">
+              <span class="kpi-lbl ds-kpi__label">Saat Ini</span>
+              <div class="kpi-icon-wrap" aria-hidden="true"><i class="bi bi-check-circle"></i></div>
+            </div>
+            <div class="kpi-num ds-kpi__value">{{ k.saat_ini_bayar_ppn|money }}</div>
+          </div>
+          <div class="lp-kpi-cell ds-kpi ds-kpi--ok p lp-cell--dim">
+            <div class="kpi-top">
+              <span class="kpi-lbl ds-kpi__label">S/D Ini</span>
+              <div class="kpi-icon-wrap" aria-hidden="true"><i class="bi bi-check-all"></i></div>
+            </div>
+            <div class="kpi-num ds-kpi__value">{{ k.sd_bayar_ppn|money }}</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="lp-tbl-wrap">
+      <div class="lp-tbl-hdr ds-section-title">
+        <h4 class="lp-tbl-title">
+          <i class="bi bi-file-earmark-bar-graph"></i>
+          Ringkasan Levelansir
+          <span class="tag">{{ r.total_count }} PPN</span>
+          <span class="tag teal">{{ r.total_ppn_pay_count }} Pembayaran</span>
+        </h4>
+
+      </div>
+      <div class="lp-scroll">
+        <table class="lp-tbl" data-enhance="lp-ppn">
+          <thead>
+            <tr>
+              <th rowspan="2" class="grp-no w-no" scope="col">No.</th>
+              <th rowspan="2" class="mw-150" scope="col">Levelansir</th>
+              <th colspan="3" class="grp-h" scope="colgroup">PPN</th>
+              <th colspan="3" class="grp-p" scope="colgroup">Pembayaran PPN</th>
+              <th rowspan="2" class="grp-sisa mw-95" scope="col">Sisa PPN</th>
+            </tr>
+            <tr>
+              <th class="grp-h-sub" scope="col">LALU</th>
+              <th class="grp-h-sub" scope="col">SAAT INI</th>
+              <th class="grp-h-sub" scope="col">S/D INI</th>
+              <th class="grp-p-sub" scope="col">LALU</th>
+              <th class="grp-p-sub" scope="col">SAAT INI</th>
+              <th class="grp-p-sub" scope="col">S/D INI</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in r.rekanan_list %}
+            <tr
+              data-rekan="{{ s.rekanan | e }}"
+              data-month="{{ r.key }}"
+              onclick="showDetail('{{ r.key }}', '{{ s.rekanan | e }}', this)"
+              onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showDetail('{{ r.key }}','{{ s.rekanan | e }}',this)}"
+              tabindex="0" role="button" aria-label="Detail {{ s.rekanan | e }}"
+            >
+              <td class="c-no">{{ loop.index }}</td>
+              <td>
+                {{ s.rekanan }}
+                {% if s.count > 0 %}<span class="inv-badge inv-badge-h">{{ s.count }}</span>{% endif %}
+                {% if s.ppn_pay_count > 0 %}<span class="inv-badge inv-badge-p">{{ s.ppn_pay_count }}</span>{% endif %}
+              </td>
+              <td class="c-h">{{ s.lalu_ppn|money }}</td>
+              <td class="c-h">{{ s.saat_ini_ppn|money }}</td>
+              <td class="c-h">{{ s.sd_ppn|money }}</td>
+              <td class="c-p">{{ s.lalu_bayar_ppn|money }}</td>
+              <td class="c-p">{{ s.saat_ini_bayar_ppn|money }}</td>
+              <td class="c-p">{{ s.sd_bayar_ppn|money }}</td>
+              <td class="{{ 'c-sisa-pos' if s.sisa_ppn > 0 else 'c-sisa-zero' }}">{{ s.sisa_ppn|money }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr>
+              {% set t = namespace(lppn=0, sippn=0, sdppn=0, blppn=0, bsippn=0, bsdppn=0, sppn=0) %}
+              {% for s in r.rekanan_list %}
+                {% set t.lppn = t.lppn + s.lalu_ppn %}{% set t.sippn = t.sippn + s.saat_ini_ppn %}{% set t.sdppn = t.sdppn + s.sd_ppn %}{% set t.blppn = t.blppn + s.lalu_bayar_ppn %}{% set t.bsippn = t.bsippn + s.saat_ini_bayar_ppn %}{% set t.bsdppn = t.bsdppn + s.sd_bayar_ppn %}{% set t.sppn = t.sppn + s.sisa_ppn %}
+              {% endfor %}
+              <td class="c-no"></td>
+              <td>TOTAL</td>
+              <td class="c-h">{{ t.lppn|money }}</td>
+              <td class="c-h">{{ t.sippn|money }}</td>
+              <td class="c-h">{{ t.sdppn|money }}</td>
+              <td class="c-p">{{ t.blppn|money }}</td>
+              <td class="c-p">{{ t.bsippn|money }}</td>
+              <td class="c-p">{{ t.bsdppn|money }}</td>
+              <td class="{{ 'c-sisa-pos' if t.sppn > 0 else 'c-sisa-zero' }}">{{ t.sppn|money }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="lp-empty ds-empty">
+    <i class="bi bi-inbox"></i>
+    <h6 class="ds-empty__title">Belum Ada Data PPN Bulanan</h6>
+    <p>Silakan import atau input data terlebih dahulu.</p>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="modal fade lp-modal" id="ppnModal" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="modalLabel">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalLabel">
+          <i class="bi bi-receipt"></i>
+          Detail PPN Invoice
+          <span class="mm" id="modalMonth"></span>
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+      </div>
+      <div class="modal-body">
+        <div class="lp-mlegend" aria-hidden="true"><span><span class="dot dot--h"></span>PPN</span><span><span class="dot dot--p"></span>Bayar</span><span><span class="dot dot--s-pos"></span>Sisa &gt;0</span><span><span class="dot dot--s-zero"></span>Lunas</span><span class="lp-mlegend-hint">bar kiri = periode aktif</span></div>
+        <div class="lp-scrollbox">
+          <table class="lp-mtbl">
+            <thead>
+              <tr>
+                <th scope="col" class="m-tgl">Tgl Berkas</th>
+                <th scope="col" class="m-inv">Invoice</th>
+                <th scope="col" class="m-po">PO / Kontrak</th>
+                <th scope="col" class="m-jt">Jth Tempo</th>
+                <th scope="col" class="m-desc">Deskripsi</th>
+                <th scope="col" class="ar m-hutang">PPN</th>
+                <th scope="col" class="m-bayar-tgl">Tgl Bayar PPN</th>
+                <th scope="col" class="ar m-bayar">Bayar PPN</th>
+                <th scope="col" class="ar m-sisa">Sisa PPN</th>
+              </tr>
+            </thead>
+            <tbody id="modalInvoices">
+              <tr class="em"><td colspan="9"><i class="bi bi-hand-index"></i>Pilih levelansir untuk melihat detail</td></tr>
+            </tbody>
+            <tfoot id="modalTfoot" hidden><tr><td class="l" colspan="5">Total</td><td id="ftPpn" class="m-h"></td><td class="l"></td><td id="ftBayar" class="m-p"></td><td id="ftSisa" class="m-s"></td></tr></tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Page script di dalam block content agar ikut di-swap & dieksekusi HTMX. -->
+<script>
+(function () {
+const REKANAN_DATA = {{ report_rows | tojson }};
+function monthSel(){ return document.getElementById('monthSel'); }
+function activeMonthKey(){ const s=monthSel(); return s?s.value:''; }
+function setSelValue(sel,key){ if(!sel||!key) return false; for(let i=0;i<sel.options.length;i++){ if(sel.options[i].value===key){ sel.value=key; return true; } } return false; }
+function selectMonth(key){ setSelValue(monthSel(), key); document.querySelectorAll('.month-section').forEach(el=>{ el.hidden=(el.id!=='section-'+key); }); const lbl=document.getElementById('cutoffMonthLabel'); if(lbl) lbl.textContent=key; if(window.TableEnhance) window.TableEnhance.refresh(); }
+function bindMonthSel(){ const sel=monthSel(); if(!sel||sel.dataset.bound) return; sel.dataset.bound='1'; sel.addEventListener('change', function(){ selectMonth(this.value); }); if(sel.value) selectMonth(sel.value); }
+function exportExcel(btn){ btn=btn||document.getElementById('exportBtn'); const orig=btn.innerHTML; btn.innerHTML='<span class="spinner-border spinner-border-sm me-1" role="status"></span> Export...'; btn.disabled=true; const key=activeMonthKey(); window.location.href='/laporan-ppn/export'+(key?'?month='+encodeURIComponent(key):''); setTimeout(()=>{ btn.innerHTML=orig; btn.disabled=false; },3000); }
+let _activeRow=null;
+function showDetail(monthKey,rekanan,rowEl){
+  if(_activeRow) _activeRow.classList.remove('selected');
+  if(rowEl){ rowEl.classList.add('selected'); _activeRow=rowEl; }
+  const allInvoices=[];
+  for(const m of REKANAN_DATA){ const rec=m.rekanan_list.find(s=>s.rekanan===rekanan); if(rec&&rec.invoices) for(const inv of rec.invoices) allInvoices.push({...inv, bulan:m.label, bulanKey:m.key}); }
+  allInvoices.sort((a,b)=>(a.tgl_berkas<b.tgl_berkas?-1:a.tgl_berkas>b.tgl_berkas?1:0));
+  document.getElementById('modalLabel').innerHTML='<i class="bi bi-receipt"></i> '+esc(rekanan)+' <span class="mm">'+allInvoices.length+' invoice · '+monthKey+'</span>';
+  const body=document.getElementById('modalInvoices'); const tfoot=document.getElementById('modalTfoot');
+  if(allInvoices.length===0){ body.innerHTML='<tr class="em"><td colspan="9"><i class="bi bi-inbox"></i>Tidak ada data untuk '+esc(rekanan)+'</td></tr>'; if(tfoot) tfoot.hidden=true; }
+  else {
+    let tPpn=0,tB=0,tS=0;
+    body.innerHTML=allInvoices.map(inv=>{
+      const sisa=Math.max(0,(Number(inv.ppn)||0)-(Number(inv.bayar_ppn)||0)); tPpn+=Number(inv.ppn)||0; tB+=Number(inv.bayar_ppn)||0; tS+=sisa;
+      const cls=sisa>0?'sn':'sz';
+      const invYM=String(inv.tgl_berkas||'').slice(0,7); const payYM=String(inv.tgl_bayar_ppn||'').slice(0,7);
+      const rc=[invYM===monthKey?'hl-cur':'', payYM===monthKey?'hl-p':''].filter(Boolean).join(' ');
+      return '<tr class="'+rc+'"><td class="l">'+esc(inv.tgl_berkas)+'</td>'+CellExpand.td(inv.invoice,'l iv',40)+CellExpand.td(inv.po,'l',25)+'<td class="l">'+esc(inv.jth_tempo)+'</td>'+CellExpand.td(inv.deskripsi,'l',40)+'<td class="m-h">'+fmt(inv.ppn)+'</td><td class="l">'+esc(inv.tgl_bayar_ppn)+'</td><td class="m-p">'+fmt(inv.bayar_ppn)+'</td><td class="m-s '+cls+'">'+fmt(sisa)+'</td></tr>';
+    }).join('');
+    if(tfoot){ tfoot.hidden=false; document.getElementById('ftPpn').textContent=fmt(tPpn); document.getElementById('ftBayar').textContent=fmt(tB); const ftS=document.getElementById('ftSisa'); ftS.textContent=fmt(tS); ftS.className=tS>0?'t-s-pos':'t-s-zero'; }
+  }
+  const modalEl=document.getElementById('ppnModal'); const modal=bootstrap.Modal.getOrCreateInstance(modalEl); modal.show();
+  modalEl.addEventListener('hidden.bs.modal', function _onHide(){ modalEl.removeEventListener('hidden.bs.modal', _onHide); if(_activeRow){ _activeRow.classList.remove('selected'); _activeRow=null; } });
+}
+function esc(s){ return String(s||'-').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function fmt(v){ return Math.round(Number(v||0)).toLocaleString('id-ID'); }
+// Expose fungsi ke window (dipakai attribut inline onclick).
+window.exportExcel = exportExcel;
+window.showDetail = showDetail;
+// Re-init pada full load & setiap HTMX swap.
+if (window.onPageReady) onPageReady(bindMonthSel);
+else document.addEventListener('DOMContentLoaded', bindMonthSel);
+})();
+</script>
+{% endblock %}

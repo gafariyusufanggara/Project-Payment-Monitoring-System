@@ -1,0 +1,472 @@
+{% extends "base.html" %} {% block title %}Laporan DPP Mingguan - Project Payment Monitoring System{% endblock %} {% block topbar_title %}Laporan DPP Mingguan{% endblock %}
+{% block topbar_icon %}bi-calendar-week{% endblock %} {# Compute total unique
+levelansir + weeks at top level so topbar_badges can use them #} {% set
+all_rekanan = [] %} {% for r in report_rows %} {% for s in r.rekanan_list %} {%
+if s.rekanan not in all_rekanan %} {% set _ = all_rekanan.append(s.rekanan) %}
+{% endif %} {% endfor %} {% endfor %} {% set weeks =
+report_rows|map(attribute='key')|list %} {% block topbar_badges %}
+<span class="topbar-badge tb-rekanan"
+  ><i class="bi bi-people"></i> {{ all_rekanan|length }} Levelansir</span
+>
+<span class="topbar-badge tb-data"
+  ><i class="bi bi-database"></i> {{ data_count }} Data</span
+>
+<span class="topbar-badge tb-minggu"
+  ><i class="bi bi-calendar-week"></i> {{ weeks|length }} Minggu</span
+>
+{% endblock %} {% block content %}
+{# laporan.css dimuat global di base.html <head> (cegah FOUC saat swap HTMX) #}
+
+
+<div class="animate-in lp-body lp-mingguan">
+  {% set current_week = weeks[-1] if weeks else '' %} {% set ns =
+  namespace(cy=0, cm=0) %} {% for r in report_rows %}{% set ns.cy = r.year %}{%
+  set ns.cm = r.month %}{% endfor %}
+
+  <!-- ═══ FILTER BAR ═══ -->
+  <div class="lp-rail lp-rail--select lp-rail--mingguan" id="topRail">
+    <div class="lp-rail-group">
+      <label class="lp-rail-label" for="monthSel"><i class="bi bi-calendar3"></i> Periode</label>
+      <select id="monthSel" class="lp-sel" aria-label="Pilih bulan">
+      {% set mset = [] %} {% for r in report_rows %} {% if (r.year, r.month) not
+      in mset %} {% set _ = mset.append((r.year, r.month)) %}
+      <option
+        value="{{ r.month }}"
+        data-year="{{ r.year }}"
+        {% if r.year == ns.cy and r.month == ns.cm %}
+        selected
+        {% endif %}
+      >
+        {{
+        ['','Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'][r.month]
+        }} {{ r.year }}
+      </option>
+      {% endif %} {% endfor %}
+      </select>
+    </div>
+    <div class="lp-rail-group lp-rail-group--end">
+      <span class="lp-rail-period" id="weekLabel">{{ current_week }}</span>
+      <button class="lp-btn lp-btn--primary" id="exportBtn" onclick="exportExcel(this)" title="Export minggu aktif ke Excel"><i class="bi bi-download"></i> Export</button>
+    </div>
+  </div>
+
+  <!-- ═══ WEEK RAIL (filtered by month) ═══ -->
+  <div class="lp-rail lp-rail--weeks" id="weekBar">
+    <span class="lp-rail-label"
+      ><i class="bi bi-calendar-week"></i> Minggu</span
+    >
+    {% for r in report_rows %}
+    <button
+      class="lp-rail-btn{% if r.key == current_week %} active{% endif %}"
+      data-key="{{ r.key }}"
+      data-year="{{ r.year }}"
+      data-month="{{ r.month }}"
+      aria-pressed="{% if r.key == current_week %}true{% else %}false{% endif %}"
+      type="button"
+      onclick="selectMonth('{{ r.key }}')"
+    >
+      {{ r.label }}
+    </button>
+    {% endfor %}
+  </div>
+
+  {% for r in report_rows %}
+  <div class="month-section" id="section-{{ r.key }}"{% if r.key != current_week %} hidden{% endif %}>
+    {% set k = r.kpi %}
+
+    <!-- â•â•â• KPI ROW â•â•â• -->
+    <div
+      class="lp-sisa-card lp-hero ds-kpi {% if k.sisa_dpp > 0 %}pos ds-kpi--err{% else %}zero ds-kpi--ok{% endif %}"
+    >
+      <div class="lp-hero-main">
+        <span class="kpi-lbl ds-kpi__label"><i class="bi bi-wallet2"></i> Sisa Hutang DPP · {{ r.label }}</span>
+        <span class="kpi-num ds-kpi__value">{{ k.sisa_dpp|money }}</span>
+      </div>
+      <div class="lp-hero-side">
+        <span class="lp-hero-tot"><strong>{{ k.sd_hutang|money }}</strong> hutang</span>
+        <span class="lp-hero-sep" aria-hidden="true">−</span>
+        <span class="lp-hero-tot"><strong>{{ k.sd_bayar|money }}</strong> bayar</span>
+      </div>
+    </div>
+
+    <div class="lp-kpi-groups" role="group" aria-label="Ringkasan {{ r.label }}">
+      <section class="lp-kpi-group lp-kpi-group--hutang" aria-label="Realisasi hutang">
+        <h3 class="lp-kpi-group-title"><i class="bi bi-arrow-up-circle"></i> Hutang</h3>
+        <div class="lp-kpi-row">
+          <div class="lp-kpi-cell ds-kpi ds-kpi--err h lp-cell--dim">
+            <div class="kpi-top">
+              <span class="kpi-lbl ds-kpi__label">Lalu</span>
+              <div class="kpi-icon-wrap" aria-hidden="true">
+                <i class="bi bi-arrow-up-circle"></i>
+              </div>
+            </div>
+            <div class="kpi-num ds-kpi__value">{{ k.lalu_hutang|money }}</div>
+          </div>
+          <div class="lp-kpi-cell ds-kpi ds-kpi--err h lp-cell--now">
+            <div class="kpi-top">
+              <span class="kpi-lbl ds-kpi__label">Saat Ini</span>
+              <div class="kpi-icon-wrap" aria-hidden="true">
+                <i class="bi bi-calendar-check"></i>
+              </div>
+            </div>
+            <div class="kpi-num ds-kpi__value">{{ k.saat_ini_hutang|money }}</div>
+          </div>
+          <div class="lp-kpi-cell ds-kpi ds-kpi--err h lp-cell--dim">
+            <div class="kpi-top">
+              <span class="kpi-lbl ds-kpi__label">S/D Ini</span>
+              <div class="kpi-icon-wrap" aria-hidden="true">
+                <i class="bi bi-clock-history"></i>
+              </div>
+            </div>
+            <div class="kpi-num ds-kpi__value">{{ k.sd_hutang|money }}</div>
+          </div>
+        </div>
+      </section>
+      <section class="lp-kpi-group lp-kpi-group--bayar" aria-label="Realisasi pembayaran">
+        <h3 class="lp-kpi-group-title"><i class="bi bi-arrow-down-circle"></i> Pembayaran</h3>
+        <div class="lp-kpi-row">
+          <div class="lp-kpi-cell ds-kpi ds-kpi--ok p lp-cell--dim">
+            <div class="kpi-top">
+              <span class="kpi-lbl ds-kpi__label">Lalu</span>
+              <div class="kpi-icon-wrap" aria-hidden="true">
+                <i class="bi bi-arrow-down-circle"></i>
+              </div>
+            </div>
+            <div class="kpi-num ds-kpi__value">{{ k.lalu_bayar|money }}</div>
+          </div>
+          <div class="lp-kpi-cell ds-kpi ds-kpi--ok p lp-cell--now">
+            <div class="kpi-top">
+              <span class="kpi-lbl ds-kpi__label">Saat Ini</span>
+              <div class="kpi-icon-wrap" aria-hidden="true">
+                <i class="bi bi-check-circle"></i>
+              </div>
+            </div>
+            <div class="kpi-num ds-kpi__value">{{ k.saat_ini_bayar|money }}</div>
+          </div>
+          <div class="lp-kpi-cell ds-kpi ds-kpi--ok p lp-cell--dim">
+            <div class="kpi-top">
+              <span class="kpi-lbl ds-kpi__label">S/D Ini</span>
+              <div class="kpi-icon-wrap" aria-hidden="true">
+                <i class="bi bi-check-all"></i>
+              </div>
+            </div>
+            <div class="kpi-num ds-kpi__value">{{ k.sd_bayar|money }}</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- â•â•â• SUMMARY TABLE â•â•â• -->
+    <div class="lp-tbl-wrap">
+      <div class="lp-tbl-hdr ds-section-title">
+        <h6>
+          <i class="bi bi-file-earmark-bar-graph"></i>
+          Ringkasan Levelansir — Minggu {{ r.label }}
+          <span class="tag">{{ r.total_count }} Invoice</span>
+          <span class="tag teal">{{ r.total_pay_count }} Pembayaran</span>
+        </h6>
+        <div class="d-flex align-items-center gap-3">
+          <span class="lp-level-count"
+            >{{ r.rekanan_list|length }} levelansir</span
+          >
+        </div>
+      </div>
+      <div class="lp-scroll">
+        <table class="lp-tbl" data-enhance="lp-mingguan">
+          <thead>
+            <tr>
+              <th rowspan="2" class="grp-no w-no" scope="col">
+                No.
+              </th>
+              <th rowspan="2" class="mw-150" scope="col">Levelansir</th>
+              <th colspan="3" class="grp-h" scope="colgroup">Realisasi Hutang</th>
+              <th colspan="3" class="grp-p" scope="colgroup">Realisasi Pembayaran</th>
+              <th rowspan="2" class="grp-sisa mw-95" scope="col">Sisa DPP
+              </th>
+            </tr>
+            <tr>
+              <th class="grp-h-sub" scope="col">LALU</th>
+              <th class="grp-h-sub" scope="col">SAAT INI</th>
+              <th class="grp-h-sub" scope="col">S/D INI</th>
+              <th class="grp-p-sub" scope="col">LALU</th>
+              <th class="grp-p-sub" scope="col">SAAT INI</th>
+              <th class="grp-p-sub" scope="col">S/D INI</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in r.rekanan_list %}
+            <tr
+              data-rekan="{{ s.rekanan | e }}"
+              data-month="{{ r.key }}"
+              onclick="showDetail('{{ r.key }}', '{{ s.rekanan | e }}', this)"
+            >
+              <td class="c-no">{{ loop.index }}</td>
+              <td>
+                {{ s.rekanan }} {% if s.count > 0 %}
+                <span class="inv-badge inv-badge-h"
+                  >{{ s.count }}</span
+                >
+                {% endif %} {% if s.pay_count > 0 %}
+                <span class="inv-badge inv-badge-p"
+                  >{{ s.pay_count }}</span
+                >
+                {% endif %}
+              </td>
+              <td class="c-h">{{ s.lalu_hutang|money }}</td>
+              <td class="c-h">{{ s.saat_ini_hutang|money }}</td>
+              <td class="c-h">{{ s.sd_hutang|money }}</td>
+              <td class="c-p">{{ s.lalu_bayar|money }}</td>
+              <td class="c-p">{{ s.saat_ini_bayar|money }}</td>
+              <td class="c-p">{{ s.sd_bayar|money }}</td>
+              <td
+                class="{{ 'c-sisa-pos' if s.sisa_dpp > 0 else 'c-sisa-zero' }}"
+              >
+                {{ s.sisa_dpp|money }}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr>
+              {% set t = namespace(l=0, si=0, sd=0, bl=0, bsi=0, bsd=0, sdpp=0)
+              %} {% for s in r.rekanan_list %} {% set t.l = t.l + s.lalu_hutang
+              %} {% set t.si = t.si + s.saat_ini_hutang %} {% set t.sd = t.sd +
+              s.sd_hutang %} {% set t.bl = t.bl + s.lalu_bayar %} {% set t.bsi =
+              t.bsi + s.saat_ini_bayar %} {% set t.bsd = t.bsd + s.sd_bayar %}
+              {% set t.sdpp = t.sdpp + s.sisa_dpp %} {% endfor %}
+              <td class="c-no"></td>
+              <td>TOTAL</td>
+              <td class="c-h">{{ t.l|money }}</td>
+              <td class="c-h">{{ t.si|money }}</td>
+              <td class="c-h">{{ t.sd|money }}</td>
+              <td class="c-p">{{ t.bl|money }}</td>
+              <td class="c-p">{{ t.bsi|money }}</td>
+              <td class="c-p">{{ t.bsd|money }}</td>
+              <td class="{{ 'c-sisa-pos' if t.sdpp > 0 else 'c-sisa-zero' }}">
+                {{ t.sdpp|money }}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="lp-empty ds-empty">
+    <i class="bi bi-inbox"></i>
+    <h6 class="ds-empty__title">Belum Ada Data Mingguan</h6>
+    <p>Silakan import atau input data terlebih dahulu.</p>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- â•â•â• DETAIL MODAL â•â•â• -->
+<div class="modal fade lp-modal" id="laporanModal" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="modalLabel">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalLabel">
+          <i class="bi bi-receipt"></i>
+          Detail Invoice
+          <span class="mm" id="modalMonth"></span>
+        </h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Tutup"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <div class="lp-mlegend" aria-hidden="true"><span><span class="dot dot--h"></span>Hutang</span><span><span class="dot dot--p"></span>Bayar</span><span><span class="dot dot--s-pos"></span>Sisa &gt;0</span><span><span class="dot dot--s-zero"></span>Lunas</span><span class="lp-mlegend-hint">bar kiri = periode aktif</span></div>
+        <div class="lp-scrollbox">
+          <table class="lp-mtbl">
+            <thead>
+              <tr>
+                <th scope="col" class="m-tgl">Tgl Berkas</th>
+                <th scope="col" class="m-tgl">Tgl Inv</th>
+                <th scope="col" class="m-inv">Invoice</th>
+                <th scope="col" class="m-po">PO / Kontrak</th>
+                <th scope="col" class="m-jt">Jth Tempo</th>
+                <th scope="col" class="m-desc">Deskripsi</th>
+                <th scope="col" class="ar m-hutang">Hutang DPP</th>
+                <th scope="col" class="ar m-ppn">PPN</th>
+                <th scope="col" class="ar m-ppn">PPH</th>
+                <th scope="col" class="ar m-ppn">Retensi</th>
+                <th scope="col" class="m-bayar-tgl">Tgl Bayar DPP</th>
+                <th scope="col" class="ar m-bayar">Bayar DPP</th>
+                <th scope="col" class="ar m-sisa">Sisa DPP</th>
+                <th scope="col" class="m-bayar-tgl">Tgl Bayar PPN</th>
+                <th scope="col" class="ar m-bayar">Bayar PPN</th>
+                <th scope="col" class="ar m-sisa">Sisa PPN</th>
+              </tr>
+            </thead>
+            <tbody id="modalInvoices">
+              <tr class="em">
+                <td colspan="16">
+                  <i class="bi bi-hand-index"></i>Pilih levelansir untuk melihat
+                  detail
+                </td>
+              </tr>
+            </tbody>
+            <tfoot id="modalTfoot" hidden><tr><td class="l" colspan="6">Total</td><td id="ftHutang"></td><td id="ftPpn"></td><td id="ftPph"></td><td id="ftRetensi"></td><td class="l"></td><td id="ftBayar" class="m-p"></td><td id="ftSisa" class="m-s"></td><td class="l"></td><td id="ftBayarPpn" class="m-p"></td><td id="ftSisaPpn" class="m-s"></td></tr></tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Page script di dalam block content agar ikut di-swap & dieksekusi HTMX. -->
+<script>
+(function () {
+  const REKANAN_DATA = {{ report_rows | tojson }};
+  function currentVisibleKey(){
+    const vis = document.querySelector('.month-section:not([hidden])');
+    return vis ? vis.id.replace('section-','') : '';
+  }
+  function onPeriodChange() {
+      const sel = document.getElementById('monthSel');
+      const y = sel.options[sel.selectedIndex]?.dataset.year;
+      const m = sel.value;
+      const btns = document.querySelectorAll('#weekBar .lp-rail-btn');
+      let target = null;
+      const cur = currentVisibleKey();
+      btns.forEach(b => {
+          const show = (b.dataset.year === y) && (String(b.dataset.month) === String(m));
+          b.hidden = !show;
+          if(show && b.dataset.key === cur) target = b;
+      });
+      if(!target) btns.forEach(b => { if(!b.hidden && !target) target = b; });
+      if (target) selectMonth(target.dataset.key);
+  }
+  function afterVisibleChange(){
+    if(window.TableEnhance) window.TableEnhance.refresh();
+    const vis = document.querySelector('.month-section:not([hidden])');
+    if(vis) vis.querySelector('table.lp-tbl')?.focus?.({preventScroll:true});
+  }
+  function selectMonth(key) {
+      document.querySelectorAll('.month-section').forEach(el => { el.hidden = (el.id !== 'section-' + key); });
+      document.querySelectorAll('#weekBar .lp-rail-btn').forEach(b => {
+          const on = b.dataset.key === key;
+          b.classList.toggle('active', on);
+          b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+      const lbl = document.getElementById('weekLabel');
+      if (lbl) lbl.textContent = key;
+      afterVisibleChange();
+  }
+  function exportExcel(btn) {
+      btn = btn || document.getElementById('exportBtn');
+      if (btn) { btn.disabled = true; setTimeout(() => btn.disabled = false, 1500); }
+      const activeBtn = document.querySelector('#weekBar .lp-rail-btn.active');
+      const key = activeBtn ? activeBtn.getAttribute('data-key') : '';
+      window.location.href = '/laporan-mingguan/export' + (key ? '?week=' + encodeURIComponent(key) : '');
+  }
+  function bindMingguanEvents(){
+    const mSel = document.getElementById('monthSel');
+    if(mSel && !mSel.dataset.bound){ mSel.dataset.bound='1'; mSel.addEventListener('change', onPeriodChange); }
+    document.querySelectorAll('.month-section tbody tr[data-rekan]').forEach(tr=>{ tr.tabIndex=0; tr.setAttribute('role','button'); tr.setAttribute('aria-label','Lihat detail '+tr.dataset.rekan); tr.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); tr.click(); }}); });
+  }
+  (function initPeriod() {
+      bindMingguanEvents();
+      const btns = document.querySelectorAll('#weekBar .lp-rail-btn');
+      if (!btns.length) return;
+      const last = btns[btns.length - 1];
+      const mSel = document.getElementById('monthSel');
+      if (mSel) {
+          for (const opt of mSel.options) {
+              if (opt.dataset.year === last.dataset.year && String(opt.value) === String(last.dataset.month)) {
+                  mSel.value = opt.value;
+                  break;
+              }
+          }
+      }
+      onPeriodChange();
+      afterVisibleChange();
+  })();
+  let _activeRow = null;
+  function showDetail(monthKey, rekanan, rowEl) {
+      if (_activeRow) _activeRow.classList.remove('selected');
+      if (rowEl) { rowEl.classList.add('selected'); _activeRow = rowEl; }
+      const allInvoices = [];
+      for (const wk of REKANAN_DATA) {
+          const rec = wk.rekanan_list.find(s => s.rekanan === rekanan);
+          if (rec && rec.invoices && rec.invoices.length > 0) {
+              for (const inv of rec.invoices) allInvoices.push({ ...inv, bulan: wk.label, bulanKey: wk.key });
+          }
+      }
+      allInvoices.sort((a, b) => (a.tgl_berkas < b.tgl_berkas ? -1 : a.tgl_berkas > b.tgl_berkas ? 1 : 0));
+      document.getElementById('modalLabel').innerHTML = '<i class="bi bi-receipt"></i> ' + esc(rekanan) + ' <span class="mm">' + allInvoices.length + ' invoice</span>';
+      const body = document.getElementById('modalInvoices');
+      const tfoot = document.getElementById('modalTfoot');
+      if (allInvoices.length === 0) {
+          body.innerHTML = '<tr class="em"><td colspan="16"><i class="bi bi-inbox"></i>Tidak ada data untuk ' + esc(rekanan) + '</td></tr>';
+          if (tfoot) tfoot.hidden = true;
+      } else {
+          let tH = 0, tPpn = 0, tPph = 0, tRet = 0, tB = 0, tS = 0, tBppn = 0, tSppn = 0;
+          body.innerHTML = allInvoices.map(inv => {
+              const invSisaDpp = Math.max(0, (Number(inv.harga_excl)||0) - (Number(inv.bayar_dpp)||0));
+              const invSisaPpn = Math.max(0, (Number(inv.ppn)||0) - (Number(inv.bayar_ppn)||0));
+              tH += Number(inv.harga_excl)||0; tPpn += Number(inv.ppn)||0; tPph += Number(inv.pot_pph)||0; tRet += Number(inv.retensi)||0; tB += Number(inv.bayar_dpp)||0; tS += invSisaDpp; tBppn += Number(inv.bayar_ppn)||0; tSppn += invSisaPpn;
+              const sisaClass = invSisaDpp > 0 ? 'sn' : 'sz';
+              const sisaPpnClass = invSisaPpn > 0 ? 'sn' : 'sz';
+              const invWK = weekKeyOf(inv.tgl_berkas);
+              const payWK = weekKeyOf(inv.tgl_bayar_dpp);
+              const rowClasses = [invWK === monthKey ? 'hl-cur' : '', payWK === monthKey ? 'hl-p' : ''].filter(Boolean).join(' ');
+              return '<tr class="' + rowClasses + '">' +
+                '<td class="l">' + esc(inv.tgl_berkas) + '</td>' +
+                '<td class="l">' + esc(inv.tgl_inv) + '</td>' +
+                CellExpand.td(inv.invoice, 'l iv', 40) +
+                CellExpand.td(inv.po, 'l', 25) +
+                '<td class="l">' + esc(inv.jth_tempo) + '</td>' +
+                CellExpand.td(inv.deskripsi, 'l', 40) +
+                '<td class="m-h">' + fmt(inv.harga_excl) + '</td>' +
+                '<td>' + fmt(inv.ppn) + '</td>' +
+                '<td>' + fmt(inv.pot_pph) + '</td>' +
+                '<td>' + fmt(inv.retensi) + '</td>' +
+                '<td class="l">' + esc(inv.tgl_bayar_dpp) + '</td>' +
+                '<td class="m-p">' + fmt(inv.bayar_dpp) + '</td>' +
+                '<td class="m-s ' + sisaClass + '">' + fmt(invSisaDpp) + '</td>' +
+                '<td class="l">' + esc(inv.tgl_bayar_ppn) + '</td>' +
+                '<td class="m-p">' + fmt(inv.bayar_ppn) + '</td>' +
+                '<td class="m-s ' + sisaPpnClass + '">' + fmt(invSisaPpn) + '</td>' +
+              '</tr>';
+          }).join('');
+          if (tfoot) {
+              tfoot.hidden = false;
+              document.getElementById('ftHutang').textContent = fmt(tH);
+              document.getElementById('ftPpn').textContent = fmt(tPpn);
+              document.getElementById('ftPph').textContent = fmt(tPph);
+              document.getElementById('ftRetensi').textContent = fmt(tRet);
+              document.getElementById('ftBayar').textContent = fmt(tB);
+              const ftS = document.getElementById('ftSisa');
+              ftS.textContent = fmt(tS);
+              ftS.className = tS > 0 ? 't-s-pos' : 't-s-zero';
+              document.getElementById('ftBayarPpn').textContent = fmt(tBppn);
+              const ftSppn = document.getElementById('ftSisaPpn');
+              ftSppn.textContent = fmt(tSppn);
+              ftSppn.className = tSppn > 0 ? 't-s-pos' : 't-s-zero';
+          }
+      }
+      const modalEl = document.getElementById('laporanModal');
+      const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+      modal.show();
+      modalEl.addEventListener('hidden.bs.modal', function _onHide() {
+          modalEl.removeEventListener('hidden.bs.modal', _onHide);
+          if (_activeRow) { _activeRow.classList.remove('selected'); _activeRow = null; }
+      });
+  }
+
+  function esc(s) { return String(s || '-').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+  function fmt(v) { return Math.round(Number(v||0)).toLocaleString('id-ID'); }
+  function _isoWeek(d){ const t=new Date(d.getFullYear(),d.getMonth(),d.getDate()); let w=t.getDay(); w=w===0?7:w; t.setDate(t.getDate()+4-w); const y0=new Date(t.getFullYear(),0,1); return [t.getFullYear(), Math.ceil(((t-y0)/86400000+1)/7)]; }
+  function weekKeyOf(s){ if(!s||s==='-'||String(s).length<10) return null; const p=String(s).slice(0,10).split('-'); const y=+p[0],m=+p[1],dd=+p[2]; if(!y||!m||!dd) return null; const dt=new Date(y,m-1,dd); if(isNaN(dt)) return null; const wd=dt.getDay(); const sun=new Date(dt); sun.setDate(dt.getDate()-wd); const tue=new Date(sun); sun.setDate(sun.getDate()+2); const r=_isoWeek(tue); return r[0]+'-W'+String(r[1]).padStart(2,'0'); }
+
+  // Expose fungsi ke window (dipakai attribut inline onclick).
+  window.exportExcel = exportExcel;
+  window.selectMonth = selectMonth;
+  window.showDetail = showDetail;
+})();
+</script>
+{% endblock %}

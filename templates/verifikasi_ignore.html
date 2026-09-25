@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+{% block title %}Data Diabaikan - Project Payment Monitoring System{% endblock %}
+{% block topbar_title %}Data yang Diabaikan{% endblock %}
+{% block topbar_icon %}bi-eye-slash{% endblock %}
+{% block topbar_badges %}
+<span class="topbar-badge tb-total"><i class="bi bi-database"></i> {{ count }} diabaikan</span>
+{% endblock %}
+{% block content %}
+<!--
+  Data Diabaikan — Ledger Desk world (DESIGN.md).
+  THESIS: arsip abaian rapi — seleksi batch + kartu ledger terpilih biru.
+  OWN-WORLD: navy/paper, satu aksen biru, serif hanya angka KPI, mono sel uang.
+  STORY: staf finance centang arsip abaian lalu kembalikan sekaligus.
+  FIRST VIEWPORT: header + toolbar seleksi + awal kartu.
+  FORM: refinement Operate, mirror tokens verifikasi.html.
+  FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+-->
+<style>
+  .tb-total { background: #eaf2f9; color: #005691; }
+  .ig-wrap { display: flex; flex-direction: column; gap: 16px; max-width: 1000px; margin: 0 auto; }
+  .ig-sub { margin: 2px 0 0; font-size: .78rem; color: #667080; }
+  .ig-toolbar {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    background: #fff; border: 1px solid #e3e5e8; border-radius: 16px;
+    padding: 12px 16px; box-shadow: 0 1px 3px rgba(51, 51, 51,.05);
+  }
+  .ig-select-all { display: inline-flex; align-items: center; gap: 6px; font-size: .75rem; font-weight: 600; color: #333333; cursor: pointer; user-select: none; }
+  .ig-select-all input { width: 16px; height: 16px; accent-color: #005691; cursor: pointer; }
+  .ig-select-all input:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 86, 145,.18); border-radius: 6px; }
+  .ig-count { margin-left: auto; font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: #667080; font-variant-numeric: tabular-nums; }
+  .ig-list { display: flex; flex-direction: column; gap: 10px; }
+  .ig-card {
+    background: #fff; border: 1px solid #e3e5e8; border-radius: 16px;
+    padding: 14px 18px; box-shadow: 0 1px 3px rgba(51, 51, 51,.05);
+    display: grid; grid-template-columns: auto 1fr auto; gap: 8px 14px; align-items: start;
+    transition: box-shadow .25s cubic-bezier(.4,0,.2,1), background .15s, border-color .15s;
+  }
+  .ig-card:hover { box-shadow: 0 4px 12px -2px rgba(51, 51, 51,.08), 0 2px 6px -1px rgba(51, 51, 51,.04); }
+  .ig-card:has(.ig-check:checked) { background: #eaf2f9; border-color: #005691; }
+  .ig-check { width: 16px; height: 16px; margin-top: 4px; accent-color: #005691; cursor: pointer; }
+  .ig-check:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 86, 145,.18); border-radius: 6px; }
+  .ig-main { grid-column: 2; min-width: 0; }
+  .ig-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+  .ig-rnum {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; border-radius: 6px; background: #eef0f2;
+    font-weight: 700; font-size: .7rem; color: #4d5766;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+  }
+  .ig-card:has(.ig-check:checked) .ig-rnum { background: #e2eff8; color: #005691; }
+  .ig-rekanan { font-weight: 700; font-size: .85rem; color: #333333; }
+  .ig-inv {
+    font-family: "JetBrains Mono", "SF Mono", monospace; font-size: .7rem; font-weight: 600;
+    color: #005691; background: #e2eff8; padding: 3px 10px; border-radius: 6px; white-space: nowrap;
+  }
+  .ig-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: .75rem; color: #4d5766; }
+  .ig-meta-item {
+    display: inline-flex; align-items: center; gap: 4px; background: #f7f8f9;
+    padding: 2px 8px; border-radius: 6px; border: 1px solid #e3e5e8;
+  }
+  .ig-masalah {
+    font-size: .78rem; color: #4d5766; padding: 6px 10px; background: #f7f8f9;
+    border-radius: 8px; margin-top: 6px; line-height: 1.5;
+  }
+  .ig-card:has(.ig-check:checked) .ig-masalah { background: #fff; }
+  .ig-side {
+    grid-column: 3; grid-row: 1 / 3; display: flex; flex-direction: column;
+    align-items: flex-end; justify-content: space-between; gap: 6px; min-width: 140px;
+  }
+  .ig-alasan { text-align: right; font-size: .75rem; color: #4d5766; font-style: italic; max-width: 200px; line-height: 1.4; }
+  .ig-alasan strong { font-style: normal; font-weight: 600; }
+  .ig-time { font-size: .75rem; color: #667080; white-space: nowrap; display: flex; align-items: center; gap: 4px; font-variant-numeric: tabular-nums; }
+  .ig-btn {
+    font-size: .72rem; font-weight: 600; padding: 5px 12px; border-radius: 8px;
+    border: 1px solid #e3e5e8; background: #fff; color: #333333; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 5px; font-family: inherit;
+    transition: border-color .15s, color .15s, background .15s;
+  }
+  .ig-btn:hover:not(:disabled) { border-color: #005691; color: #005691; }
+  .ig-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 86, 145,.18); }
+  .ig-btn:disabled { opacity: .5; cursor: not-allowed; }
+  .ig-back { margin-top: 8px; text-align: center; }
+  .ig-back a {
+    display: inline-flex; align-items: center; gap: 6px; font-size: .78rem; font-weight: 600;
+    color: #4d5766; text-decoration: none; padding: 8px 18px; border-radius: 8px;
+    border: 1px solid #e3e5e8; background: #fff;
+  }
+  .ig-back a:hover { border-color: #005691; color: #005691; background: #eaf2f9; }
+  .ig-back a:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 86, 145,.18); }
+  ::selection { background: #e2eff8; }
+  @media (max-width: 640px) {
+    .ig-card { grid-template-columns: auto 1fr; }
+    .ig-side { grid-column: 1 / 3; grid-row: auto; flex-direction: row; align-items: center; flex-wrap: wrap; justify-content: flex-start; padding-top: 8px; border-top: 1px solid #e3e5e8; }
+    .ig-alasan { text-align: left; }
+    .ig-toolbar { flex-direction: column; align-items: stretch; }
+    .ig-count { margin-left: 0; }
+    /* Sentuh: target minimum 40px tinggi untuk kontrol jempol. */
+    .ig-btn { min-height: 40px; justify-content: center; }
+    .ig-check, .ig-select-all input { width: 22px; height: 22px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .ig-card, .ig-btn, .ig-back a { transition: none; } }
+</style>
+
+<div class="ig-wrap animate-in">
+  <h1 class="visually-hidden">Data yang Diabaikan</h1>
+  <div style="display:flex;justify-content:flex-end">
+    <a href="{{ url_for('verifikasi.verifikasi') }}" class="ig-btn"><i class="bi bi-arrow-left"></i> Kembali ke Verifikasi</a>
+  </div>
+
+  {% if ignored %}
+  <div class="ig-toolbar">
+      <label class="ig-select-all"><input type="checkbox" id="igSelectAll" aria-label="Pilih semua baris yang terlihat" /> Pilih semua yang terlihat</label>
+    <div class="ds-search"><i class="bi bi-search"></i><input type="text" id="igSearch" placeholder="Cari rekanan, invoice, kategori, alasan..." oninput="filterIgnored()" aria-label="Saring data diabaikan" /></div>
+    <button class="ig-btn" id="igBatchRestoreBtn" disabled title="Pilih kartu lalu kembalikan"><i class="bi bi-arrow-counterclockwise"></i> Kembalikan Terpilih <span id="igBatchCount">0</span></button>
+    <span class="ig-count" id="igCount" aria-live="polite"></span>
+  </div>
+  {% endif %}
+
+  {% if ignored %}
+  <div class="ig-list">
+    {% for row in ignored %}
+    <div class="ig-card" data-search="{{ (row.rekanan ~ ' ' ~ (row.no_invoice or '') ~ ' ' ~ (row.kategori or '') ~ ' ' ~ (row.no_po or '') ~ ' ' ~ (row.alasan or ''))|lower }}">
+      <input type="checkbox" class="ig-check" value="{{ row.hutang_row }}" aria-label="Pilih R-{{ row.r }} {{ row.rekanan }}" />
+      <div class="ig-main">
+        <div class="ig-top">
+          <span class="ig-rnum">{{ row.r }}</span>
+          <span class="ig-rekanan">{{ row.rekanan }}</span>
+          <span class="ig-inv">{{ row.no_invoice or '-' }}</span>
+        </div>
+        <div class="ig-meta">
+          <span class="ig-meta-item"><i class="bi bi-tag"></i> {{ row.kategori or '-' }}</span>
+          <span class="ig-meta-item"><i class="bi bi-file-earmark-text"></i> {{ row.no_po or '-' }}</span>
+        </div>
+        {% if row.masalah %}<div class="ig-masalah">{{ row.masalah }}</div>{% endif %}
+      </div>
+      <div class="ig-side">
+        {% if row.alasan %}<div class="ig-alasan"><strong>Alasan:</strong> {{ row.alasan }}</div>{% endif %}
+        <div class="ig-time"><i class="bi bi-clock"></i> {{ row.ignored_at }}</div>
+        <form method="POST" action="{{ url_for('verifikasi.unignore', row_idx=row.hutang_row) }}" onsubmit="return confirm('Kembalikan data R-{{ row.r }} ke verifikasi?')" style="display:inline">
+          <button type="submit" class="ig-btn"><i class="bi bi-arrow-counterclockwise"></i> Kembalikan</button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="ds-empty">
+    <i class="bi bi-inbox"></i>
+    <div class="ds-empty__title">Tidak Ada Data Diabaikan</div>
+    <p class="ds-empty__text">Data yang diabaikan dari verifikasi akan muncul di sini.</p>
+  </div>
+  {% endif %}
+
+  <div class="ig-back">
+    <a href="{{ url_for('verifikasi.verifikasi') }}"><i class="bi bi-arrow-left"></i> Kembali ke Verifikasi</a>
+  </div>
+</div>
+
+<script>
+function getIgChecked() { return document.querySelectorAll('.ig-check:checked'); }
+function updateIgBatch() {
+  var n = getIgChecked().length;
+  var btn = document.getElementById('igBatchRestoreBtn');
+  var cnt = document.getElementById('igBatchCount');
+  if (btn) btn.disabled = n === 0;
+  if (cnt) cnt.textContent = n;
+}
+function updateIgSelectAll(cards) {
+  var all = document.getElementById('igSelectAll');
+  if (!all) return;
+  cards = cards || document.querySelectorAll('.ig-card');
+  var visible = 0, checked = 0;
+  cards.forEach(function(c) {
+    if (c.style.display === 'none') return;
+    visible++;
+    var cb = c.querySelector('.ig-check');
+    if (cb && cb.checked) checked++;
+  });
+  all.checked = visible > 0 && checked === visible;
+  all.indeterminate = checked > 0 && checked < visible;
+}
+function filterIgnored() {
+  var q = document.getElementById('igSearch').value.toLowerCase();
+  var cards = document.querySelectorAll('.ig-card');
+  var shown = 0;
+  cards.forEach(function(c) {
+    var hit = (c.getAttribute('data-search') || '').indexOf(q) !== -1;
+    c.style.display = hit ? '' : 'none';
+    if (hit) shown++;
+    else { var cb = c.querySelector('.ig-check'); if (cb) cb.checked = false; }
+  });
+  var el = document.getElementById('igCount');
+  if (el) el.textContent = shown + ' / ' + cards.length + ' baris';
+  updateIgSelectAll(cards);
+  updateIgBatch();
+}
+function submitIgBatch() {
+  var checked = getIgChecked();
+  if (checked.length === 0) return;
+  if (!confirm('Kembalikan ' + checked.length + ' data ke verifikasi?')) return;
+  var form = document.createElement('form');
+  form.method = 'POST';
+  form.action = '{{ url_for("verifikasi.unignore_batch") }}';
+  checked.forEach(function(cb) {
+    var inp = document.createElement('input');
+    inp.type = 'hidden'; inp.name = 'row_idxs'; inp.value = cb.value;
+    form.appendChild(inp);
+  });
+  document.body.appendChild(form);
+  form.submit();
+}
+function initIgnorePage() {
+  filterIgnored();
+  var all = document.getElementById('igSelectAll');
+  if (all) all.addEventListener('change', function() {
+    var on = this.checked;
+    document.querySelectorAll('.ig-card').forEach(function(c) {
+      if (c.style.display !== 'none') c.querySelector('.ig-check').checked = on;
+    });
+    updateIgBatch();
+  });
+  document.querySelectorAll('.ig-check').forEach(function(cb) {
+    cb.addEventListener('change', function() { updateIgBatch(); updateIgSelectAll(); });
+  });
+  var btn = document.getElementById('igBatchRestoreBtn');
+  if (btn) btn.addEventListener('click', submitIgBatch);
+}
+// Re-init pada full load & setiap HTMX swap (konten di-swap tanpa reload penuh).
+if (window.onPageReady) onPageReady(initIgnorePage);
+else document.addEventListener('DOMContentLoaded', initIgnorePage);
+</script>
+{% endblock %}

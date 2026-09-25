@@ -1,0 +1,144 @@
+{% extends "base.html" %} {% block title %}Dashboard {{ project.kode_proyek }} - Project Payment Monitoring System{% endblock %}{% block topbar_title %}{{ project.kode_proyek }}{% endblock %} {% block content %}
+<!--
+  Project Dashboard — Ledger Desk world (DESIGN.md).
+  THESIS: ringkasan keuangan per proyek — hero identitas, 4 KPI, PPh, cash flow.
+  OWN-WORLD: navy/paper, satu aksen biru, serif hanya angka KPI, mono sel uang.
+  STORY: manajer proyek lihat posisi kontrak lalu arus kas bulanan.
+  FIRST VIEWPORT: header + info strip + 4 KPI.
+  FORM: refinement Operate, mirror tokens projects.html / _dashboard.html.
+-->
+<style>
+  .pd-wrap { display: flex; flex-direction: column; gap: 16px; max-width: 1200px; margin: 0 auto; }
+  .pd-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .ds-kpi--compact { padding: 12px 14px; display: flex; align-items: center; gap: 12px; }
+  .ds-kpi--compact .ds-kpi__value { font-size: 1.05rem; }
+  .ds-kpi--compact .ds-kpi__hint { margin-top: 1px; }
+  .kpi-ico { width: 38px; height: 38px; min-width: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1rem; }
+  .kpi-ico--blue { background: #e2eff8; color: #005691; }
+  .kpi-ico--green { background: #e4f9e7; color: #1d7a2b; }
+  .kpi-ico--rose { background: #fdecea; color: #a12a1d; }
+  .kpi-ico--amber { background: #fdf6d8; color: #8a6d00; }
+  .ds-card { background: #fff; border: 1px solid #e3e5e8; border-radius: 16px; box-shadow: 0 1px 3px rgba(51, 51, 51,.05); overflow: hidden; }
+  .ds-card-body { padding: 20px; }
+  .ds-card-title { padding: 14px 20px; font-weight: 700; font-size: 1rem; border-bottom: 1px solid #e3e5e8; display: flex; align-items: center; gap: 8px; }
+  .ds-card-title i { color: #005691; }
+  .pd-info { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; padding: 14px 20px; }
+  .pd-info-label { font-size: .7rem; color: #667080; text-transform: uppercase; font-weight: 700; letter-spacing: .6px; }
+  .pd-info-value { font-size: .85rem; font-weight: 600; color: #333333; }
+  .pd-info-value--money { font-family: "JetBrains Mono", "SF Mono", monospace; font-size: .78rem; font-variant-numeric: tabular-nums; }
+  .ds-table { width: 100%; font-size: .78rem; border-collapse: separate; border-spacing: 0; }
+  .ds-table thead th { background: #f7f8f9; color: #3d434c; font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .7px; padding: 10px 12px; border-bottom: 2px solid #e3e5e8; white-space: nowrap; }
+  .ds-table tbody td { padding: 9px 12px; vertical-align: middle; border-bottom: 1px solid #eef0f2; }
+  .ds-table tbody tr:hover td { background: #f7f8f9; }
+  .ds-table tfoot td { padding: 10px 12px; font-weight: 700; border-top: 2px solid #e3e5e8; background: #f7f8f9; }
+  .cell-money { font-family: "JetBrains Mono", "SF Mono", monospace; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; font-size: .75rem; white-space: nowrap; }
+  .cell-pos { color: #1d7a2b; }
+  .cell-neg { color: #a12a1d; }
+  .ds-badge { padding: 3px 10px; border-radius: 6px; font-size: .7rem; font-weight: 700; display: inline-block; white-space: nowrap; }
+  .ds-badge-green { background: #e4f9e7; color: #1d7a2b; }
+  .ds-badge-blue { background: #e2eff8; color: #005691; }
+  .ds-badge-amber { background: #fdf6d8; color: #8a6d00; }
+  .ds-badge-red { background: #fdecea; color: #a12a1d; }
+  .pd-cf-row { display: flex; align-items: center; gap: 10px; }
+  .pd-cf-bar { flex: 1; height: 8px; border-radius: 6px; background: #eef0f2; overflow: hidden; display: flex; }
+  .pd-cf-bar > span { display: block; height: 100%; }
+  .pd-cf-bayar { background: #005691; }
+  .pd-cf-sisa { background: #E5B800; }
+  .pd-cf-pct { min-width: 44px; text-align: right; font-size: .7rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  .pd-pph-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .pd-pph-label { font-size: .7rem; color: #667080; text-transform: uppercase; font-weight: 700; letter-spacing: .6px; }
+  .pd-pph-value { font-size: 1.05rem; font-weight: 700; color: #333333; font-variant-numeric: tabular-nums; }
+  .pd-pph-value--money { font-family: "JetBrains Mono", "SF Mono", monospace; font-size: .85rem; }
+  .pd-pph-rate { font-family: "Inter", Georgia, serif; font-size: 1.45rem; color: #005691; line-height: 1.15; }
+  .ds-btn:focus-visible, .ds-kpi:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 86, 145,.18); }
+  @media (max-width: 900px) { .pd-kpis { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 600px) { .pd-kpis { grid-template-columns: 1fr 1fr; } .ds-card-body { padding: 14px; } .ds-kpi--compact .ds-kpi__value { font-size: 1rem; } }
+  @media (prefers-reduced-motion: reduce) { .ds-card { transition: none; } }
+</style>
+<div class="pd-wrap animate-in">
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <a href="{{ url_for('project.list_projects') }}" class="ds-btn ds-btn--sm"><i class="bi bi-arrow-left"></i> Proyek</a>
+    <a href="{{ url_for('project.edit_project', project_id=project.id) }}" class="ds-btn ds-btn--sm"><i class="bi bi-pencil-square"></i> Edit</a>
+    {% if project.status == 'Aktif' %}<span class="ds-badge ds-badge-green">Aktif</span>
+    {% elif project.status == 'Selesai' %}<span class="ds-badge ds-badge-blue">Selesai</span>
+    {% else %}<span class="ds-badge ds-badge-amber">{{ project.status }}</span>{% endif %}
+  </div>
+
+  <div class="ds-card">
+    <div class="pd-info">
+      <div><div class="pd-info-label">Lokasi</div><div class="pd-info-value">{{ project.lokasi or '—' }}</div></div>
+      <div><div class="pd-info-label">Pemilik</div><div class="pd-info-value">{{ project.pemilik or '—' }}</div></div>
+      <div><div class="pd-info-label">Nilai Kontrak</div><div class="pd-info-value pd-info-value--money">{{ project.nilai_kontrak|money }}</div></div>
+      <div><div class="pd-info-label">Mulai</div><div class="pd-info-value">{{ project.tgl_mulai or '—' }}</div></div>
+      <div><div class="pd-info-label">Selesai (Rencana)</div><div class="pd-info-value">{{ project.tgl_selesai or '—' }}</div></div>
+    </div>
+  </div>
+
+  <div class="pd-kpis">
+    <div class="ds-kpi ds-kpi--compact" tabindex="0">
+      <div class="kpi-ico kpi-ico--blue"><i class="bi bi-file-earmark-text"></i></div>
+      <div><div class="ds-kpi__label">Nilai Kontrak</div><div class="ds-kpi__value">{{ project.nilai_kontrak|money }}</div></div>
+    </div>
+    <div class="ds-kpi ds-kpi--compact" tabindex="0">
+      <div class="kpi-ico kpi-ico--amber"><i class="bi bi-graph-up"></i></div>
+      <div><div class="ds-kpi__label">Total Realisasi</div><div class="ds-kpi__value">{{ total_realisasi|money }}</div></div>
+    </div>
+    <div class="ds-kpi ds-kpi--compact{% if project.total_sisa > 0 %} ds-kpi--warn{% else %} ds-kpi--ok{% endif %}" tabindex="0">
+      <div class="kpi-ico kpi-ico--rose"><i class="bi bi-exclamation-circle"></i></div>
+      <div><div class="ds-kpi__label">Sisa Hutang</div><div class="ds-kpi__value">{{ project.total_sisa|money }}</div></div>
+    </div>
+    <div class="ds-kpi ds-kpi--compact{% if retensi_outstanding > 0 %} ds-kpi--warn{% else %} ds-kpi--ok{% endif %}" tabindex="0">
+      <div class="kpi-ico kpi-ico--amber"><i class="bi bi-lock"></i></div>
+      <div><div class="ds-kpi__label">Retensi Dipotong</div><div class="ds-kpi__value">{{ retensi_total|money }}</div><div class="ds-kpi__hint">{{ retensi_outstanding }} invoice</div></div>
+    </div>
+  </div>
+
+  <div class="ds-card">
+    <div class="ds-card-title ds-section-title"><i class="bi bi-percent"></i> PPh Final Summary</div>
+    <div class="ds-card-body">
+      <div class="pd-pph-grid">
+        <div><div class="pd-pph-label">Total PPh Dipotong</div><div class="pd-pph-value pd-pph-value--money">{{ pph_total|money }}</div></div>
+        <div><div class="pd-pph-label">Total DPP</div><div class="pd-pph-value pd-pph-value--money">{{ pph_dpp|money }}</div></div>
+        <div><div class="pd-pph-label">Rata-rata Tarif</div><div class="pd-pph-rate">{{ '%.2f'|format(pph_rate) }}%</div></div>
+        <div><div class="pd-pph-label">Estimasi Final</div><div style="font-size:.7rem;color:#667080">2%: {{ (pph_dpp * 0.02)|money }}<br>4%: {{ (pph_dpp * 0.04)|money }}</div></div>
+      </div>
+    </div>
+    <div style="border-top:1px solid #e3e5e8;padding:12px 20px">
+      <a href="{{ url_for('project.list_retention', project_id=project.id) }}" class="ds-btn ds-btn--sm"><i class="bi bi-lock"></i> Rincian Retensi <i class="bi bi-chevron-right"></i></a>
+    </div>
+  </div>
+
+  <div class="ds-card">
+    <div class="ds-card-title ds-section-title"><i class="bi bi-cash-stack"></i> Cash Flow — Realisasi per Bulan</div>
+    <div style="overflow-x:auto">
+    <table class="ds-table" style="min-width:700px">
+      <thead><tr><th>Bulan</th><th style="text-align:right">Nilai Invoice</th><th style="text-align:right">Pembayaran</th><th style="text-align:right">Cum. Nilai</th><th style="text-align:right">Cum. Bayar</th><th style="text-align:right">Cum. Sisa</th><th style="width:34%">Progress Bayar</th></tr></thead>
+      <tbody>
+        {% if cash_flow %}{% for cf in cash_flow %}{% set pct = (cf.cum_bayar / total_cf_amount * 100) if total_cf_amount > 0 else 0 %}
+        <tr>
+          <td style="font-weight:600">{{ cf.bulan }}</td>
+          <td class="cell-money">{{ cf.amount|money }}</td>
+          <td class="cell-money cell-pos">{{ cf.bayar|money }}</td>
+          <td class="cell-money">{{ cf.cum_realisasi|money }}</td>
+          <td class="cell-money cell-pos">{{ cf.cum_bayar|money }}</td>
+          <td class="cell-money">{{ cf.cum_sisa|money }}</td>
+          <td>
+            <div class="pd-cf-row">
+              <div class="pd-cf-bar" role="progressbar" aria-valuenow="{{ '%.0f'|format(pct) }}" aria-valuemin="0" aria-valuemax="100" aria-label="Progress bayar {{ cf.bulan }}">
+                <span class="pd-cf-bayar" style="width:{{ pct }}%"></span>
+                {% if cf.cum_sisa > 0 %}<span class="pd-cf-sisa" style="width:{{ (cf.cum_sisa / total_cf_amount * 100) if total_cf_amount > 0 else 0 }}%"></span>{% endif %}
+              </div>
+              <span class="pd-cf-pct">{{ '%.0f'|format(pct) }}%</span>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}{% else %}
+        <tr><td colspan="7" style="text-align:center;color:#667080;padding:24px">Belum ada data realisasi.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

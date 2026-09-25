@@ -1,0 +1,765 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}Project Payment Monitoring System{% endblock %}</title>
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 16 16'%3E%3Cpath fill='%232ECC40' d='M9.293 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.707A1 1 0 0 0 13.707 4L10 .293A1 1 0 0 0 9.293 0M9.5 3.5v-2l3 3h-2a1 1 0 0 1-1-1M3.5 6a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5H4a.5.5 0 0 1-.5-.5zm0 2.5a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5H4a.5.5 0 0 1-.5-.5zM4 11h8v1H4z'/%3E%3C/svg%3E"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Shared data-table layer (pagination, column toggle, frozen cols, density).
+         Loaded before the page style block so page CSS can still override it. -->
+    <link
+      href="{{ url_for('static', filename='css/table.css') }}"
+      rel="stylesheet"
+    />
+    {% block head_extra %}{% endblock %}
+    <!-- Blocking script: apply sidebar collapsed state BEFORE first paint to prevent flicker -->
+    <script>
+      (function () {
+        if (localStorage.getItem("sidebarCollapsed") === "1") {
+          document.documentElement.classList.add("sb-collapsed");
+        }
+      })();
+    </script>
+<!-- Base design system (layout, sidebar, topbar, komponen dasar).
+     Loaded after Bootstrap/table.css so it wins, and before page blocks
+     so individual pages can still override. -->
+<link
+  href="{{ url_for('static', filename='css/base.css') }}"
+  rel="stylesheet"
+/>
+<!-- Design system bersama (token + komponen ds-*).
+     Setelah base.css supaya menang atas gaya lama, sebelum base-late.css
+     yang berisi override akhir modal. -->
+<link
+  href="{{ url_for('static', filename='css/app.css') }}"
+  rel="stylesheet"
+/>
+<!-- Gaya bersama halaman laporan (DPP/PPN/JT). Dimuat GLOBAL di <head> agar
+     tidak ikut di-swap HTMX — mencegah flash "besar lalu mengecil" (FOUC)
+     ketika halaman laporan dibuka via navigasi AJAX. Scoped ke kelas .lp-*. -->
+<link
+  href="{{ url_for('static', filename='css/laporan.css') }}"
+  rel="stylesheet"
+/>
+    {% block styles %}{% endblock %}
+  </head>
+  <body>
+<!-- ═══ DESIGN CONTRACT — "Flat Design Financeiro Seguro" (DESIGN.md) ═══
+     THESIS: keuangan flat yang menenangkan — kebisingan visual dihapus, angka yang bicara; menolak chrome gelap-slate & aksen biru kategori dashboard.
+     OWN-WORLD: Azul Profundo #005691 (chrome), Verde Esmeralda #2ECC40 (aksi), Cinza Escuro #333333 (teks), Amarelo Ouro/Laranja (status), Inter + JetBrains Mono untuk angka.
+     STORY: staf finance input/melacak hutang per proyek dengan percaya diri; sisa & jatuh tempo terbaca dalam hitungan detik.
+     FIRST VIEWPORT: sidebar biru-profundo + topbar terang + KPI baris atas dengan aksen status per kartu.
+     FORM: theme swap penuh pada design system ds-* yang ada; seed key: none (user-pinned world).
+     FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance.
+═════════════════════════════════════════════════════════════════════ -->
+    <!-- Full-screen nav loading overlay (ditampilkan via HTMX events) -->
+    <div id="navLoader" class="nav-loader" aria-hidden="true">
+      <div class="nav-loader__box">
+        <div class="nav-loader__spinner"></div>
+        <span class="nav-loader__text">Memuat…</span>
+      </div>
+    </div>
+    <div class="app-layout">
+      <!-- SIDEBAR -->
+      <aside class="sidebar">
+        <div class="sidebar-brand">
+          <div class="brand-icon">
+            <i class="bi bi-file-earmark-spreadsheet-fill"></i>
+          </div>
+          <div class="brand-text">
+            <div class="brand-title">Project Payment</div>
+            <small>Monitoring System</small>
+          </div>
+          <button
+            class="sidebar-toggle-btn"
+            onclick="toggleSidebar()"
+            title="Sembunyikan sidebar"
+          >
+            <i class="bi bi-chevron-left"></i>
+          </button>
+        </div>
+        <nav class="sidebar-nav">
+          {% block sidebar_nav %}
+          <button class="nav-item" onclick="navigateTo('/dashboard')">
+            <i class="bi bi-grid-1x2"></i> <span>Dashboard</span>
+          </button>
+
+          <div class="sidebar-section">Project Management</div>
+          <button class="nav-item" onclick="navigateTo('/project/')">
+            <i class="bi bi-building"></i> <span>Daftar Proyek</span>
+          </button>
+
+          <div class="sidebar-section">Procurement</div>
+          <button class="nav-item" onclick="navigateTo('/kontrak/')">
+            <i class="bi bi-file-earmark-text"></i> <span>Kontrak Vendor</span>
+          </button>
+
+          <div class="sidebar-section">Import Data</div>
+          <button class="nav-item" onclick="navigateTo('/import')">
+            <i class="bi bi-receipt"></i> <span>Import Invoice</span>
+          </button>
+          <button class="nav-item" onclick="navigateTo('/kontrak/import')">
+            <i class="bi bi-file-earmark-arrow-up"></i> <span>Import Kontrak</span>
+          </button>
+
+          <div class="sidebar-section">Data Transaksi</div>
+          <button class="nav-item" onclick="navigateTo('/data-hutang')">
+            <i class="bi bi-table"></i> <span>Data Invoice</span>
+          </button>
+          <button class="nav-item" onclick="navigateTo('/invoice-cicilan')">
+            <i class="bi bi-arrow-repeat"></i> <span>Invoice Cicilan</span>
+          </button>
+          <button class="nav-item" onclick="navigateTo('/levelansir-retensi')">
+            <i class="bi bi-person-lock"></i> <span>Levelansir / Retensi</span>
+          </button>
+
+          <div class="sidebar-section">Kepatuhan</div>
+          <button
+            class="nav-item"
+            onclick="navigateTo('/verifikasi')"
+            id="navVerifikasi"
+          >
+            <i class="bi bi-shield-exclamation"></i>
+            <span>Verifikasi Data</span>
+            {% if verification_total > 0 %}
+            <span
+              class="nav-badge {{ 'nav-badge-critical' if verification_critical > 0 else 'nav-badge-warning' }}"
+            >
+              {{ verification_total }}
+            </span>
+            {% endif %}
+          </button>
+          <button class="nav-item" onclick="navigateTo('/audit')" id="navAudit">
+            <i class="bi bi-clock-history"></i> <span>Catatan Audit</span>
+            {% if audit_total > 0 %}
+            <span class="nav-badge nav-badge-info">{{ audit_total }}</span>
+            {% endif %}
+          </button>
+
+          <div class="sidebar-section">Laporan Invoice</div>
+          <button class="nav-item" onclick="navigateTo('/laporan-bulanan')">
+            <i class="bi bi-file-earmark-bar-graph"></i>
+            <span>Laporan DPP Bulanan</span>
+          </button>
+          <button class="nav-item" onclick="navigateTo('/laporan-mingguan')">
+            <i class="bi bi-calendar-week"></i>
+            <span>Laporan DPP Mingguan</span>
+          </button>
+          <button class="nav-item" onclick="navigateTo('/laporan-jatuh-tempo')">
+            <i class="bi bi-calendar-x"></i> <span>Laporan Jatuh Tempo</span>
+          </button>
+
+          <div class="sidebar-section">Laporan Pajak</div>
+          <button class="nav-item" onclick="navigateTo('/laporan-ppn')">
+            <i class="bi bi-file-earmark-text"></i>
+            <span>Laporan PPN Bulanan</span>
+          </button>
+          <button class="nav-item" onclick="navigateTo('/laporan-ppn-mingguan')">
+            <i class="bi bi-calendar-week"></i>
+            <span>Laporan PPN Mingguan</span>
+          </button>
+
+          <div class="sidebar-section">Sistem</div>
+          <button class="nav-item" onclick="navigateTo('/pengaturan')">
+            <i class="bi bi-slash-circle"></i> <span>Exclude</span>
+            {% if (exclude_cat_count|default(0) + exclude_rek_count|default(0)) > 0 %}
+            <span
+              class="nav-badge nav-badge-neutral"
+              title="{{ exclude_tip }}"
+            >
+              {{ exclude_cat_count|default(0) + exclude_rek_count|default(0) }}
+            </span>
+            {% endif %}
+          </button>
+          {% endblock %}
+        </nav>
+        {% block sidebar_footer %} {% endblock %}
+      </aside>
+
+      <!-- MAIN -->
+      <main class="main-content" id="mainContent">
+        {% block topbar %}
+        <div class="topbar">
+          <h1 id="pageTitle">
+            <i class="bi {% block topbar_icon %}bi-grid-1x2{% endblock %}"></i>
+            {% block topbar_title %}Proyek{% endblock %}
+            {% if update_label %}<span class="page-update" title="{{ update_tip }}">Update {{ update_label }}</span>{% endif %}
+          </h1>
+          <div class="topbar-right">
+            {% block topbar_scope %}
+            <div class="project-scope">
+              <i class="bi bi-folder2-open project-scope-icon"></i>
+              <select
+                id="projectScope"
+                class="project-scope-select"
+                aria-label="Filter berdasarkan proyek"
+                data-active="{{ active_project_id }}"
+              >
+                <option value="all">Semua Proyek</option>
+                {% for pid, label in project_list %}
+                <option value="{{ pid }}">{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            {% endblock %}
+            <div class="topbar-badges">
+              {% if (exclude_cat_count|default(0) + exclude_rek_count|default(0)) > 0 and request.path != '/pengaturan' %}
+              <a class="topbar-badge" style="background:#fdf6d8;color:#8a6d00;text-decoration:none" href="/pengaturan" onclick="navigateTo('/pengaturan');return false;" title="{{ exclude_tip }} - tidak ikut dihitung di Dashboard & Laporan. Klik untuk ubah."><i class="bi bi-eye-slash"></i> Exclude: {% if exclude_cat_count %}{{ exclude_cat_count }} kat{% endif %}{% if exclude_cat_count and exclude_rek_count %} • {% endif %}{% if exclude_rek_count %}{{ exclude_rek_count }} rekanan{% endif %} ({{ exclude_row_count }} baris)</a>
+              {% endif %}
+              {% block topbar_badges %}{% endblock %}
+              <a class="topbar-badge topbar-logout" href="{{ url_for('auth.logout') }}" title="Keluar"><i class="bi bi-box-arrow-right"></i> Keluar</a>
+            </div>
+          </div>
+        </div>
+        {% endblock %}
+
+        <div class="content-area">
+          {% block flash_messages %} {% with messages =
+          get_flashed_messages(with_categories=true) %} {% if messages %}
+          <!-- Sembunyikan (hidden): hanya wadah untuk diserap toast.js —
+               jangan pernah tampil sebagai banner agar tidak "muncul lalu hilang". -->
+          <div hidden data-flash>
+            {% for cat, msg in messages %} {% set bs_cat =
+            {'success':'success','danger':'danger','info':'info','warning':'warning'}.get(cat,
+            'info') %}
+            <div class="alert alert-{{ bs_cat }} alert-dismissible fade show">
+              <i
+                class="bi bi-{% if cat == 'success' %}check-circle-fill{% elif cat == 'danger' %}exclamation-triangle-fill{% else %}info-circle-fill{% endif %} me-1"
+              ></i>
+              {{ msg }}
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="alert"
+              ></button>
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %} {% endwith %} {% endblock %} {% block content %}{%
+          endblock %}
+        </div>
+      </main>
+    </div>
+
+    <!-- EDIT MODAL -->
+    <!-- VIEW DETAIL MODAL -->
+<link
+  href="{{ url_for('static', filename='css/base-late.css') }}"
+  rel="stylesheet"
+/>
+    <div class="modal fade" id="viewModal" tabindex="-1" aria-labelledby="viewModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="vm-header" id="viewModalLabel">
+            <div class="vm-header-top">
+              <div style="min-width:0">
+                <div class="vm-label">Levelansir / Rekanan</div>
+                <div class="vm-rekanan" id="vmRekanan"></div>
+                <div class="vm-invoice-ref">
+                  <i class="bi bi-receipt"></i> <span id="vmInvoice"></span>
+                </div>
+              </div>
+              <div style="display:flex;align-items:flex-start;gap:10px;flex:none">
+                <div class="vm-header-badges" id="vmBadges"></div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup" style="filter:invert(1);opacity:.7"></button>
+              </div>
+            </div>
+          </div>
+          <div class="vm-finbar" id="vmFinbar"></div>
+          <div class="modal-body-wrap">
+            <div class="vm-body" id="vmBody"></div>
+            <div class="modal-footer">
+              <span class="vm-note">Klik Audit untuk mengoreksi — tersimpan sebagai jejak audit.</span>
+              <button
+                type="button"
+                class="vm-btn vm-btn-close"
+                data-bs-dismiss="modal"
+              >
+                <i class="bi bi-x-lg"></i>Tutup
+              </button>
+              <button type="button" class="vm-btn vm-btn-audit" id="viewEditBtn">
+                <i class="bi bi-pencil"></i>Audit
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EDIT MODAL — Ledger Desk (mirip modal input: 5 kartu + footer sticky) -->
+    <style>
+      #editModal .modal-dialog { max-width: 1020px; }
+      #editModal .modal-content { border: none; border-radius: 16px; overflow: hidden; max-height: calc(100vh - 3.5rem); box-shadow: 0 25px 60px rgba(0,0,0,.18); background: #fff; }
+      #editModal form { display: flex; flex-direction: column; min-height: 0; flex: 1 1 auto; max-height: inherit; overflow: hidden; }
+      #editModal .modal-header { background: #005691; color: #fff; border: none; padding: 16px 24px; flex: none; }
+      #editModal .modal-header .modal-title { font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+      #editModal .modal-header .modal-title i { color: #5fd76e; }
+      #editModal .modal-header .im-sub { display: block; font-size: .7rem; font-weight: 400; color: rgba(255,255,255,.6); }
+      #editModal .modal-header .btn-close { filter: invert(1); opacity: .7; }
+      #editModal .modal-body { padding: 18px 22px 28px; background: #f7f8f9; overflow-y: auto; flex: 1 1 auto; min-height: 0; }
+      #editModal .modal-footer { background: #fff; border-top: 1px solid #e3e5e8; padding: 12px 22px; display: flex; align-items: center; gap: 8px; flex: none; }
+      #editModal .modal-footer .im-note { font-size: .7rem; color: #667080; margin-right: auto; }
+      #editModal .form-control, #editModal .form-select { font-size: .85rem; border-radius: 8px; height: 34px; }
+      #editModal .form-control:focus, #editModal .form-select:focus { border-color: #005691; box-shadow: 0 0 0 3px rgba(0, 86, 145,.12); }
+      #editModal .form-control:focus-visible, #editModal .form-select:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 86, 145,.18); }
+      #editModal .im-card { border: 1px solid #e3e5e8; border-radius: 12px; overflow: hidden; margin-bottom: 12px; background: #fff; }
+      #editModal .im-card:last-child { margin-bottom: 0; }
+      #editModal .im-card__head { display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: #f7f8f9; border-bottom: 1px solid #e3e5e8; }
+      #editModal .im-num { width: 24px; height: 24px; min-width: 24px; border-radius: 8px; background: #005691; color: #fff; font-size: .7rem; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+      #editModal .im-card__head h6 { margin: 0; font-size: .78rem; font-weight: 700; color: #333333; }
+      #editModal .im-card__head small { margin-left: auto; font-size: .7rem; color: #667080; }
+      #editModal .im-card__body { padding: 14px 16px; }
+      #editModal .im-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 10px 12px; }
+      #editModal .im-grid > div { min-width: 0; }
+      #editModal .c2 { grid-column: span 2; } #editModal .c3 { grid-column: span 3; } #editModal .c4 { grid-column: span 4; }
+      #editModal .c5 { grid-column: span 5; } #editModal .c6 { grid-column: span 6; } #editModal .c8 { grid-column: span 8; } #editModal .c12 { grid-column: span 12; }
+      #editModal .im-label { display: block; font-size: .7rem; font-weight: 700; color: #667080; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      #editModal .im-mini { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: #4d5766; margin: 12px 0 8px; display: flex; align-items: center; gap: 8px; }
+      #editModal .im-mini:first-child { margin-top: 0; }
+      #editModal .im-mini::after { content: ""; flex: 1; height: 1px; background: #eef0f2; }
+      #editModal .im-total { display: flex; align-items: center; gap: 12px; background: #eaf2f9; border: 1px solid #c4ddef; border-radius: 10px; padding: 10px 14px; margin-top: 10px; }
+      #editModal .im-total .lbl { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: #005691; }
+      #editModal .im-total input { max-width: 260px; margin-left: auto; font-weight: 700; background: #fff; }
+      @media (max-width: 768px) { #editModal .c2, #editModal .c3, #editModal .c4, #editModal .c5 { grid-column: span 6; } #editModal .c6, #editModal .c8 { grid-column: span 12; } }
+      @media (max-width: 480px) { #editModal .c2, #editModal .c3, #editModal .c4, #editModal .c5 { grid-column: span 12; } #editModal .modal-body { padding: 14px; } }
+      @media (max-width: 480px) { #editModal .modal-body { padding: 14px; } }
+      @media (prefers-reduced-motion: reduce) { #editModal * { transition: none !important; } }
+    </style>
+    <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="editModalLabel"><i class="bi bi-pencil-square"></i><span>Edit Data<span class="im-sub">Perubahan tersimpan sebagai audit — DB utama tak berubah</span></span></h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+          </div>
+          <form method="POST" id="editForm">
+            <div class="modal-body">
+              <div id="editFields"></div>
+            </div>
+            <div class="modal-footer">
+              <span class="im-note">Total &amp; sisa dihitung ulang otomatis saat disimpan.</span>
+              <button type="button" class="ds-btn" data-bs-dismiss="modal">Batal</button>
+              <button type="submit" class="ds-btn ds-btn--primary">
+                <i class="bi bi-save me-1"></i>Catat Audit
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- HTMX: navigasi sidebar jadi AJAX — hanya #mainContent yang di-swap,
+         sehingga sidebar/topbar/head tidak pernah reload (tidak reset, tidak kedip). -->
+    <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.4/dist/htmx.min.js"></script>
+    <script>
+      // ═══ HTMX config: swap hanya area konten ═══
+      document.addEventListener('DOMContentLoaded', function () {
+          if (!window.htmx) return;
+          htmx.config.scrollIntoViewOnBoost = false;   // jangan auto-scroll ke atas saat swap
+          htmx.config.historyCacheSize = 10;
+          htmx.config.defaultSwapStyle = 'innerHTML';
+      });
+
+      // ═══ Full-screen loading overlay (tampil selama request HTMX) ═══
+      function showNavLoader() {
+          const el = document.getElementById('navLoader');
+          if (el) el.classList.add('is-active');
+      }
+      function hideNavLoader() {
+          const el = document.getElementById('navLoader');
+          if (el) el.classList.remove('is-active');
+      }
+      document.addEventListener('htmx:beforeRequest', showNavLoader);
+      // Sembunyikan overlay SETELAH konten selesai di-swap & settle (bukan saat
+      // response diterima) agar pengguna tak melihat konten setengah jadi /
+      // tata letak transisi "besar lalu mengecil".
+      document.addEventListener('htmx:afterSettle', hideNavLoader);
+      // Fallback: request yang tidak menghasilkan swap (mis. error) tetap menutup.
+      document.addEventListener('htmx:afterRequest', function (evt) {
+          if (evt.detail && evt.detail.successful === false) hideNavLoader();
+      });
+      document.addEventListener('htmx:responseError', function () {
+          hideNavLoader();
+          if (window.Toast && Toast.err) Toast.err('Gagal memuat halaman. Coba lagi.');
+      });
+      document.addEventListener('htmx:sendError', function () {
+          hideNavLoader();
+          if (window.Toast && Toast.err) Toast.err('Koneksi bermasalah. Coba lagi.');
+      });
+
+      // Saat back/forward browser memulihkan snapshot dari cache HTMX,
+      // pastikan menu aktif & handler halaman ikut disinkronkan.
+      document.addEventListener('htmx:historyRestore', function () {
+          hideNavLoader();
+          updateActiveNav();
+          runPageReady();
+      });
+
+      // ═══ Lazy-load Chart.js (dipakai halaman dashboard) ═══
+      // Halaman yang punya chart memanggil ensureChartJs(cb); script dimuat sekali
+      // saja walau navigasi via HTMX tidak me-reload <head>.
+      let _chartJsPromise = null;
+      function ensureChartJs(cb) {
+          if (typeof Chart !== 'undefined') { if (cb) cb(true); return; }
+          if (!_chartJsPromise) {
+              _chartJsPromise = new Promise(function (resolve) {
+                  const s = document.createElement('script');
+                  s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
+                  s.onload = function () { resolve(typeof Chart !== 'undefined'); };
+                  s.onerror = function () { _chartJsPromise = null; resolve(false); };
+                  document.head.appendChild(s);
+              }).then(function (ok) {
+                  if (!ok) _chartJsPromise = null;
+                  return ok;
+              });
+          }
+          _chartJsPromise.then(function (ok) { if (cb) cb(ok); });
+      }
+      function destroyDashboardCharts(root) {
+          try {
+              if (typeof Chart === 'undefined' || !Chart.getChart) return;
+              const scope = root || document;
+              ['chartKategori', 'chartAging', 'chartMonthly', 'chartDaily'].forEach(function (id) {
+                  const el = scope.getElementById ? scope.getElementById(id) : document.getElementById(id);
+                  const inst = el && Chart.getChart(el);
+                  if (inst) inst.destroy();
+              });
+          } catch (e) { /* jangan merusak swap */ }
+      }
+
+      // ═══ onPageReady(fn): re-run inisialisasi halaman setiap HTMX swap ═══
+      // Menggantikan document.addEventListener('DOMContentLoaded', fn) yang
+      // TIDAK ter-trigger ulang saat konten di-swap oleh HTMX.
+      // Handler HANYA didaftarkan; yang mengeksekusi adalah runPageReady()
+      // (dipanggil sekali saat load penuh, sekali lagi tiap HTMX swap) sehingga
+      // tidak terjadi eksekusi ganda.
+      let _pageReadyHandlers = [];
+      let _pageReadyRan = false;
+      function onPageReady(fn) {
+          if (typeof fn !== 'function') return;
+          _pageReadyHandlers.push(fn);
+          // Bila halaman sudah siap & belum pernah dijalankan (mis. script halaman
+          // dieksekusi setelah DOM siap pada load penuh), jalankan sekarang.
+          if (_pageReadyRan && document.readyState !== 'loading') {
+              try { fn(); } catch (e) { console.error('[onPageReady]', e); }
+          }
+      }
+      function runPageReady() {
+          _pageReadyRan = true;
+          _pageReadyHandlers.forEach(fn => {
+              try { fn(); } catch (e) { console.error('[onPageReady]', e); }
+          });
+      }
+      // Load penuh: jalankan semua handler halaman setelah DOM siap.
+      document.addEventListener('DOMContentLoaded', function () {
+          // Beri kesempatan script halaman (yang berada di akhir body) mendaftar dulu.
+          runPageReady();
+      });
+      // Sebelum #mainContent di-swap, buang handler halaman lama agar tidak menumpuk.
+      document.addEventListener('htmx:beforeSwap', function (evt) {
+          if (evt.detail && evt.detail.target && evt.detail.target.id === 'mainContent') {
+              destroyDashboardCharts(evt.detail.target);
+              _pageReadyHandlers = [];
+              _pageReadyRan = false;
+          }
+      });
+      // Setiap kali #mainContent di-swap, jalankan ulang semua handler halaman.
+      document.addEventListener('htmx:afterSwap', function (evt) {
+          if (evt.target && evt.target.id === 'mainContent') {
+              // Bersihkan overlay modal yang mungkin tertinggal + backdrop.
+              document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+              document.body.classList.remove('modal-open');
+              document.body.style.removeProperty('overflow');
+              document.body.style.removeProperty('padding-right');
+              updateActiveNav();
+              runPageReady();
+              // Enhance tabel baru (pagination, toggle kolom, density).
+              // table-enhance.js hanya boot pada DOMContentLoaded, sehingga
+              // tanpa ini tabel hasil swap HTMX tetap "mentah" (ukuran beda).
+              if (window.TableEnhance && window.TableEnhance.enhanceAll) {
+                  window.TableEnhance.enhanceAll(evt.target);
+              }
+              // Scroll area konten ke atas untuk halaman baru.
+              const ca = document.querySelector('.content-area');
+              if (ca) ca.scrollTop = 0;
+          }
+      });
+
+      // ═══ Sidebar collapse toggle ═══
+      function toggleSidebar() {
+          const sidebar = document.querySelector('.sidebar');
+          const main = document.querySelector('.main-content');
+          const btn = document.querySelector('.sidebar-toggle-btn');
+          sidebar.classList.toggle('collapsed');
+          main.classList.toggle('sidebar-collapsed');
+          const isCollapsed = sidebar.classList.contains('collapsed');
+          localStorage.setItem('sidebarCollapsed', isCollapsed ? '1' : '0');
+          // Sync sb-collapsed on <html> so next page load renders collapsed before paint
+          document.documentElement.classList.toggle('sb-collapsed', isCollapsed);
+          if (btn) {
+              btn.title = isCollapsed ? 'Perluas sidebar' : 'Sembunyikan sidebar';
+              btn.innerHTML = isCollapsed ? '<i class="bi bi-chevron-right"></i>' : '<i class="bi bi-chevron-left"></i>';
+          }
+      }
+      (function initSidebar() {
+          const sidebar = document.querySelector('.sidebar');
+          const main = document.querySelector('.main-content');
+          const btn = document.querySelector('.sidebar-toggle-btn');
+          if (localStorage.getItem('sidebarCollapsed') === '1' && sidebar) {
+              sidebar.classList.add('collapsed');
+              if (main) main.classList.add('sidebar-collapsed');
+              if (btn) {
+                  btn.title = 'Perluas sidebar';
+                  btn.innerHTML = '<i class="bi bi-chevron-right"></i>';
+              }
+          }
+      })();
+
+      // ═══ Navigation handler ═══
+      // Navigasi via HTMX: hanya #mainContent yang di-swap, sidebar tetap.
+      // Hanya rute yang halaman-nya sudah "HTMX-ready" yang pakai swap; sisanya
+      // fallback ke navigasi penuh (agar script halaman tetap berjalan normal).
+      const HTMX_READY_ROUTES = [
+          '/dashboard', '/data-hutang', '/levelansir-retensi', '/invoice-cicilan',
+          '/kontrak/', '/kontrak/import', '/project/', '/verifikasi', '/audit', '/import',
+          '/laporan-bulanan', '/laporan-mingguan', '/laporan-jatuh-tempo',
+          '/laporan-ppn', '/laporan-ppn-mingguan', '/pengaturan',
+      ];
+      function isHtmxReady(url) {
+          const path = (url || '').split('?')[0];
+          return HTMX_READY_ROUTES.indexOf(path) !== -1;
+      }
+      function navigateTo(url) {
+          saveSidebarScroll();
+          updateActiveNav(url.split('?')[0]);
+          if (window.htmx && isHtmxReady(url)) {
+              // Push URL didorong server via header HX-Push-Url (lihat app.py):
+              // htmx.ajax di HTMX 2.0.4 mengabaikan opsi pushUrl.
+              htmx.ajax('GET', url, {
+                  target: '#mainContent',
+                  select: '#mainContent',
+                  swap: 'outerHTML',
+              });
+          } else {
+              window.location.href = url;
+          }
+      }
+
+      // ═══ Sidebar scroll persistence (jangan reset saat pindah page) ═══
+      function saveSidebarScroll() {
+          const nav = document.querySelector('.sidebar-nav');
+          if (nav) sessionStorage.setItem('sidebarScrollTop', String(nav.scrollTop));
+      }
+      (function restoreSidebarScroll() {
+          const nav = document.querySelector('.sidebar-nav');
+          if (!nav) return;
+          const saved = sessionStorage.getItem('sidebarScrollTop');
+          if (saved !== null) nav.scrollTop = parseInt(saved, 10) || 0;
+          // Selalu simpan posisi terakhir (mis. saat reload / tombol back).
+          window.addEventListener('beforeunload', saveSidebarScroll);
+          nav.addEventListener('scroll', () => { sessionStorage.setItem('sidebarScrollTop', String(nav.scrollTop)); }, { passive: true });
+      })();
+
+      function updateActiveNav(pathOverride) {
+          const path = pathOverride || window.location.pathname;
+          const navBtns = document.querySelectorAll('.sidebar-nav .nav-item');
+          navBtns.forEach(b => b.classList.remove('active'));
+          let activeText;
+          if (path === '/dashboard') {
+              activeText = 'Dashboard';
+          } else if (path.startsWith('/project/')) {
+              activeText = 'Daftar Proyek';
+          } else if (path === '/kontrak/import') {
+              activeText = 'Import Kontrak';
+          } else if (path.startsWith('/kontrak')) {
+              activeText = 'Kontrak Vendor';
+          } else if (path === '/data-hutang') {
+              activeText = 'Data Invoice';
+          } else if (path === '/invoice-cicilan') {
+              activeText = 'Invoice Cicilan';
+          } else if (path === '/levelansir-retensi') {
+              activeText = 'Levelansir / Retensi';
+          } else if (path === '/import') {
+              activeText = 'Import Invoice';
+          } else if (path === '/laporan-bulanan') {
+              activeText = 'Laporan DPP Bulanan';
+          } else if (path === '/laporan-mingguan') {
+              activeText = 'Laporan DPP Mingguan';
+          } else if (path === '/laporan-jatuh-tempo') {
+              activeText = 'Laporan Jatuh Tempo';
+          } else if (path === '/laporan-ppn') {
+              activeText = 'Laporan PPN Bulanan';
+          } else if (path === '/laporan-ppn-mingguan') {
+              activeText = 'Laporan PPN Mingguan';
+          } else if (path === '/verifikasi' || path === '/verifikasi/ignore') {
+              activeText = 'Verifikasi Data';
+          } else if (path === '/audit') {
+              activeText = 'Catatan Audit';
+          } else if (path === '/pengaturan') {
+              activeText = 'Exclude';
+          }
+          if (activeText) {
+              navBtns.forEach(b => {
+                  if (b.textContent.includes(activeText)) b.classList.add('active');
+              });
+          }
+      }
+
+      // ═══ Init sidebar active state ═══
+      updateActiveNav();
+
+      // ═══ Shared EDIT modal (used by Data Invoice & Verifikasi pages) ═══
+      const fields = {{ form_fields|tojson }};
+      const dateFields = {{ date_fields|tojson }};
+      const numFields = {{ numeric_fields|tojson }};
+      const categories = {{ categories|tojson }};
+      const statusDPP = {{ status_dpp|tojson }};
+      const statusPPN = {{ status_ppn|tojson }};
+      const projectList = {{ project_list|tojson }};
+
+      function recalcEdit() {
+          const scope = document.getElementById('editFields');
+          const num = n => parseFloat(scope?.querySelector(`[name="${n}"]`)?.value) || 0;
+          const setVal = (n, v) => { const el = scope?.querySelector(`[name="${n}"]`); if (el) el.value = String(v); };
+          const vol = num('VOLUME PROGRESS');
+          const hargaSat = num('HARGA SATUAN');
+          const h = vol && hargaSat ? Math.round(vol * hargaSat) : num('HARGA (EXLD)');
+          setVal('HARGA (EXLD)', h);
+          const retensi = num('POT. RETENSI');
+          const pot = num('POT. PPH');
+          const ppn = num('PPN');
+          setVal('TOTAL (INCLD)', Math.round(h - retensi - pot + ppn));
+      }
+
+      function editRow(rowIdx) {
+          fetch('/edit/' + rowIdx).then(r => r.json()).then(data => {
+              const val = f => data[f] != null ? String(data[f]) : '';
+              const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+              // Field renderer — same im-grid/im-label look as modal input.
+              const fld = (f, cls, opts) => {
+                  opts = opts || {};
+                  const v = esc(val(f));
+                  let input;
+                  if (f === 'KATEGORI') {
+                      const list = v && !categories.includes(val(f)) ? [val(f), ...categories] : categories;
+                      input = `<select class="form-select form-select-sm" name="${f}">${['<option value="">-- Pilih --</option>'].concat(list.map(c=>`<option ${c===val(f)?'selected':''}>${esc(c)}</option>`)).join('')}</select>`;
+                  } else if (f === 'STATUS TERHADAP DPP') {
+                      input = `<select class="form-select form-select-sm" name="${f}">${statusDPP.map(c=>`<option ${c===val(f)?'selected':''}>${esc(c)}</option>`).join('')}</select>`;
+                  } else if (f === 'STATUS TERHADAP PPN') {
+                      const list = val(f) && !statusPPN.includes(val(f)) ? [val(f), ...statusPPN] : statusPPN;
+                      input = `<select class="form-select form-select-sm" name="${f}">${list.map(c=>`<option ${c===val(f)?'selected':''}>${esc(c)}</option>`).join('')}</select>`;
+                  } else if (f === 'project_id') {
+                      input = `<select class="form-select form-select-sm" name="project_id"><option value="">— Tanpa Proyek —</option>${projectList.map(p=>`<option value="${esc(p[0])}" ${String(p[0])===val(f)?'selected':''}>${esc(p[1])}</option>`).join('')}</select>`;
+                  } else if (['HARGA (EXLD)','TOTAL (INCLD)','NILAI YG DITERIMA VENDOR'].includes(f)) {
+                      input = `<input type="number" class="form-control form-control-sm" name="${f}" step="any" value="${v}" readonly tabindex="-1" style="background:#f7f8f9">`;
+                  } else if (dateFields.includes(f)) {
+                      input = `<input type="date" class="form-control form-control-sm" name="${f}" value="${v}">`;
+                  } else if (f === 'TGL MASUK DIVISI') {
+                      input = `<input type="text" class="form-control form-control-sm" name="${f}" value="${v}">`;
+                  } else if (numFields.includes(f)) {
+                      input = `<input type="number" class="form-control form-control-sm" name="${f}" step="any" value="${v}">`;
+                  } else {
+                      input = `<input type="text" class="form-control form-control-sm" name="${f}" value="${v}">`;
+                  }
+                  const req = ['TGL TERIMA BERKAS','NAMA LEVELANSIR / REKANAN','KATEGORI','STATUS TERHADAP DPP'].includes(f) ? ' <span class="req" style="color:#a12a1d">*</span>' : '';
+                  return `<div class="${cls}"><label class="im-label">${f}${req}</label>${input}</div>`;
+              };
+              const card = (num, title, sub, body) =>
+                  `<div class="im-card"><div class="im-card__head"><span class="im-num">${num}</span><h6>${title}</h6><small>${sub}</small></div><div class="im-card__body">${body}</div></div>`;
+              const grid = inner => `<div class="im-grid">${inner}</div>`;
+              const mini = t => `<div class="im-mini">${t}</div>`;
+              const html =
+                  card('01','Info Utama','Identitas berkas & rekanan', grid(
+                      fld('TGL TERIMA BERKAS','c3') + fld('NAMA LEVELANSIR / REKANAN','c5') +
+                      fld('KATEGORI','c2') + fld('STATUS TERHADAP DPP','c2')
+                  )) +
+                  card('02','Dokumen Invoice','Nomor, tanggal & pajak',
+                      mini('Nomor Dokumen') + grid(
+                          fld('NO INVOICE INTERNAL','c3') + fld('NO INVOICE','c3') +
+                          fld('NO PO / KONTRAK','c3') + fld('KODE BIAYA','c3')
+                      ) +
+                      mini('Tanggal & Deskripsi') + grid(
+                          fld('TGL INV','c2') + fld('TGL TERIMA','c2') + fld('JTH TEMPO','c2') + fld('DESKRIPSI','c6')
+                      ) +
+                      mini('Perpajakan') + grid(
+                          fld('STATUS TERHADAP PPN','c3') + fld('NO SERI FAKTUR PAJAK','c3') +
+                          fld('TGL FAKTUR PAJAK','c3') + fld('KODE BIAYA2','c3') + fld('KETERANGAN PPN','c12')
+                      )
+                  ) +
+                  card('03','Keuangan','Total terhitung otomatis',
+                      grid(
+                          fld('VOLUME PROGRESS','c2') + fld('HARGA SATUAN','c2') + fld('HARGA (EXLD)','c2') +
+                          fld('POT. RETENSI','c2') + fld('POT. PPH','c2') + fld('PPN','c2')
+                      ) +
+                      `<div class="im-total"><span class="lbl">Total (INCLD) — auto</span>${fld('TOTAL (INCLD)','c6').replace(/^<div class="c6">/, '<div style="max-width:260px;margin-left:auto;width:100%">')}</div>`
+                  ) +
+                  card('04','Pembayaran','DPP & PPN terpisah',
+                      mini('Jalur DPP') + grid(
+                          fld('PEMBAYARAN DPP','c3') + fld('PEMBAYARAN DPP VIA DIVISI','c3') +
+                          fld('NO BUKTI BAYAR DPP','c3') + fld('TGL BAYAR DPP','c3') +
+                          fld('PEMBAYARAN POT. PPH','c6') + fld('NILAI YG DITERIMA VENDOR','c6')
+                      ) +
+                      mini('Jalur PPN') + grid(
+                          fld('PEMBAYARAN PPN','c4') + fld('PEMBAYARAN PPN VIA','c4') +
+                          fld('NO BUKTI BAYAR PPN','c4') + fld('TGL BAYAR PPN','c4')
+                      )
+                  ) +
+                  card('05','Sisa & Tambahan','Otomatis + konteks proyek',
+                      grid(
+                          fld('TGL MASUK DIVISI','c3') + fld('project_id','c3') + fld('KETERANGAN','c6')
+                      )
+                  );
+              document.getElementById('editFields').innerHTML = html;
+              document.getElementById('editForm').action = '/edit/' + rowIdx;
+              document.getElementById('editFields').querySelectorAll('input,select')
+                  .forEach(el => el.addEventListener('input', recalcEdit));
+              new bootstrap.Modal(document.getElementById('editModal')).show();
+          }).catch(() => Toast.err('Gagal memuat data. Coba lagi.'));
+      }
+
+      // ═══ Project scope selector (topbar) ═══
+      (function initProjectScope() {
+        const sel = document.getElementById('projectScope');
+        if (!sel) return;
+        const active = sel.getAttribute('data-active') || 'all';
+        sel.value = (active && String(active) !== '') ? String(active) : 'all';
+        sel.addEventListener('change', function () {
+          const body = JSON.stringify({ project_id: this.value });
+          fetch('/api/set-project', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: body,
+          }).then(() => { window.location.reload(); })
+            .catch(() => { window.location.reload(); });
+        });
+      })();
+    </script>
+    <!-- Toast global (pengganti alert()). Harus sebelum skrip halaman
+         agar window.Toast siap dipakai. -->
+    <script src="{{ url_for('static', filename='js/toast.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/skeleton.js') }}"></script>
+    <!-- Progressive table enhancement. Opt-in per table via [data-enhance].
+         Loaded after page scripts so it can hook filterTable() results. -->
+    <script src="{{ url_for('static', filename='js/table-enhance.js') }}"></script>
+    <!-- Click-to-expand for truncated report-modal cells (data-full). -->
+    <script src="{{ url_for('static', filename='js/cell-expand.js') }}"></script>
+    {% block scripts %}{% endblock %}
+  </body>
+</html>

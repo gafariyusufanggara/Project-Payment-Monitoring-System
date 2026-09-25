@@ -1,0 +1,695 @@
+<style>
+  /* ═══════════════════════════════════════════════════
+   DATA TABLE — Premium Financial Ledger
+   Consistent with the report pages premium design.
+   ═══════════════════════════════════════════════════ */
+  .dt-invoice {
+    --dt-accent: #005691;
+    --dt-accent-dark: #005691;
+    --dt-accent-soft: #eaf2f9;
+    --dt-green: #2ECC40;
+    --dt-green-soft: #e4f9e7;
+    --dt-red: #e74c3c;
+    --dt-red-soft: #fdecea;
+    --dt-navy: #004a7c;
+    --dt-navy-mid: #0a6aa8;
+    --dt-muted: #4d5766;
+    --dt-border: #e3e5e8;
+    --dt-hover: #eef0f2;
+    --dt-bg-alt: #f7f8f9;
+    --dt-shadow-sm: 0 1px 3px rgba(51, 51, 51, 0.05);
+    --dt-shadow-md:
+      0 4px 12px -2px rgba(51, 51, 51, 0.08),
+      0 2px 6px -1px rgba(51, 51, 51, 0.04);
+    --dt-shadow-lg:
+      0 10px 25px -5px rgba(51, 51, 51, 0.1),
+      0 8px 16px -6px rgba(51, 51, 51, 0.05);
+    --dt-transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    font-family:
+      "Inter",
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      sans-serif;
+  }
+
+  .dt-invoice .table-wrapper {
+    border-radius: 16px;
+    box-shadow: var(--dt-shadow-sm);
+    overflow: hidden;
+    border: 1px solid var(--dt-border);
+    transition: var(--dt-transition);
+  }
+  .dt-invoice .table-wrapper:hover {
+    box-shadow: var(--dt-shadow-md);
+  }
+
+  /* ─── Filter Toolbar: aksi kanan atas, baris filter di bawah ─── */
+  .dt-invoice .table-toolbar {
+    padding: 16px 22px;
+    background: linear-gradient(135deg, #f7f8f9 0%, #eef0f2 100%);
+    border-bottom: 1px solid var(--dt-border);
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px 12px;
+    position: relative;
+  }
+  .dt-invoice .table-toolbar::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 22px;
+    right: 22px;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--dt-border),
+      transparent
+    );
+  }
+
+  
+  /* filter mengisi ruang dan membungkus baris sendiri bila perlu */
+  .dt-invoice .table-toolbar-filters { flex: 1 1 auto; order: 1; min-width: 0; }
+
+  /* ─── Filter Controls ─── */
+  .dt-invoice .filter-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    flex: 1;
+    justify-content: flex-start;
+  }
+
+  .dt-invoice .filter-select {
+    padding: 6px 28px 6px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--dt-border);
+    font-size: 0.73rem;
+    font-weight: 500;
+    background: #fff
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2394a3b8' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")
+      no-repeat right 10px center;
+    appearance: none;
+    cursor: pointer;
+    transition: var(--dt-transition);
+    font-family: inherit;
+  }
+  .dt-invoice .filter-select:hover {
+    border-color: #c9ccd1;
+  }
+  .dt-invoice .filter-select:focus {
+    outline: none;
+    border-color: var(--dt-accent);
+    box-shadow: 0 0 0 3px rgba(0, 86, 145, 0.15);
+  }
+  /* Applied filter — colored border + tinted background so active filters pop. */
+  .dt-invoice .filter-select--active {
+    border-color: var(--dt-accent);
+    background-color: #eaf2f9;
+    color: var(--dt-accent);
+    font-weight: 600;
+  }
+  /* Reset button for all filters. */
+  .dt-invoice .filter-reset {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--dt-border);
+    background: #fff;
+    color: #667080;
+    font-size: 0.73rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: var(--dt-transition);
+    white-space: nowrap;
+  }
+  .dt-invoice .filter-reset:hover {
+    border-color: #e0a3a3;
+    background: #fdecea;
+    color: #a12a1d;
+  }
+  .dt-invoice .filter-reset:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  /* ─── Custom Dropdown ─── */
+  .dt-invoice .dd-filter {
+    position: relative;
+  }
+  .dt-invoice .dd-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    user-select: none;
+    padding: 6px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--dt-border);
+    font-size: 0.73rem;
+    font-weight: 500;
+    background: #fff;
+    font-family: inherit;
+    transition: var(--dt-transition);
+  }
+  .dt-invoice .dd-toggle:hover {
+    border-color: #c9ccd1;
+  }
+  .dt-invoice .dd-toggle i {
+    font-size: 0.72rem;
+    color: #4d5766;
+    transition: transform 0.2s;
+  }
+  .dt-invoice .dd-filter.open .dd-toggle i {
+    transform: rotate(180deg);
+  }
+  .dt-invoice .dd-filter.open .dd-toggle {
+    border-color: var(--dt-accent);
+    box-shadow: 0 0 0 3px rgba(0, 86, 145, 0.15);
+  }
+  .dt-invoice .dd-panel {
+    display: none;
+    position: absolute;
+    z-index: 9999;
+    top: 100%;
+    left: 0;
+    margin-top: 6px;
+    min-width: 180px;
+    max-height: 280px;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid var(--dt-border);
+    border-radius: 12px;
+    box-shadow: 0 12px 40px rgba(51, 51, 51, 0.15);
+    padding: 8px;
+  }
+  .dt-invoice .dd-filter.open .dd-panel {
+    display: block;
+  }
+  .dt-invoice .dd-filter.dd-flip-up .dd-panel {
+    top: auto;
+    bottom: 100%;
+    margin-top: 0;
+    margin-bottom: 6px;
+  }
+  .dt-invoice .dd-all {
+    display: block;
+    padding: 6px 10px;
+    font-size: 0.73rem;
+    font-weight: 600;
+    border-bottom: 1px solid #eef0f2;
+    margin-bottom: 4px;
+    cursor: pointer;
+  }
+  .dt-invoice .dd-options label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 10px;
+    font-size: 0.73rem;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background 0.15s;
+  }
+  .dt-invoice .dd-options label:hover {
+    background: #f7f8f9;
+  }
+  .dt-invoice .dd-options input {
+    accent-color: var(--dt-accent);
+  }
+
+  /* ─── Search ─── */
+  .dt-invoice .search-box {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+  }
+  .dt-invoice .search-box input {
+    padding: 7px 14px 7px 36px;
+    border-radius: 12px;
+    border: 1px solid var(--dt-border);
+    font-size: 0.75rem;
+    width: 200px;
+    background: #fff;
+    transition: var(--dt-transition);
+    font-family: inherit;
+  }
+  .dt-invoice .search-box input:focus {
+    width: 280px;
+    border-color: var(--dt-accent);
+    box-shadow: 0 0 0 3px rgba(0, 86, 145, 0.1);
+    outline: none;
+  }
+  .dt-invoice .search-box input::placeholder {
+    color: #4d5766;
+    font-size: 0.72rem;
+  }
+  .dt-invoice .search-box > i {
+    position: absolute;
+    left: 12px;
+    color: #4d5766;
+    font-size: 0.82rem;
+    pointer-events: none;
+  }
+  .dt-invoice .search-count {
+    font-size: 0.72rem;
+    color: #4d5766;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  /* ─── Table Scroll ─── */
+  .dt-invoice .table-scroll {
+    overflow-x: auto;
+    overflow-y: auto;
+    max-height: 600px;
+    scrollbar-width: thin;
+    scrollbar-color: #c9ccd1 transparent;
+  }
+  .dt-invoice .table-scroll::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+  .dt-invoice .table-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .dt-invoice .table-scroll::-webkit-scrollbar-thumb {
+    background: #c9ccd1;
+    border-radius: 4px;
+  }
+  .dt-invoice .table-scroll::-webkit-scrollbar-thumb:hover {
+    background: #a3a8af;
+  }
+
+  .dt-invoice .dt-table {
+    margin: 0;
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+    min-width: 1500px;
+  }
+
+  /* ─── Table Header ─── */
+  .dt-invoice .dt-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+  }
+  .dt-invoice .dt-table thead th {
+    background: linear-gradient(180deg, #0a6aa8 0%, #004a7c 100%);
+    color: #c9ccd1;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    padding: 10px 10px;
+    white-space: nowrap;
+    border: none;
+    position: relative;
+  }
+  .dt-invoice .dt-table thead th:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    top: 22%;
+    bottom: 22%;
+    width: 1px;
+    background: rgba(255, 255, 255, 0.06);
+  }
+  .dt-invoice .dt-table thead th.text-end {
+    text-align: right !important;
+  }
+  .dt-invoice .dt-table thead th.text-center {
+    text-align: center !important;
+  }
+
+  /* Sticky header columns */
+  .dt-invoice .dt-table thead th.col-sticky-left {
+    position: sticky;
+    z-index: 22;
+    left: 0;
+    background: linear-gradient(180deg, #0a6aa8 0%, #004a7c 100%);
+  }
+  .dt-invoice .dt-table thead th.col-sticky-left-2 {
+    position: sticky;
+    z-index: 22;
+    left: 40px;
+    background: linear-gradient(180deg, #0a6aa8 0%, #004a7c 100%);
+  }
+  .dt-invoice .dt-table thead th.col-sticky-right {
+    position: sticky;
+    z-index: 22;
+    right: 0;
+    background: linear-gradient(180deg, #0a6aa8 0%, #004a7c 100%);
+  }
+
+  /* ─── Sort arrows ─── */
+  .dt-invoice .th-sort {
+    cursor: pointer;
+    user-select: none;
+  }
+  .dt-invoice .th-sort:hover {
+    color: #fff !important;
+  }
+  .dt-invoice .th-sort .sort-arrow {
+    font-size: 0.72rem;
+    margin-left: 3px;
+    opacity: 0.25;
+  }
+  .dt-invoice .th-sort.sort-asc .sort-arrow,
+  .dt-invoice .th-sort.sort-desc .sort-arrow {
+    opacity: 1;
+    color: var(--dt-accent);
+  }
+
+  /* ─── Table Body ─── */
+  .dt-invoice .dt-table tbody td {
+    padding: 7px 10px;
+    font-size: 0.74rem;
+    vertical-align: middle;
+    border-bottom: 1px solid #eef0f2;
+    border-top: none;
+    background: #fff;
+    transition: background 0.12s;
+  }
+  .dt-invoice .dt-table tbody tr {
+    transition: var(--dt-transition);
+  }
+  .dt-invoice .dt-table tbody tr:nth-child(even) td {
+    background: #f7f8f9;
+  }
+  .dt-invoice .dt-table tbody tr:hover td {
+    background: #eaf2f9 !important;
+  }
+
+  /* ─── Overdue row: only # and NAMA got red tint ─── */
+  .dt-invoice .dt-table tbody tr.overdue-row td {
+    background: transparent !important;
+    box-shadow: none;
+  }
+  .dt-invoice .dt-table tbody tr.overdue-row:nth-child(even) td {
+    background: transparent !important;
+  }
+  .dt-invoice .dt-table tbody tr.overdue-row:hover td {
+    background: transparent !important;
+  }
+
+  .dt-invoice .dt-table tbody tr.overdue-row td.col-sticky-left,
+  .dt-invoice .dt-table tbody tr.overdue-row td.col-sticky-left-2 {
+    background: #fdecea !important;
+  }
+  .dt-invoice
+    .dt-table
+    tbody
+    tr.overdue-row:nth-child(even)
+    td.col-sticky-left,
+  .dt-invoice
+    .dt-table
+    tbody
+    tr.overdue-row:nth-child(even)
+    td.col-sticky-left-2 {
+    background: #fdecea !important;
+  }
+  .dt-invoice .dt-table tbody tr.overdue-row:hover td.col-sticky-left,
+  .dt-invoice .dt-table tbody tr.overdue-row:hover td.col-sticky-left-2 {
+    background: #f8cfc9 !important;
+  }
+
+  .dt-invoice .dt-table tbody tr.row-clickable {
+    cursor: pointer;
+  }
+
+  /* ─── Sticky Body Columns ─── */
+  .dt-invoice .dt-table tbody td.col-sticky-left {
+    position: sticky;
+    left: 0;
+    z-index: 5;
+    background: #fff;
+    box-shadow: inset -1px 0 0 var(--dt-border);
+  }
+  .dt-invoice .dt-table tbody tr:nth-child(even) td.col-sticky-left {
+    background: #f7f8f9;
+  }
+  .dt-invoice .dt-table tbody tr:hover td.col-sticky-left {
+    background: #eaf2f9 !important;
+  }
+
+  .dt-invoice .dt-table tbody td.col-sticky-left-2 {
+    position: sticky;
+    left: 40px;
+    z-index: 4;
+    background: #fff;
+    box-shadow: inset -1px 0 0 var(--dt-border);
+  }
+  .dt-invoice .dt-table tbody tr:nth-child(even) td.col-sticky-left-2 {
+    background: #f7f8f9;
+  }
+  .dt-invoice .dt-table tbody tr:hover td.col-sticky-left-2 {
+    background: #eaf2f9 !important;
+  }
+
+  .dt-invoice .dt-table tbody td.col-sticky-left-2 .cell-rekanan {
+    transition: color 0.15s;
+  }
+  .dt-invoice .dt-table tbody tr.overdue-row td.col-sticky-left .row-num {
+    background: #f8cfc9;
+    color: #a12a1d;
+  }
+  .dt-invoice
+    .dt-table
+    tbody
+    tr.overdue-row
+    td.col-sticky-left-2
+    .cell-rekanan {
+    color: #a12a1d;
+  }
+
+  .dt-invoice .dt-table tbody td.col-sticky-right {
+    position: sticky;
+    right: 0;
+    z-index: 5;
+    background: #fff;
+    box-shadow: inset 1px 0 0 var(--dt-border);
+  }
+  .dt-invoice .dt-table tbody tr:nth-child(even) td.col-sticky-right {
+    background: #f7f8f9;
+  }
+  .dt-invoice .dt-table tbody tr:hover td.col-sticky-right {
+    background: #eaf2f9 !important;
+  }
+  .dt-invoice .dt-table tbody tr.overdue-row td.col-sticky-right {
+    background: #fdecea !important;
+  }
+
+  /* ─── Cell Styles ─── */
+  .dt-invoice .cell-money {
+    font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    font-size: 0.72rem;
+    letter-spacing: -0.3px;
+    white-space: nowrap;
+  }
+  .dt-invoice .cell-date {
+    font-size: 0.69rem;
+    color: var(--dt-muted);
+    white-space: nowrap;
+    font-weight: 500;
+  }
+  .dt-invoice .cell-rekanan {
+    font-weight: 600;
+    color: var(--dt-navy);
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.75rem;
+  }
+  .dt-invoice .cell-desc {
+    font-size: 0.7rem;
+    line-height: 1.3;
+    /* Was #a3a8af at 0.6rem — 2.6:1, unreadable. 0.7rem + #667080 = 4.6:1. */
+    color: #4d5766;
+    margin-top: 2px;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .dt-invoice .cell-inv-internal {
+    font-size: 0.69rem;
+    color: var(--dt-muted);
+    font-weight: 500;
+  }
+  .dt-invoice .cell-invoice {
+    font-size: 0.73rem;
+    font-weight: 500;
+    color: var(--dt-navy);
+  }
+  .dt-invoice .cell-po {
+    font-size: 0.73rem;
+    font-weight: 500;
+    color: #4d5766;
+  }
+  .dt-invoice .cell-faktur {
+    font-size: 0.71rem;
+    font-weight: 500;
+    color: #4d5766;
+  }
+
+  /* ─── Row Number ─── */
+  .dt-invoice .row-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    background: #eef0f2;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--dt-muted);
+    font-family: "JetBrains Mono", monospace;
+  }
+  .dt-invoice tr.overdue-row .row-num {
+    background: #f8cfc9;
+    color: #a12a1d;
+  }
+
+  /* ─── Audit Flag ─── */
+  .dt-invoice .audit-flag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 4px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #0a6aa8, #0a6aa8);
+    color: #fff;
+    font-size: 0.72rem;
+    vertical-align: middle;
+    box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+  }
+
+  /* ─── Excluded Flag (Pengaturan) ─── */
+  .dt-invoice .excl-flag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 4px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #8a6d00;
+    color: #fff;
+    font-size: 0.66rem;
+    vertical-align: middle;
+    box-shadow: 0 0 0 2px rgba(253, 246, 216, 0.6);
+  }
+
+  /* ─── Badges ─── */
+  .dt-invoice .badge-status {
+    padding: 3px 10px;
+    border-radius: 8px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    display: inline-block;
+  }
+  .dt-invoice .badge-lunas {
+    background: #e4f9e7;
+    color: #1d7a2b;
+  }
+  .dt-invoice .badge-belum {
+    background: #fdecea;
+    color: #a12a1d;
+  }
+  .dt-invoice .badge-kategori {
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    background: #eef0f2;
+    color: #4d5766;
+    display: inline-block;
+  }
+
+  /* ─── Action Button ─── */
+  .dt-invoice .btn-action {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    transition: var(--dt-transition);
+    border: 1px solid var(--dt-border);
+    background: #fff;
+    color: var(--dt-muted);
+  }
+  .dt-invoice .btn-action:hover {
+    background: var(--dt-navy);
+    color: #fff;
+    border-color: var(--dt-navy);
+    transform: scale(1.12);
+    box-shadow: 0 4px 12px rgba(51, 51, 51, 0.2);
+  }
+
+  /* ─── Empty State ─── */
+  .dt-invoice .empty-state {
+    text-align: center;
+    padding: 80px 20px;
+    background: #fff;
+    border-radius: 20px;
+    border: 1px dashed var(--dt-border);
+    transition: var(--dt-transition);
+  }
+  .dt-invoice .empty-state i {
+    font-size: 4rem;
+    color: #c9ccd1;
+  }
+  .dt-invoice .empty-state h6 {
+    font-weight: 700;
+    color: var(--dt-navy);
+    margin-top: 16px;
+    font-size: 1rem;
+  }
+  .dt-invoice .empty-state p {
+    color: #4d5766;
+    font-size: 0.85rem;
+    margin-top: 4px;
+  }
+
+  /* ─── Responsive ─── */
+  @media (max-width: 992px) {
+    .dt-invoice .filter-group {
+      justify-content: flex-start;
+    }
+    .dt-invoice .search-box {
+      flex: 1;
+    }
+    .dt-invoice .search-box input {
+      width: 100%;
+    }
+    .dt-invoice .search-box input:focus {
+      width: 100%;
+    }
+  }
+  @media (max-width: 576px) {
+    .dt-invoice .filter-group .filter-select,
+    .dt-invoice .filter-group .dd-toggle {
+      font-size: 0.72rem;
+      padding: 5px 22px 5px 8px;
+    }
+  }
+</style>
