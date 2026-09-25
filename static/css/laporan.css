@@ -6,22 +6,22 @@
    ============================================================ */
 
 :root {
-  --lp-primary: #2ECC40;
-  --lp-primary-dark: #005691;
-  --lp-primary-light: #eaf2f9;
-  --lp-teal: #1d7a2b;
-  --lp-teal-dark: #1d7a2b;
-  --lp-teal-light: #eef9ef;
+  --lp-primary: #16324f;
+  --lp-primary-dark: #16324f;
+  --lp-primary-light: #eaf0f6;
+  --lp-teal: #0f766e;
+  --lp-teal-dark: #115e59;
+  --lp-teal-light: #e6f4f1;
   /* ponytail: ledger tint tokens intentional — see DESIGN.md Tertiary; upgrade path: collapse into sidecar ramp */
-  --lp-ink-blue: #004a7c;
-  --lp-indigo-bg: #eaf2f9;
-  --lp-rose-soft: #fdecea;
-  --lp-mint-soft: #eef9ef;
-  --lp-badge-h-bg: #e2eff8;
-  --lp-badge-p-bg: #e4f9e7;
+  --lp-ink-blue: #16324f;
+  --lp-indigo-bg: #eaf0f6;
+  --lp-rose-soft: #fef0ee;
+  --lp-mint-soft: #e6f4f1;
+  --lp-badge-h-bg: #eaf0f6;
+  --lp-badge-p-bg: #e6f4f1;
   --lp-hero-size: 1.6rem;
-  --lp-primary-ring: rgba(0, 86, 145,.18);
-  --lp-teal-ring: rgba(46,204,64,.18);
+  --lp-primary-ring: rgba(22, 50, 79, .18);
+  --lp-teal-ring: rgba(15, 118, 110, .18);
 }
 
 .lp-body {
@@ -82,7 +82,7 @@
 .topbar-badges .tb-data    { background: #eef0f2; color: #4d5766; }
 .topbar-badges .tb-bulan   { background: var(--lp-primary-light); color: var(--lp-ink-blue); }
 .topbar-badges .tb-minggu  { background: var(--lp-primary-light); color: var(--lp-ink-blue); }
-.topbar-badges .tb-jt      { background: var(--lp-rose-soft); color: #a12a1d; }
+.topbar-badges .tb-jt      { background: var(--lp-rose-soft); color: #912018; }
 
 /* ── Rail / Filter bar ── */
 .lp-rail {

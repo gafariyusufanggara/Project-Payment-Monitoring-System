@@ -1,6 +1,6 @@
 {% extends "base.html" %} {% block title %}Audit Perubahan - Project Payment Monitoring System{% endblock %} {% block topbar_title %}Catatan Audit{% endblock %} {% block
 topbar_icon %}bi-clock-history{% endblock %} {% block topbar_badges %}
-<span class="topbar-badge" style="background: #eaf2f9; color: #005691">
+<span class="topbar-badge" style="background: #eaf0f6; color: #16324f">
   <i class="bi bi-pencil-square"></i> {{ audit_count }} Data Diubah
 </span>
 {% endblock %} {% block content %}
@@ -24,7 +24,7 @@ topbar_icon %}bi-clock-history{% endblock %} {% block topbar_badges %}
     width: 38px; height: 38px; min-width: 38px; border-radius: 10px;
     display: flex; align-items: center; justify-content: center; font-size: 1rem;
   }
-  .kpi-ico--blue { background: #e2eff8; color: #005691; }
+  .kpi-ico--blue { background: #eaf0f6; color: #16324f; }
   .kpi-ico--violet { background: #ece4f7; color: #6a4fa3; }
   .kpi-ico--amber { background: #fdf6d8; color: #8a6d00; }
   .kpi-ico--slate { background: #eef0f2; color: #4d5766; }
@@ -34,7 +34,7 @@ topbar_icon %}bi-clock-history{% endblock %} {% block topbar_badges %}
     padding: 12px 16px; box-shadow: 0 1px 3px rgba(51, 51, 51,.05);
   }
   .au-select-all { display: inline-flex; align-items: center; gap: 6px; font-size: .75rem; font-weight: 600; color: #333333; cursor: pointer; user-select: none; }
-  .au-select-all input { width: 16px; height: 16px; accent-color: #005691; cursor: pointer; }
+  .au-select-all input { width: 16px; height: 16px; accent-color: #16324f; cursor: pointer; }
   .au-select-all input:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 86, 145,.18); border-radius: 4px; }
   .au-count { margin-left: auto; font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: #667080; font-variant-numeric: tabular-nums; }
   .au-list { display: flex; flex-direction: column; gap: 10px; }
@@ -44,12 +44,12 @@ topbar_icon %}bi-clock-history{% endblock %} {% block topbar_badges %}
     transition: box-shadow .25s cubic-bezier(.4,0,.2,1), background .15s, border-color .15s;
   }
   .au-card:hover { box-shadow: 0 4px 12px -2px rgba(51, 51, 51,.08), 0 2px 6px -1px rgba(51, 51, 51,.04); }
-  .au-card:has(.au-check:checked) { background: #eaf2f9; border-color: #005691; }
+  .au-card:has(.au-check:checked) { background: #eaf0f6; border-color: #16324f; }
   .au-head {
     display: grid; grid-template-columns: auto 1fr auto; gap: 8px 14px; align-items: start;
     padding: 14px 18px 10px;
   }
-  .au-check { width: 16px; height: 16px; margin-top: 4px; accent-color: #005691; cursor: pointer; }
+  .au-check { width: 16px; height: 16px; margin-top: 4px; accent-color: #16324f; cursor: pointer; }
   .au-check:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 86, 145,.18); border-radius: 4px; }
   .au-main { grid-column: 2; min-width: 0; }
   .au-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -59,11 +59,11 @@ topbar_icon %}bi-clock-history{% endblock %} {% block topbar_badges %}
     font-weight: 700; font-size: .7rem; color: #4d5766;
     font-family: "JetBrains Mono", ui-monospace, monospace;
   }
-  .au-card:has(.au-check:checked) .au-rnum { background: #e2eff8; color: #005691; }
+  .au-card:has(.au-check:checked) .au-rnum { background: #eaf0f6; color: #16324f; }
   .au-rekanan { font-weight: 700; font-size: .85rem; color: #333333; }
   .au-inv {
     font-family: "JetBrains Mono", "SF Mono", monospace; font-size: .7rem; font-weight: 600;
-    color: #005691; background: #e2eff8; padding: 3px 10px; border-radius: 6px; white-space: nowrap;
+    color: #16324f; background: #eaf0f6; padding: 3px 10px; border-radius: 6px; white-space: nowrap;
   }
   .au-side {
     grid-column: 3; grid-row: 1; display: flex; flex-direction: column;
@@ -76,7 +76,7 @@ topbar_icon %}bi-clock-history{% endblock %} {% block topbar_badges %}
     display: inline-flex; align-items: center; gap: 5px; font-family: inherit; text-decoration: none;
     transition: border-color .15s, color .15s, background .15s;
   }
-  .au-btn:hover:not(:disabled) { border-color: #005691; color: #005691; }
+  .au-btn:hover:not(:disabled) { border-color: #16324f; color: #16324f; }
   .au-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 86, 145,.18); }
   .au-btn:disabled { opacity: .5; cursor: not-allowed; }
   .au-body { padding: 0 18px 14px 18px; display: flex; flex-direction: column; }
@@ -87,20 +87,20 @@ topbar_icon %}bi-clock-history{% endblock %} {% block topbar_badges %}
   .au-chg:last-child { border-bottom: none; }
   .au-chg .fld { color: #4d5766; font-weight: 600; font-size: .7rem; text-transform: uppercase; letter-spacing: .6px; }
   .au-chg .old {
-    color: #a12a1d; text-decoration: line-through;
+    color: #912018; text-decoration: line-through;
     font-family: "JetBrains Mono", "SF Mono", monospace; font-size: .76rem; font-weight: 600;
-    padding: 2px 8px; background: #fdecea; border-radius: 6px;
+    padding: 2px 8px; background: #fef0ee; border-radius: 6px;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums;
   }
   .au-chg .arr { color: #667080; font-size: .85rem; }
   .au-chg .new {
-    color: #1d7a2b; font-weight: 600;
+    color: #115e59; font-weight: 600;
     font-family: "JetBrains Mono", "SF Mono", monospace; font-size: .76rem;
-    padding: 2px 8px; background: #e4f9e7; border-radius: 6px;
+    padding: 2px 8px; background: #e6f4f1; border-radius: 6px;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums;
   }
   .au-meta { font-size: .7rem; color: #667080; margin-top: 10px; display: flex; align-items: center; gap: 6px; }
-  ::selection { background: #e2eff8; }
+  ::selection { background: #eaf0f6; }
   @media (max-width: 768px) {
     .au-kpis { grid-template-columns: repeat(2, 1fr); }
     .au-chg { grid-template-columns: 1fr; gap: 4px; }

@@ -193,7 +193,7 @@ topbar_title %}Import Invoice{% endblock %} {% block topbar_badges %}
 </div>
 <!-- Page CSS + script di dalam block content agar ikut di-swap & dieksekusi HTMX. -->
 <style>
-  .tb-xlsx { background: #eaf2f9; color: #005691; }
+  .tb-xlsx { background: #eaf0f6; color: #16324f; }
   /* ── Import page (Ledger Desk) ── */
   .imp-wrap {
     max-width: 720px;
@@ -264,7 +264,7 @@ topbar_title %}Import Invoice{% endblock %} {% block topbar_badges %}
     box-shadow: 0 0 0 3px rgba(0, 86, 145, 0.18);
   }
   .upload-area.dragover {
-    background: #eaf2f9;
+    background: #eaf0f6;
     border-color: var(--accent);
     box-shadow: 0 0 0 4px rgba(0, 86, 145, 0.15);
   }
@@ -348,7 +348,7 @@ topbar_title %}Import Invoice{% endblock %} {% block topbar_badges %}
     white-space: nowrap;
   }
   .imp-btn-sheet:hover {
-    background: #eaf2f9;
+    background: #eaf0f6;
     color: var(--accent-dark);
     border-color: var(--accent);
   }
@@ -388,8 +388,8 @@ topbar_title %}Import Invoice{% endblock %} {% block topbar_badges %}
   .mapping-info p strong { color: var(--text); }
   .mapping-info code {
     font-size: 0.7rem;
-    background: #eaf2f9;
-    color: #005691;
+    background: #eaf0f6;
+    color: #16324f;
     padding: 2px 8px;
     border-radius: 6px;
     border: 1px solid rgba(0, 86, 145, 0.12);
@@ -427,9 +427,9 @@ topbar_title %}Import Invoice{% endblock %} {% block topbar_badges %}
     margin-top: 8px;
   }
   .btn-import {
-    background: var(--accent);
-    border: 1px solid var(--accent);
-    color: #333333;
+    background: var(--accent-dark);
+    border: 1px solid var(--accent-dark);
+    color: #ffffff;
     font-weight: 700;
     font-size: 0.85rem;
     padding: 10px 28px;
@@ -441,13 +441,13 @@ topbar_title %}Import Invoice{% endblock %} {% block topbar_badges %}
     gap: 8px;
   }
   .btn-import:hover {
-    background: var(--accent-dark);
-    border-color: var(--accent-dark);
+    background: #0d514d;
+    border-color: #0d514d;
     color: #ffffff;
   }
   .btn-import:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(0, 86, 145, 0.18);
+    box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.24);
   }
   .btn-import:disabled {
     opacity: 0.6;

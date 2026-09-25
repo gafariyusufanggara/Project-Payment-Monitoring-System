@@ -33,9 +33,9 @@
     width: 38px; height: 38px; min-width: 38px; border-radius: 10px;
     display: flex; align-items: center; justify-content: center; font-size: 1rem;
   }
-  .kpi-ico--blue { background: #e2eff8; color: #005691; }
-  .kpi-ico--green { background: #e4f9e7; color: #1d7a2b; }
-  .kpi-ico--rose { background: #fdecea; color: #a12a1d; }
+  .kpi-ico--blue { background: #eaf0f6; color: #16324f; }
+  .kpi-ico--green { background: #e6f4f1; color: #115e59; }
+  .kpi-ico--rose { background: #fef0ee; color: #912018; }
   .kpi-ico--amber { background: #fdf6d8; color: #8a6d00; }
   .kpi-ico--slate { background: #eef0f2; color: #4d5766; }
   .cic-group {
@@ -56,7 +56,7 @@
   .cic-rekanan { font-weight: 700; font-size: .88rem; color: #333333; flex: 1 1 160px; min-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .cic-inv {
     font-family: "JetBrains Mono", "SF Mono", monospace; font-size: .7rem; font-weight: 600;
-    color: #005691; background: #e2eff8; padding: 3px 10px; border-radius: 6px; white-space: nowrap;
+    color: #16324f; background: #eaf0f6; padding: 3px 10px; border-radius: 6px; white-space: nowrap;
   }
   .cic-internal {
     font-size: .7rem; font-weight: 600; color: #4d5766; background: #eef0f2;
@@ -64,12 +64,12 @@
   }
   .cic-count-pill { font-size: .7rem; font-weight: 700; color: #4d5766; white-space: nowrap; font-variant-numeric: tabular-nums; }
   .ds-badge { padding: 3px 10px; border-radius: 6px; font-size: .7rem; font-weight: 700; display: inline-block; white-space: nowrap; font-variant-numeric: tabular-nums; }
-  .ds-badge-green { background: #e4f9e7; color: #1d7a2b; }
-  .ds-badge-red { background: #fdecea; color: #a12a1d; }
+  .ds-badge-green { background: #e6f4f1; color: #115e59; }
+  .ds-badge-red { background: #fef0ee; color: #912018; }
   .ds-badge-gray { background: #eef0f2; color: #4d5766; }
   .cic-prog { height: 6px; background: #eef0f2; overflow: hidden; }
-  .cic-prog > span { display: block; height: 100%; background: #005691; }
-  .cic-prog > span.done { background: #2ECC40; }
+  .cic-prog > span { display: block; height: 100%; background: #16324f; }
+  .cic-prog > span.done { background: #0f766e; }
   .cic-body { overflow-x: auto; }
   .cic-table { width: 100%; font-size: .78rem; border-collapse: separate; border-spacing: 0; min-width: 680px; }
   .cic-table thead th {
@@ -86,7 +86,7 @@
     font-variant-numeric: tabular-nums; font-weight: 600; font-size: .75rem; white-space: nowrap;
   }
   .cic-table .cell-dim { font-family: "JetBrains Mono", monospace; font-size: .75rem; color: #4d5766; font-variant-numeric: tabular-nums; }
-  ::selection { background: #e2eff8; }
+  ::selection { background: #eaf0f6; }
   @media (max-width: 1024px) { .cic-kpis { grid-template-columns: repeat(3, 1fr); } }
   @media (max-width: 640px) {
     .cic-kpis { grid-template-columns: repeat(2, 1fr); }
@@ -181,7 +181,7 @@
     {% endfor %}
   {% else %}
   <div class="ds-empty">
-    <i class="bi bi-check-circle-fill" style="color:#2ECC40"></i>
+    <i class="bi bi-check-circle-fill" style="color:#0f766e"></i>
     <div class="ds-empty__title">Tidak Ada Invoice Cicilan</div>
     <p class="ds-empty__text">Tidak ada invoice dengan cicilan (semua invoice hanya 1 baris).</p>
   </div>

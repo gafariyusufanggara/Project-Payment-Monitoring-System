@@ -17,23 +17,23 @@
      real width of column #1 (replaces the previous hard-coded `left: 40px`). */
   --frozen-1: 40px;
 
-  --te-border: #e3e5e8;
-  --te-head-from: #0a6aa8;
-  --te-head-to: #004a7c;
+  --te-border: #dce3eb;
+  --te-head-from: #244866;
+  --te-head-to: #16324f;
   --te-head-fg: #eaf2f9;
   --te-row: #ffffff;
   --te-row-alt: #f7f8f9;
   --te-hover: #eef0f2;
-  --te-fg: #333333;
+  --te-fg: #243447;
   /* #667080 is 4.76:1 on white but only 4.34:1 on the #eef0f2 hover/zebra
      surface — below AA. #4d5766 clears it everywhere (6.9:1 on #eef0f2). */
-  --te-muted: #4d5766;
-  --te-danger: #e74c3c;
-  --te-danger-soft: #fdecea;
-  --te-danger-alt: #fdecea;
-  --te-danger-hover: #f8cfc9;
-  --te-accent: #005691;
-  --te-accent-soft: #eaf2f9;
+  --te-muted: #526579;
+  --te-danger: #b42318;
+  --te-danger-soft: #fef0ee;
+  --te-danger-alt: #fef0ee;
+  --te-danger-hover: #fbd8d3;
+  --te-accent: #0f766e;
+  --te-accent-soft: #e6f4f1;
 
   /* Typography: previous 0.68 / 0.78 rem was too small to read currency at
      a glance. 0.75 / 0.85 keeps density while restoring legibility.

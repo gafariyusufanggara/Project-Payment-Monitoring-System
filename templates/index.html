@@ -5,14 +5,12 @@
 {% block topbar_title %}{% if tab == 'tabDashboard' %}Dashboard{% else %}Data Invoice{% endif %}{% endblock %}
 {% block topbar_icon %}bi-table{% endblock %}
 
-{% block head_extra %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-{% endblock %}
+
 
 {% block topbar_badges %}
 <span class="topbar-badge" style="background:#eef0f2;color:#4d5766"><i class="bi bi-database"></i> {{ data|length }} data</span>
-<span class="topbar-badge" style="background:#e4f9e7;color:#1d7a2b"><i class="bi bi-check-circle-fill"></i> {{ lunas_count }} Lunas</span>
-<span class="topbar-badge" style="background:#fdecea;color:#a12a1d"><i class="bi bi-exclamation-circle-fill"></i> {{ belum_count }} Belum</span>
+<span class="topbar-badge" style="background:#e6f4f1;color:#115e59"><i class="bi bi-check-circle-fill"></i> {{ lunas_count }} Lunas</span>
+<span class="topbar-badge" style="background:#fef0ee;color:#912018"><i class="bi bi-exclamation-circle-fill"></i> {{ belum_count }} Belum</span>
 {% endblock %}
 
 {% block content %}
@@ -39,12 +37,8 @@
      const/let tidak bentrok saat script dieksekusi berulang. -->
 <script>
 (function () {
-// Activate the correct tab based on server-rendered context
-(function initTab() {
-    const activeTab = '{{ tab }}';
-    const tabBtn = document.querySelector(`#mainTab [data-bs-target="#${activeTab}"]`);
-    if (tabBtn) bootstrap.Tab.getOrCreateInstance(tabBtn).show();
-})();
+const activeTab = '{{ tab }}';
+const activeTabButton = document.querySelector(`#mainTab [data-bs-target="#${activeTab}"]`);
 
 // === SEARCH + FILTER ===
 function filterTable() {
@@ -357,9 +351,9 @@ function viewRow(rowIdx) {
         // ── Financial bar ──
         const finItems = [
             { label: 'Total (Incld)', val: money(total), cls: '#3d434c' },
-            { label: 'Bayar DPP', val: money(bayarDPP), cls: '#1d7a2b', sub: data['TGL BAYAR DPP'] },
-            { label: 'Bayar PPN', val: money(bayarPPN), cls: '#1d7a2b', sub: data['TGL BAYAR PPN'] },
-            { label: 'Sisa Hutang', val: money(sisa), cls: sisa > 0 ? '#e74c3c' : '#1d7a2b' },
+            { label: 'Bayar DPP', val: money(bayarDPP), cls: '#115e59', sub: data['TGL BAYAR DPP'] },
+            { label: 'Bayar PPN', val: money(bayarPPN), cls: '#115e59', sub: data['TGL BAYAR PPN'] },
+            { label: 'Sisa Hutang', val: money(sisa), cls: sisa > 0 ? '#b42318' : '#115e59' },
         ];
         document.getElementById('vmFinbar').innerHTML = finItems.map(f =>
             `<div class="vm-finbar-item"><div class="vm-finbar-label">${f.label}</div><div class="vm-finbar-val" style="color:${f.cls}">${f.val}</div>` +
@@ -485,7 +479,7 @@ document.getElementById('dataTable')?.addEventListener('click', function(e) {
 // ─── Global helpers ───
 const money = v => Math.round(Number(v||0)).toLocaleString('id-ID');
 
-const COLORS = ['#005691','#2ECC40','#E5B800','#e74c3c','#9370DB','#0a6aa8','#27b537','#FF8C00','#6a4fa3','#1d7a2b','#a12a1d','#8a6d00'];
+const COLORS = ['#16324f','#0f766e','#E5B800','#b42318','#9370DB','#244866','#27b537','#FF8C00','#6a4fa3','#115e59','#912018','#8a6d00'];
 const katData = {{ kategori_data|tojson }};
 const agingData = {{ aging|tojson }};
 const monthlyData = {{ monthly_data|tojson }};
@@ -493,7 +487,6 @@ const dailyData = {{ daily_data|tojson }};
 
 const chartOpts = { responsive: true, maintainAspectRatio: false };
 let _chartsInited = false;
-let _chartRetry = 0;
 let monthlyChart, dailyChart;
 
 function destroyChartById(id) {
@@ -514,16 +507,12 @@ function dashboardVisible() {
 
 function initDashboardCharts() {
     if (_chartsInited) return;
-    if (!document.getElementById('chartKategori')) { _chartsInited = true; return; }
+    if (!document.getElementById('chartKategori')) return;
     if (typeof Chart === 'undefined') {
         if (typeof ensureChartJs === 'function') ensureChartJs(function (ok) { if (ok) initDashboardCharts(); });
         return;
     }
-    // Canvas 0px (tab hidden / swap belum settle) — coba lagi, jangan latch.
-    if (!dashboardVisible()) {
-        if (_chartRetry++ < 20) setTimeout(initDashboardCharts, 150);
-        return;
-    }
+    if (!dashboardVisible()) return;
     _chartRetry = 0;
     ['chartKategori', 'chartAging', 'chartMonthly', 'chartDaily'].forEach(destroyChartById);
 
@@ -555,7 +544,7 @@ function initDashboardCharts() {
 
     new Chart(document.getElementById('chartAging'), {
         type: 'bar',
-        data: { labels: ['Blm Jth Tempo','1-30','31-60','61-90','>90'], datasets: [{ label: 'Invoice', data: [agingData.belum_jatuh_tempo, agingData['1-30'], agingData['31-60'], agingData['61-90'], agingData['>90']], backgroundColor: ['#005691','#E5B800','#FF8C00','#e74c3c','#a12a1d'], borderRadius: 8, borderSkipped: false }] },
+        data: { labels: ['Blm Jth Tempo','1-30','31-60','61-90','>90'], datasets: [{ label: 'Invoice', data: [agingData.belum_jatuh_tempo, agingData['1-30'], agingData['31-60'], agingData['61-90'], agingData['>90']], backgroundColor: ['#16324f','#E5B800','#FF8C00','#b42318','#912018'], borderRadius: 8, borderSkipped: false }] },
         options: { ...chartOpts, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#eef0f2' } }, x: { grid: { display: false } } } }
     });
 
@@ -566,13 +555,7 @@ function initDashboardCharts() {
 
 // Fire when dashboard tab is shown (or immediately if already visible)
 const dashTab = document.querySelector('#mainTab [data-bs-target="#tabDashboard"]');
-if (dashTab) {
-    dashTab.addEventListener('shown.bs.tab', initDashboardCharts);
-}
-// If dashboard tab is already visible on load (has .show class), init right away
-if (document.querySelector('.tab-pane#tabDashboard.show')) {
-    setTimeout(initDashboardCharts, 100);
-}
+if (dashTab) dashTab.addEventListener('shown.bs.tab', initDashboardCharts);
 
 // === YEAR/MONTH FILTERS ===
 function getYearsFromMonthly(data) {
@@ -600,8 +583,8 @@ function buildMonthlyChart(data, year) {
             <tr>
                 <td style="font-weight:600">${m[1].label}</td>
                 <td class="cell-money">${money(m[1].total_hutang_dpp)}</td>
-                <td class="cell-money" style="color:#2ECC40">${money(m[1].total_bayar_dpp)}</td>
-                <td class="cell-money" style="color:${m[1].sisa_dpp > 0 ? '#e74c3c' : '#2ECC40'};font-weight:700">${money(m[1].sisa_dpp)}</td>
+                <td class="cell-money" style="color:#0f766e">${money(m[1].total_bayar_dpp)}</td>
+                <td class="cell-money" style="color:${m[1].sisa_dpp > 0 ? '#b42318' : '#0f766e'};font-weight:700">${money(m[1].sisa_dpp)}</td>
             </tr>
         `).join('');
     }
@@ -614,9 +597,9 @@ function buildMonthlyChart(data, year) {
         data: {
             labels,
             datasets: [
-                { label: 'Hutang JT DPP', data: total, backgroundColor: '#005691', borderRadius: 4, borderSkipped: false },
-                { label: 'Bayar JT DPP', data: bayar, backgroundColor: '#2ECC40', borderRadius: 4, borderSkipped: false },
-                { label: 'Sisa DPP', data: sisa, backgroundColor: '#e74c3c', borderRadius: 4, borderSkipped: false },
+                { label: 'Hutang JT DPP', data: total, backgroundColor: '#16324f', borderRadius: 4, borderSkipped: false },
+                { label: 'Bayar JT DPP', data: bayar, backgroundColor: '#0f766e', borderRadius: 4, borderSkipped: false },
+                { label: 'Sisa DPP', data: sisa, backgroundColor: '#b42318', borderRadius: 4, borderSkipped: false },
             ]
         },
         options: { ...chartOpts, plugins: { legend: { position: 'top', labels: { boxWidth: 12, padding: 10, font: { size: 10, family: 'Inter' } } } }, scales: { y: { beginAtZero: true, grid: { color: '#eef0f2' } }, x: { grid: { display: false } } } }
@@ -638,9 +621,9 @@ function buildDailyChart(data, month) {
             <tr>
                 <td style="font-weight:600">${d[1].tgl}</td>
                 <td class="cell-money">${money(d[1].hutang_jt_dpp)}</td>
-                <td class="cell-money" style="color:#2ECC40">${money(d[1].bayar_jt_dpp)}</td>
+                <td class="cell-money" style="color:#0f766e">${money(d[1].bayar_jt_dpp)}</td>
                 <td class="cell-money" style="color:#E5B800">${money(d[1].sisa_dpp)}</td>
-                <td class="cell-money" style="color:#005691">${money(d[1].sisa_ppn)}</td>
+                <td class="cell-money" style="color:#16324f">${money(d[1].sisa_ppn)}</td>
             </tr>
         `).join('') : '<tr><td colspan="5" class="text-center text-muted small py-3">Tidak ada data</td></tr>';
     }
@@ -650,7 +633,7 @@ function buildDailyChart(data, month) {
     if (!ctx || labels.length === 0) return;
     dailyChart = new Chart(ctx, {
         type: 'bar',
-        data: { labels, datasets: [{ label: 'Hutang JT DPP', data: hutangDPP, backgroundColor: '#005691', borderRadius: 4, borderSkipped: false }] },
+        data: { labels, datasets: [{ label: 'Hutang JT DPP', data: hutangDPP, backgroundColor: '#16324f', borderRadius: 4, borderSkipped: false }] },
         options: { ...chartOpts, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#eef0f2' } }, x: { grid: { display: false }, ticks: { maxTicksLimit: 15, font: { size: 9 } } } } }
     });
 }
@@ -675,22 +658,25 @@ if (monthSel) {
     monthSel.addEventListener('change', () => buildDailyChart(dailyData, monthSel.value));
 }
 
-// Jalankan ulang init saat full load & setiap HTMX swap.
-// Seluruh body IIFE di atas sudah dijalankan pada saat script dieksekusi.
-if (window.onPageReady) {
-    onPageReady(function () {
-        _chartsInited = false;
-        _chartRetry = 0;
-        // Chart.js tidak ikut swap HTMX (di <head>) — lazy-load bila perlu.
-        // Callback menerima ok=false bila CDN gagal; retry manual pecahkan
-        // cache promise gagal di ensureChartJs.
+function startDashboardPage() {
+    if (activeTabButton && window.bootstrap) bootstrap.Tab.getOrCreateInstance(activeTabButton).show();
+    if (activeTab !== 'tabDashboard') return;
+    _chartsInited = false;
+    requestAnimationFrame(function () {
         if (typeof ensureChartJs === 'function') {
-            ensureChartJs(function (ok) { if (ok !== false) initDashboardCharts(); });
+            ensureChartJs(function (ok) { if (ok) initDashboardCharts(); });
         } else {
             initDashboardCharts();
         }
     });
 }
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', startDashboardPage, { once: true });
+} else {
+    startDashboardPage();
+}
+if (window.onPageReady) onPageReady(startDashboardPage);
 })();
 </script>
 {% endblock %}

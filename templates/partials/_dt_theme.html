@@ -4,19 +4,19 @@
    Consistent with the report pages premium design.
    ═══════════════════════════════════════════════════ */
   .dt-invoice {
-    --dt-accent: #005691;
-    --dt-accent-dark: #005691;
-    --dt-accent-soft: #eaf2f9;
-    --dt-green: #2ECC40;
-    --dt-green-soft: #e4f9e7;
-    --dt-red: #e74c3c;
-    --dt-red-soft: #fdecea;
-    --dt-navy: #004a7c;
-    --dt-navy-mid: #0a6aa8;
-    --dt-muted: #4d5766;
-    --dt-border: #e3e5e8;
-    --dt-hover: #eef0f2;
-    --dt-bg-alt: #f7f8f9;
+    --dt-accent: #16324f;
+    --dt-accent-dark: #16324f;
+    --dt-accent-soft: #eaf0f6;
+    --dt-green: #0f766e;
+    --dt-green-soft: #e6f4f1;
+    --dt-red: #b42318;
+    --dt-red-soft: #fef0ee;
+    --dt-navy: #16324f;
+    --dt-navy-mid: #244866;
+    --dt-muted: #526579;
+    --dt-border: #dce3eb;
+    --dt-hover: #edf2f7;
+    --dt-bg-alt: #f5f7fa;
     --dt-shadow-sm: 0 1px 3px rgba(51, 51, 51, 0.05);
     --dt-shadow-md:
       0 4px 12px -2px rgba(51, 51, 51, 0.08),
@@ -109,7 +109,7 @@
   /* Applied filter — colored border + tinted background so active filters pop. */
   .dt-invoice .filter-select--active {
     border-color: var(--dt-accent);
-    background-color: #eaf2f9;
+    background-color: #eaf0f6;
     color: var(--dt-accent);
     font-weight: 600;
   }
@@ -132,8 +132,8 @@
   }
   .dt-invoice .filter-reset:hover {
     border-color: #e0a3a3;
-    background: #fdecea;
-    color: #a12a1d;
+    background: #fef0ee;
+    color: #912018;
   }
   .dt-invoice .filter-reset:disabled {
     opacity: 0.5;
@@ -302,7 +302,7 @@
     z-index: 20;
   }
   .dt-invoice .dt-table thead th {
-    background: linear-gradient(180deg, #0a6aa8 0%, #004a7c 100%);
+    background: linear-gradient(180deg, #244866 0%, #16324f 100%);
     color: #c9ccd1;
     font-size: 0.72rem;
     font-weight: 700;
@@ -334,19 +334,19 @@
     position: sticky;
     z-index: 22;
     left: 0;
-    background: linear-gradient(180deg, #0a6aa8 0%, #004a7c 100%);
+    background: linear-gradient(180deg, #244866 0%, #16324f 100%);
   }
   .dt-invoice .dt-table thead th.col-sticky-left-2 {
     position: sticky;
     z-index: 22;
     left: 40px;
-    background: linear-gradient(180deg, #0a6aa8 0%, #004a7c 100%);
+    background: linear-gradient(180deg, #244866 0%, #16324f 100%);
   }
   .dt-invoice .dt-table thead th.col-sticky-right {
     position: sticky;
     z-index: 22;
     right: 0;
-    background: linear-gradient(180deg, #0a6aa8 0%, #004a7c 100%);
+    background: linear-gradient(180deg, #244866 0%, #16324f 100%);
   }
 
   /* ─── Sort arrows ─── */
@@ -385,7 +385,7 @@
     background: #f7f8f9;
   }
   .dt-invoice .dt-table tbody tr:hover td {
-    background: #eaf2f9 !important;
+    background: #eaf0f6 !important;
   }
 
   /* ─── Overdue row: only # and NAMA got red tint ─── */
@@ -402,7 +402,7 @@
 
   .dt-invoice .dt-table tbody tr.overdue-row td.col-sticky-left,
   .dt-invoice .dt-table tbody tr.overdue-row td.col-sticky-left-2 {
-    background: #fdecea !important;
+    background: #fef0ee !important;
   }
   .dt-invoice
     .dt-table
@@ -414,7 +414,7 @@
     tbody
     tr.overdue-row:nth-child(even)
     td.col-sticky-left-2 {
-    background: #fdecea !important;
+    background: #fef0ee !important;
   }
   .dt-invoice .dt-table tbody tr.overdue-row:hover td.col-sticky-left,
   .dt-invoice .dt-table tbody tr.overdue-row:hover td.col-sticky-left-2 {
@@ -437,7 +437,7 @@
     background: #f7f8f9;
   }
   .dt-invoice .dt-table tbody tr:hover td.col-sticky-left {
-    background: #eaf2f9 !important;
+    background: #eaf0f6 !important;
   }
 
   .dt-invoice .dt-table tbody td.col-sticky-left-2 {
@@ -451,7 +451,7 @@
     background: #f7f8f9;
   }
   .dt-invoice .dt-table tbody tr:hover td.col-sticky-left-2 {
-    background: #eaf2f9 !important;
+    background: #eaf0f6 !important;
   }
 
   .dt-invoice .dt-table tbody td.col-sticky-left-2 .cell-rekanan {
@@ -459,7 +459,7 @@
   }
   .dt-invoice .dt-table tbody tr.overdue-row td.col-sticky-left .row-num {
     background: #f8cfc9;
-    color: #a12a1d;
+    color: #912018;
   }
   .dt-invoice
     .dt-table
@@ -467,7 +467,7 @@
     tr.overdue-row
     td.col-sticky-left-2
     .cell-rekanan {
-    color: #a12a1d;
+    color: #912018;
   }
 
   .dt-invoice .dt-table tbody td.col-sticky-right {
@@ -481,10 +481,10 @@
     background: #f7f8f9;
   }
   .dt-invoice .dt-table tbody tr:hover td.col-sticky-right {
-    background: #eaf2f9 !important;
+    background: #eaf0f6 !important;
   }
   .dt-invoice .dt-table tbody tr.overdue-row td.col-sticky-right {
-    background: #fdecea !important;
+    background: #fef0ee !important;
   }
 
   /* ─── Cell Styles ─── */
@@ -560,7 +560,7 @@
   }
   .dt-invoice tr.overdue-row .row-num {
     background: #f8cfc9;
-    color: #a12a1d;
+    color: #912018;
   }
 
   /* ─── Audit Flag ─── */
@@ -572,7 +572,7 @@
     width: 18px;
     height: 18px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #0a6aa8, #0a6aa8);
+    background: linear-gradient(135deg, #244866, #244866);
     color: #fff;
     font-size: 0.72rem;
     vertical-align: middle;
@@ -605,12 +605,12 @@
     display: inline-block;
   }
   .dt-invoice .badge-lunas {
-    background: #e4f9e7;
-    color: #1d7a2b;
+    background: #e6f4f1;
+    color: #115e59;
   }
   .dt-invoice .badge-belum {
-    background: #fdecea;
-    color: #a12a1d;
+    background: #fef0ee;
+    color: #912018;
   }
   .dt-invoice .badge-kategori {
     padding: 3px 8px;

@@ -7,7 +7,7 @@
     <link
       rel="icon"
       type="image/svg+xml"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 16 16'%3E%3Cpath fill='%232ECC40' d='M9.293 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.707A1 1 0 0 0 13.707 4L10 .293A1 1 0 0 0 9.293 0M9.5 3.5v-2l3 3h-2a1 1 0 0 1-1-1M3.5 6a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5H4a.5.5 0 0 1-.5-.5zm0 2.5a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5H4a.5.5 0 0 1-.5-.5zM4 11h8v1H4z'/%3E%3C/svg%3E"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 16 16'%3E%3Cpath fill='%230F766E' d='M9.293 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.707A1 1 0 0 0 13.707 4L10 .293A1 1 0 0 0 9.293 0M9.5 3.5v-2l3 3h-2a1 1 0 0 1-1-1M3.5 6a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5H4a.5.5 0 0 1-.5-.5zm0 2.5a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5H4a.5.5 0 0 1-.5-.5zM4 11h8v1H4z'/%3E%3C/svg%3E"
     />
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
@@ -60,9 +60,9 @@
     {% block styles %}{% endblock %}
   </head>
   <body>
-<!-- ═══ DESIGN CONTRACT — "Flat Design Financeiro Seguro" (DESIGN.md) ═══
-     THESIS: keuangan flat yang menenangkan — kebisingan visual dihapus, angka yang bicara; menolak chrome gelap-slate & aksen biru kategori dashboard.
-     OWN-WORLD: Azul Profundo #005691 (chrome), Verde Esmeralda #2ECC40 (aksi), Cinza Escuro #333333 (teks), Amarelo Ouro/Laranja (status), Inter + JetBrains Mono untuk angka.
+<!-- ═══ DESIGN CONTRACT — "Buku Besar Tenang" (DESIGN.md) ═══
+     THESIS: keuangan flat yang menenangkan — kebisingan visual dihapus, angka yang bicara.
+     OWN-WORLD: navy #16324F (chrome), teal #0F766E (aksi positif), slate #243447 (teks), amber dan merah (status), Inter + JetBrains Mono untuk angka.
      STORY: staf finance input/melacak hutang per proyek dengan percaya diri; sisa & jatuh tempo terbaca dalam hitungan detik.
      FIRST VIEWPORT: sidebar biru-profundo + topbar terang + KPI baris atas dengan aksen status per kartu.
      FORM: theme swap penuh pada design system ds-* yang ada; seed key: none (user-pinned world).
@@ -77,7 +77,7 @@
     </div>
     <div class="app-layout">
       <!-- SIDEBAR -->
-      <aside class="sidebar">
+      <aside class="sidebar" id="primaryNavigation">
         <div class="sidebar-brand">
           <div class="brand-icon">
             <i class="bi bi-file-earmark-spreadsheet-fill"></i>
@@ -196,6 +196,9 @@
       <main class="main-content" id="mainContent">
         {% block topbar %}
         <div class="topbar">
+          <button class="mobile-menu-toggle" type="button" aria-label="Buka navigasi" aria-controls="primaryNavigation" aria-expanded="false" onclick="toggleMobileNavigation()">
+            <i class="bi bi-list"></i>
+          </button>
           <h1 id="pageTitle">
             <i class="bi {% block topbar_icon %}bi-grid-1x2{% endblock %}"></i>
             {% block topbar_title %}Proyek{% endblock %}
@@ -307,7 +310,7 @@
       #editModal .modal-dialog { max-width: 1020px; }
       #editModal .modal-content { border: none; border-radius: 16px; overflow: hidden; max-height: calc(100vh - 3.5rem); box-shadow: 0 25px 60px rgba(0,0,0,.18); background: #fff; }
       #editModal form { display: flex; flex-direction: column; min-height: 0; flex: 1 1 auto; max-height: inherit; overflow: hidden; }
-      #editModal .modal-header { background: #005691; color: #fff; border: none; padding: 16px 24px; flex: none; }
+      #editModal .modal-header { background: #16324f; color: #fff; border: none; padding: 16px 24px; flex: none; }
       #editModal .modal-header .modal-title { font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
       #editModal .modal-header .modal-title i { color: #5fd76e; }
       #editModal .modal-header .im-sub { display: block; font-size: .7rem; font-weight: 400; color: rgba(255,255,255,.6); }
@@ -316,12 +319,12 @@
       #editModal .modal-footer { background: #fff; border-top: 1px solid #e3e5e8; padding: 12px 22px; display: flex; align-items: center; gap: 8px; flex: none; }
       #editModal .modal-footer .im-note { font-size: .7rem; color: #667080; margin-right: auto; }
       #editModal .form-control, #editModal .form-select { font-size: .85rem; border-radius: 8px; height: 34px; }
-      #editModal .form-control:focus, #editModal .form-select:focus { border-color: #005691; box-shadow: 0 0 0 3px rgba(0, 86, 145,.12); }
+      #editModal .form-control:focus, #editModal .form-select:focus { border-color: #16324f; box-shadow: 0 0 0 3px rgba(0, 86, 145,.12); }
       #editModal .form-control:focus-visible, #editModal .form-select:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 86, 145,.18); }
       #editModal .im-card { border: 1px solid #e3e5e8; border-radius: 12px; overflow: hidden; margin-bottom: 12px; background: #fff; }
       #editModal .im-card:last-child { margin-bottom: 0; }
       #editModal .im-card__head { display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: #f7f8f9; border-bottom: 1px solid #e3e5e8; }
-      #editModal .im-num { width: 24px; height: 24px; min-width: 24px; border-radius: 8px; background: #005691; color: #fff; font-size: .7rem; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+      #editModal .im-num { width: 24px; height: 24px; min-width: 24px; border-radius: 8px; background: #16324f; color: #fff; font-size: .7rem; font-weight: 700; display: flex; align-items: center; justify-content: center; }
       #editModal .im-card__head h6 { margin: 0; font-size: .78rem; font-weight: 700; color: #333333; }
       #editModal .im-card__head small { margin-left: auto; font-size: .7rem; color: #667080; }
       #editModal .im-card__body { padding: 14px 16px; }
@@ -333,8 +336,8 @@
       #editModal .im-mini { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: #4d5766; margin: 12px 0 8px; display: flex; align-items: center; gap: 8px; }
       #editModal .im-mini:first-child { margin-top: 0; }
       #editModal .im-mini::after { content: ""; flex: 1; height: 1px; background: #eef0f2; }
-      #editModal .im-total { display: flex; align-items: center; gap: 12px; background: #eaf2f9; border: 1px solid #c4ddef; border-radius: 10px; padding: 10px 14px; margin-top: 10px; }
-      #editModal .im-total .lbl { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: #005691; }
+      #editModal .im-total { display: flex; align-items: center; gap: 12px; background: #eaf0f6; border: 1px solid #c4ddef; border-radius: 10px; padding: 10px 14px; margin-top: 10px; }
+      #editModal .im-total .lbl { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: #16324f; }
       #editModal .im-total input { max-width: 260px; margin-left: auto; font-weight: 700; background: #fff; }
       @media (max-width: 768px) { #editModal .c2, #editModal .c3, #editModal .c4, #editModal .c5 { grid-column: span 6; } #editModal .c6, #editModal .c8 { grid-column: span 12; } }
       @media (max-width: 480px) { #editModal .c2, #editModal .c3, #editModal .c4, #editModal .c5 { grid-column: span 12; } #editModal .modal-body { padding: 14px; } }
@@ -410,6 +413,30 @@
           hideNavLoader();
           updateActiveNav();
           runPageReady();
+      });
+
+      let _tableEnhancePromise = null;
+      function ensureTableEnhance(root) {
+          if (!root.querySelector('table[data-enhance]')) return;
+          if (window.TableEnhance) {
+              window.TableEnhance.enhanceAll(root);
+              return;
+          }
+          if (!_tableEnhancePromise) {
+              _tableEnhancePromise = new Promise(function (resolve) {
+                  const script = document.createElement('script');
+                  script.src = "{{ url_for('static', filename='js/table-enhance.js') }}";
+                  script.onload = function () { resolve(window.TableEnhance || null); };
+                  script.onerror = function () { _tableEnhancePromise = null; resolve(null); };
+                  document.body.appendChild(script);
+              });
+          }
+          _tableEnhancePromise.then(function (enhancer) {
+              if (enhancer) enhancer.enhanceAll(root);
+          });
+      }
+      document.addEventListener('DOMContentLoaded', function () {
+          ensureTableEnhance(document);
       });
 
       // ═══ Lazy-load Chart.js (dipakai halaman dashboard) ═══
@@ -490,12 +517,7 @@
               document.body.style.removeProperty('padding-right');
               updateActiveNav();
               runPageReady();
-              // Enhance tabel baru (pagination, toggle kolom, density).
-              // table-enhance.js hanya boot pada DOMContentLoaded, sehingga
-              // tanpa ini tabel hasil swap HTMX tetap "mentah" (ukuran beda).
-              if (window.TableEnhance && window.TableEnhance.enhanceAll) {
-                  window.TableEnhance.enhanceAll(evt.target);
-              }
+              ensureTableEnhance(evt.target);
               // Scroll area konten ke atas untuk halaman baru.
               const ca = document.querySelector('.content-area');
               if (ca) ca.scrollTop = 0;
@@ -532,6 +554,27 @@
           }
       })();
 
+      function toggleMobileNavigation(forceOpen) {
+          const isOpen = typeof forceOpen === 'boolean'
+              ? forceOpen
+              : !document.body.classList.contains('sidebar-open');
+          document.body.classList.toggle('sidebar-open', isOpen);
+          const menuButton = document.querySelector('.mobile-menu-toggle');
+          if (menuButton) {
+              menuButton.setAttribute('aria-expanded', String(isOpen));
+              menuButton.setAttribute('aria-label', isOpen ? 'Tutup navigasi' : 'Buka navigasi');
+              menuButton.innerHTML = isOpen ? '<i class="bi bi-x-lg"></i>' : '<i class="bi bi-list"></i>';
+          }
+      }
+      document.addEventListener('keydown', function (event) {
+          if (event.key === 'Escape') toggleMobileNavigation(false);
+      });
+      document.body.addEventListener('click', function (event) {
+          if (event.target === document.body && document.body.classList.contains('sidebar-open')) {
+              toggleMobileNavigation(false);
+          }
+      });
+
       // ═══ Navigation handler ═══
       // Navigasi via HTMX: hanya #mainContent yang di-swap, sidebar tetap.
       // Hanya rute yang halaman-nya sudah "HTMX-ready" yang pakai swap; sisanya
@@ -546,8 +589,9 @@
           const path = (url || '').split('?')[0];
           return HTMX_READY_ROUTES.indexOf(path) !== -1;
       }
-      function navigateTo(url) {
-          saveSidebarScroll();
+       function navigateTo(url) {
+           toggleMobileNavigation(false);
+           saveSidebarScroll();
           updateActiveNav(url.split('?')[0]);
           if (window.htmx && isHtmxReady(url)) {
               // Push URL didorong server via header HX-Push-Url (lihat app.py):
@@ -678,7 +722,7 @@
                   } else {
                       input = `<input type="text" class="form-control form-control-sm" name="${f}" value="${v}">`;
                   }
-                  const req = ['TGL TERIMA BERKAS','NAMA LEVELANSIR / REKANAN','KATEGORI','STATUS TERHADAP DPP'].includes(f) ? ' <span class="req" style="color:#a12a1d">*</span>' : '';
+                  const req = ['TGL TERIMA BERKAS','NAMA LEVELANSIR / REKANAN','KATEGORI','STATUS TERHADAP DPP'].includes(f) ? ' <span class="req" style="color:#912018">*</span>' : '';
                   return `<div class="${cls}"><label class="im-label">${f}${req}</label>${input}</div>`;
               };
               const card = (num, title, sub, body) =>
@@ -755,9 +799,6 @@
          agar window.Toast siap dipakai. -->
     <script src="{{ url_for('static', filename='js/toast.js') }}"></script>
     <script src="{{ url_for('static', filename='js/skeleton.js') }}"></script>
-    <!-- Progressive table enhancement. Opt-in per table via [data-enhance].
-         Loaded after page scripts so it can hook filterTable() results. -->
-    <script src="{{ url_for('static', filename='js/table-enhance.js') }}"></script>
     <!-- Click-to-expand for truncated report-modal cells (data-full). -->
     <script src="{{ url_for('static', filename='js/cell-expand.js') }}"></script>
     {% block scripts %}{% endblock %}

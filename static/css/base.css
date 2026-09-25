@@ -29,33 +29,27 @@
       :root {
         --sidebar-w: 240px;
         --sidebar-collapsed-w: 72px;
-        /* Tema "Flat Design Financeiro Seguro" (DESIGN.md).
-           Cinza Escuro #333333 = teks & permukaan gelap;
-           Azul Profundo #005691 = chrome app (sidebar, header tabel);
-           Verde Esmeralda #2ECC40 = aksen tunggal (aksi primer);
-           Amarelo Ouro #FFD700 = peringatan; Laranja #FF8C00 = CTA sekunder;
-           Roxo Suave #9370DB = penekanan (badge info); Cinza Claro #F0F0F0 = netral. */
-        --primary: #333333;
-        --primary-light: #4d4d4d;
-        --deep: #005691;
-        --deep-light: #0a6aa8;
-        --accent: #2ECC40;
-        --accent-light: #5fd76e;
-        --accent-dark: #27b537;
-        --success: #2ECC40;
-        --success-soft: #e4f9e7;
-        --danger: #e74c3c;
-        --danger-soft: #fdecea;
-        --warning: #FFD700;
-        --warning-ink: #8a6d00;
-        --purple: #9370DB;
-        --orange: #FF8C00;
-        --bg: #f2f3f5;
+        --primary: #243447;
+        --primary-light: #40566d;
+        --deep: #16324f;
+        --deep-light: #244866;
+        --accent: #0f766e;
+        --accent-light: #2a978c;
+        --accent-dark: #115e59;
+        --success: #0f766e;
+        --success-soft: #e6f4f1;
+        --danger: #b42318;
+        --danger-soft: #fef0ee;
+        --warning: #b45309;
+        --warning-ink: #854d0e;
+        --purple: #6f5aa8;
+        --orange: #b45309;
+        --bg: #f5f7fa;
         --card: #ffffff;
-        --text: #333333;
-        --muted: #667080;
-        --border: #e3e5e8;
-        --hover: #f6f7f8;
+        --text: #243447;
+        --muted: #526579;
+        --border: #dce3eb;
+        --hover: #edf2f7;
         --shadow-sm: 0 1px 3px rgba(51, 51, 51, 0.06);
         --shadow-md:
           0 4px 12px -2px rgba(51, 51, 51, 0.09),
@@ -76,8 +70,22 @@
         --card-border: var(--border);
       }
       html {
-        background: #005691;
+        background: #16324f;
         overflow: hidden;
+      }
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: 90;
+        background: rgba(16, 42, 67, 0.42);
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.2s ease, visibility 0.2s ease;
+      }
+      body.sidebar-open::before {
+        opacity: 1;
+        visibility: visible;
       }
       * {
         box-sizing: border-box;
@@ -115,7 +123,7 @@
         bottom: 0;
         z-index: 100;
         transition: width 0.25s ease;
-        background: linear-gradient(180deg, #004a7c 0%, #0a6aa8 100%);
+        background: linear-gradient(180deg, #16324f 0%, #244866 100%);
         color: #fff;
         display: flex;
         flex-direction: column;
@@ -304,7 +312,7 @@
         animation: badge-pulse 2s infinite;
       }
       .sidebar-nav .nav-item .nav-badge-warning {
-        background: #FFD700;
+        background: #fef0c7;
         color: #333333;
         box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.25);
       }
@@ -548,10 +556,10 @@
         border-radius: 16px 16px 0 0;
       }
       .stat-card.card-blue::before {
-        background: linear-gradient(90deg, #005691, #0a6aa8);
+        background: linear-gradient(90deg, #16324f, #244866);
       }
       .stat-card.card-green::before {
-        background: linear-gradient(90deg, #2ECC40, #5fd76e);
+        background: linear-gradient(90deg, #0f766e, #2a978c);
       }
       .stat-card.card-red::before {
         background: linear-gradient(90deg, #e74c3c, #f0705f);
@@ -796,7 +804,7 @@
         z-index: 10;
       }
       #dataTable thead th {
-        background: linear-gradient(180deg, #0a6aa8, #004a7c);
+        background: linear-gradient(180deg, #244866, #16324f);
         color: #eaf2f9;
         font-size: 0.68rem;
         font-weight: 700;
@@ -882,11 +890,11 @@
       }
       .badge-lunas {
         background: var(--success-soft);
-        color: #1d7a2b;
+        color: #115e59;
       }
       .badge-belum {
         background: var(--danger-soft);
-        color: #a12a1d;
+        color: #912018;
       }
       .badge-kategori {
         padding: 3px 8px;
@@ -910,16 +918,16 @@
         gap: 6px;
       }
       .btn-primary {
-        background: var(--accent);
-        border-color: var(--accent);
-        color: #333333;
-        box-shadow: 0 2px 8px rgba(46, 204, 64, 0.25);
-      }
-      .btn-primary:hover {
         background: var(--accent-dark);
         border-color: var(--accent-dark);
         color: #ffffff;
-        box-shadow: 0 4px 14px rgba(46, 204, 64, 0.4);
+        box-shadow: 0 2px 8px rgba(15, 118, 110, 0.2);
+      }
+      .btn-primary:hover {
+        background: #0d514d;
+        border-color: #0d514d;
+        color: #ffffff;
+        box-shadow: 0 4px 14px rgba(15, 118, 110, 0.28);
         transform: translateY(-1px);
       }
       .btn-sm {
@@ -1185,6 +1193,29 @@
       }
 
       /* ========== RESPONSIVE ========== */
+      .mobile-menu-toggle {
+        display: none;
+        width: 44px;
+        height: 44px;
+        flex: 0 0 44px;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: var(--card);
+        color: var(--deep);
+        font-size: 1.1rem;
+      }
+      .mobile-menu-toggle:focus-visible {
+        outline: 3px solid rgba(15, 118, 110, 0.24);
+        outline-offset: 2px;
+      }
+      @media (min-width: 993px) {
+        body.sidebar-open::before {
+          opacity: 0;
+          visibility: hidden;
+        }
+      }
       @media (max-width: 992px) {
         .sidebar {
           width: 64px;
@@ -1209,6 +1240,7 @@
         .sidebar-nav .nav-item {
           justify-content: center;
           padding: 12px;
+          min-height: 44px;
         }
         .sidebar-toggle-btn {
           display: none;
@@ -1224,14 +1256,187 @@
           width: 160px;
         }
       }
-      @media (max-width: 576px) {
-        .content-area {
-          padding: 16px;
+      @media (max-width: 992px) {
+        body,
+        .app-layout {
+          height: 100%;
+          min-height: 100dvh;
+        }
+        body {
+          overflow: auto;
+        }
+        .app-layout {
+          min-height: 100dvh;
+          height: 100dvh;
+          overflow: hidden;
+        }
+        .sidebar {
+          width: min(300px, calc(100vw - 56px));
+          transform: translateX(-100%);
+          visibility: hidden;
+          transition: transform 0.24s ease, visibility 0.24s ease;
+          box-shadow: none;
+        }
+        .sidebar.collapsed,
+        .sb-collapsed .sidebar {
+          width: min(300px, calc(100vw - 56px));
+        }
+        body.sidebar-open .sidebar {
+          transform: translateX(0);
+          visibility: visible;
+          box-shadow: 12px 0 32px rgba(16, 42, 67, 0.18);
+        }
+        .sidebar .brand-title,
+        .sidebar .sidebar-brand small,
+        .sidebar .sidebar-nav .nav-item span,
+        .sidebar .sidebar-section,
+        .sidebar .sidebar-footer,
+        .sidebar .sidebar-brand .brand-text {
+          display: initial;
+        }
+        .sidebar .sidebar-brand .brand-text {
+          display: block;
+        }
+        .sidebar .sidebar-brand {
+          padding: 20px 18px;
+        }
+        .sidebar .sidebar-brand .brand-icon {
+          margin: 0 0 10px;
+        }
+        .sidebar .sidebar-nav {
+          padding: 12px;
+        }
+        .sidebar .sidebar-nav .nav-item {
+          justify-content: flex-start;
+          padding: 12px 14px;
+          gap: 12px;
+        }
+        .sidebar .sidebar-nav .nav-item .nav-badge {
+          display: inline-block;
+        }
+        .main-content,
+        .main-content.sidebar-collapsed,
+        .sb-collapsed .main-content {
+          margin-left: 0;
+          width: 100%;
+        }
+        .mobile-menu-toggle {
+          display: inline-flex;
         }
         .topbar {
+          height: auto;
+          min-height: 64px;
           padding: 10px 16px;
+          gap: 10px;
         }
+        .topbar h1 {
+          min-width: 0;
+          flex: 1;
+          font-size: 0.82rem;
+          gap: 6px;
+        }
+        .topbar-right {
+          min-width: 0;
+          gap: 8px;
+        }
+        .project-scope-select {
+          max-width: min(42vw, 190px);
+          min-height: 44px;
+          padding-right: 10px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .content-area {
+          padding: 20px;
+          overscroll-behavior: contain;
+        }
+        .table-toolbar,
+        .table-toolbar-actions {
+          align-items: stretch;
+        }
+        .table-toolbar-actions {
+          width: 100%;
+        }
+        .table-toolbar-actions > *,
+        .search-box,
+        .search-box input {
+          min-width: 0;
+          max-width: 100%;
+        }
+        .table-toolbar-actions .search-box {
+          flex: 1 1 100%;
+        }
+        .search-box input {
+          width: 100%;
+          min-height: 44px;
+        }
+        .filter-select {
+          min-height: 44px;
+          max-width: 100%;
+        }
+        .modal-dialog {
+          margin: 12px;
+        }
+        .modal-header,
+        .modal-body,
+        .modal-footer {
+          padding-left: 16px;
+          padding-right: 16px;
+        }
+      }
+      @media (max-width: 480px) {
+        .topbar {
+          flex-wrap: wrap;
+          padding: 8px 12px;
+        }
+        .topbar h1 {
+          flex: 1 1 calc(100% - 56px);
+        }
+        .topbar-right {
+          flex: 1 1 100%;
+          padding-left: 54px;
+        }
+        .project-scope,
+        .project-scope-select {
+          width: 100%;
+          max-width: none;
+        }
+        .content-area {
+          padding: 16px 12px;
+        }
+        .table-toolbar {
+          padding: 12px;
+        }
+        .nav-loader__box {
+          width: calc(100% - 40px);
+          padding: 22px 20px;
+        }
+        #editModal .modal-dialog {
+          margin: 8px;
+        }
+        #editModal .modal-header,
+        #editModal .modal-footer {
+          padding-left: 14px;
+          padding-right: 14px;
+        }
+      }
+      @media (max-width: 576px) {
         .topbar-badges {
           display: none;
+        }
+      }
+      @media (pointer: coarse) {
+        .sidebar-nav .nav-item,
+        .btn,
+        .btn-action,
+        .filter-select,
+        .dd-toggle {
+          min-height: 44px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        body::before,
+        .sidebar {
+          transition: none;
         }
       }

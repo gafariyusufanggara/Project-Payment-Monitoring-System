@@ -24,7 +24,7 @@
       }
       /* -- header: navy, sejajar modal input/edit -- */
       .vm-header {
-        background: #005691;
+        background: #16324f;
         color: #fff;
         padding: 16px 24px;
         border-bottom: none;
@@ -76,12 +76,12 @@
         letter-spacing: 0.3px;
       }
       .vm-badge-lunas {
-        background: #e4f9e7;
-        color: #1d7a2b;
+        background: #e6f4f1;
+        color: #115e59;
       }
       .vm-badge-belum {
-        background: #fdecea;
-        color: #a12a1d;
+        background: #fef0ee;
+        color: #912018;
       }
       .vm-badge-na {
         background: #eef0f2;
@@ -128,7 +128,7 @@
         white-space: nowrap;
       }
       .vm-finbar-sub i {
-        color: #1d7a2b;
+        color: #115e59;
         font-size: 0.7rem;
       }
 
@@ -179,12 +179,12 @@
       }
       .vm-section-title .vm-num {
         width: 24px; height: 24px; min-width: 24px; border-radius: 8px;
-        background: #005691; color: #fff; font-size: .7rem; font-weight: 700;
+        background: #16324f; color: #fff; font-size: .7rem; font-weight: 700;
         display: inline-flex; align-items: center; justify-content: center;
       }
       .vm-section-title i {
         font-size: 0.6rem;
-        color: #0a6aa8;
+        color: #2a978c;
       }
       .vm-grid {
         display: grid;
@@ -261,9 +261,9 @@
       .vm-audit-field { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.3px; color: #333333; font-weight: 700; }
       .vm-audit-time { color: #667080; font-weight: 400; text-transform: none; letter-spacing: 0; }
       .vm-audit-diff { display: flex; gap: 6px; align-items: center; font-size: 0.72rem; margin-top: 4px; flex-wrap: wrap; }
-      .vm-audit-diff .vm-old { background: #fdecea; color: #a12a1d; padding: 1px 6px; border-radius: 6px; text-decoration: line-through; }
+      .vm-audit-diff .vm-old { background: #fef0ee; color: #912018; padding: 1px 6px; border-radius: 6px; text-decoration: line-through; }
       .vm-audit-diff i { color: #667080; font-size: 0.7rem; }
-      .vm-audit-diff .vm-new { background: #e4f9e7; color: #1d7a2b; padding: 1px 6px; border-radius: 6px; }
+      .vm-audit-diff .vm-new { background: #e6f4f1; color: #115e59; padding: 1px 6px; border-radius: 6px; }
       @media (max-width: 768px) {
         .vm-body { flex-direction: column; padding: 14px; }
         .vm-body-right { width: auto; margin-left: 0; padding-left: 0; border-left: none; border-top: 1px solid #e3e5e8; margin-top: 12px; padding-top: 12px; }
@@ -305,7 +305,7 @@
         background: #c9ccd1;
       }
       .vm-btn-audit {
-        background: #005691;
+        background: #16324f;
         color: #ffffff;
       }
       .vm-btn-audit:hover {
