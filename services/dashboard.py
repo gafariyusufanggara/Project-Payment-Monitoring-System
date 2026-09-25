@@ -38,10 +38,12 @@ def _dedup_debt_rows(data):
     return result
 
 
-def build_dashboard_context(project_id=None):
+def build_dashboard_context(project_id=None, for_table=False):
     """Return dict of everything needed by index.html.
 
     project_id: optional filter — None or 'all' shows every project (consolidated).
+    for_table: when True (tab Data Invoice), skip chart/breakdown aggregates —
+        the table only needs rows + highlight sets + topbar counts.
     """
     data = db.read_data(project_id)
     # Exclusion rules (Pengaturan): rows whose KATEGORI/rekanan is excluded
@@ -50,13 +52,52 @@ def build_dashboard_context(project_id=None):
     # DPP/PPN laporan (_build_cum skips rows without TGL TERIMA). An invoice
     # whose berkas is not complete yet is not yet a countable debt, so counting
     # it here would make the dashboard KPIs disagree with the reports.
-    calc = [r for r in data if not is_excluded_row(r) and r.get('TGL TERIMA')]
-    excluded_rows = {r.get('_row') for r in data if is_excluded_row(r)}
-    _exc = [r for r in data if is_excluded_row(r)]
+    calc = []
+    _exc = []
+    for r in data:
+        if is_excluded_row(r):
+            _exc.append(r)
+        elif r.get('TGL TERIMA'):
+            calc.append(r)
+    excluded_rows = {r.get('_row') for r in _exc}
     excluded_row_count = len(_exc)
     excluded_rekanan_count = len({(r.get('NAMA LEVELANSIR / REKANAN') or '').strip() for r in _exc if (r.get('NAMA LEVELANSIR / REKANAN') or '').strip()})
-    deduped = _dedup_debt_rows(calc)
     today = date.today()
+
+    if for_table:
+        return {
+            'data': data,
+            'total_count': len(calc),
+            'lunas_count': sum(1 for r in calc if r.get('STATUS TERHADAP DPP') == 'Lunas'),
+            'belum_count': sum(1 for r in calc if r.get('STATUS TERHADAP DPP') == 'Belum Lunas'),
+            'overdue_rows': _overdue_set(calc, today),
+            'excluded_rows': sorted(excluded_rows),
+            'excluded_row_count': excluded_row_count,
+            'excluded_rekanan_count': excluded_rekanan_count,
+            'total_tagihan': 0,
+            'total_dpp_paid': 0,
+            'total_ppn_paid': 0,
+            'total_sisa_dpp': 0,
+            'total_sisa_ppn': 0,
+            'total_retensi': 0,
+            'total_pph': 0,
+            'sisa_hutang': 0,
+            'status_dpp_pct': 0,
+            'status_ppn_pct': 0,
+            'sisa_dpp_pct': 0,
+            'sisa_ppn_pct': 0,
+            'total_harga_excl': 0,
+            'total_dpp': 0,
+            'total_ppn_val': 0,
+            'unique_rekanan_count': 0,
+            'kategori_data': {},
+            'rekanan_detail_sorted': [],
+            'aging': {'belum_jatuh_tempo': 0, '1-30': 0, '31-60': 0, '61-90': 0, '>90': 0},
+            'overdue_list': [],
+            'monthly_data': [],
+            'daily_data': [],
+        }
+    deduped = _dedup_debt_rows(calc)
 
     total_count = len(calc)
     total_tagihan = sum(safe_float(r.get('TOTAL (INCLD)')) for r in deduped)

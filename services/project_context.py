@@ -30,9 +30,9 @@ def get_active_project_id():
         pid = int(raw)
     except (ValueError, TypeError):
         return ALL_PROJECTS
-    # Validate existence (cheap single-row lookup)
+    # Validate existence (cheap single-row lookup, no aggregates)
     import db_project
-    if db_project.get_project(pid) is None:
+    if not db_project.project_exists(pid):
         session['active_project_id'] = ALL_PROJECTS
         return ALL_PROJECTS
     return pid

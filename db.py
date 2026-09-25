@@ -321,3 +321,38 @@ def get_levelansir_retensi(project_id=None):
         })
 
     return sorted(grouped.values(), key=lambda x: (-x['total_retensi'], x['nama']))
+
+
+def count_excluded_rows(project_id=None):
+    """COUNT rows matching Pengaturan exclusion lists — single SQL COUNT.
+
+    Same semantics as constants.is_excluded_row (case-insensitive trim match
+    on KATEGORI or NAMA LEVELANSIR/REKANAN) and the same project scope rules
+    as read_data. Used by the base-template badge so the per-request context
+    processor does not have to load the full table just to count.
+    """
+    from constants import EXCLUDED_CATEGORIES, EXCLUDED_REKANAN
+    cats = [c.strip().lower() for c in EXCLUDED_CATEGORIES if (c or '').strip()]
+    reks = [r.strip().lower() for r in EXCLUDED_REKANAN if (r or '').strip()]
+    if not cats and not reks:
+        return 0
+    clauses = []
+    params = []
+    if cats:
+        clauses.append('LOWER(TRIM(COALESCE("KATEGORI", \'\'))) IN (%s)'
+                       % ','.join('?' for _ in cats))
+        params.extend(cats)
+    if reks:
+        clauses.append('LOWER(TRIM(COALESCE("NAMA LEVELANSIR / REKANAN", \'\'))) IN (%s)'
+                       % ','.join('?' for _ in reks))
+        params.extend(reks)
+    where = ''
+    if project_id is not None and str(project_id) not in ('all', ''):
+        where = ' AND "project_id" = ?'
+        params.append(str(project_id))
+    with _conn() as conn:
+        cur = conn.execute(
+            'SELECT COUNT(*) FROM hutang WHERE (%s)%s' % (' OR '.join(clauses), where),
+            params,
+        )
+        return cur.fetchone()[0] or 0

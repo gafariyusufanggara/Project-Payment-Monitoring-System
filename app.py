@@ -92,17 +92,17 @@ def inject_notif_counts():
         EXCLUDED_CATEGORIES, EXCLUDED_REKANAN,
     )
     from db_project import get_project_select
-    counts = get_counts()
+    from services.project_context import get_active_project_id, get_read_filter
+    _rf = get_read_filter()
+    counts = get_counts(_rf)
     import db_audit
     audit_total = db_audit.get_audit_count()
     # Active project scope (session) — 'all' = consolidated view across projects.
-    from services.project_context import get_active_project_id, get_read_filter
     from constants import (
         load_last_import as _load_imp, format_update_label as _fmt_upd,
         format_update_detail as _fmt_upd_d,
     )
     _inv_map, _ktk_map = _load_imp()
-    _rf = get_read_filter()
     if _rf is None:
         _inv_ts = max(_inv_map.values()) if _inv_map else ''
         _ktk_ts = max(_ktk_map.values()) if _ktk_map else ''
@@ -121,9 +121,8 @@ def inject_notif_counts():
     exc_rows = 0
     if cat_n + rek_n > 0:
         import db as _db
-        from constants import is_excluded_row as _is_exc
         try:
-            exc_rows = sum(1 for r in _db.read_data(get_read_filter()) if _is_exc(r))
+            exc_rows = _db.count_excluded_rows(_rf)
         except Exception:
             exc_rows = 0
     def _short(names, limit=5):

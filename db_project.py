@@ -131,6 +131,17 @@ def get_project_select():
     return [(r[0], f'{r[1]} — {r[2]}' if r[2] else r[1]) for r in rows]
 
 
+def project_exists(project_id):
+    """Lightweight existence check — single-row lookup, no aggregates."""
+    try:
+        pid = int(project_id)
+    except (ValueError, TypeError):
+        return False
+    with _conn() as conn:
+        row = conn.execute('SELECT 1 FROM projects WHERE id = ?', (pid,)).fetchone()
+    return row is not None
+
+
 # ---------------------------------------------------------------------------
 # RETENSI OTOMATIS (turunan dari kolom POT. RETENSI di tabel hutang)
 # ---------------------------------------------------------------------------

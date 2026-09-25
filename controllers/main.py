@@ -44,15 +44,15 @@ def dashboard():
 def data_hutang():
     from services.project_context import get_read_filter
     pid = get_read_filter()
+    ctx = build_dashboard_context(pid, for_table=True)
+    rows = ctx['data']
     # Categories actually present in the DB (so new values appear in the filter).
-    db_cats = sorted({r.get('KATEGORI', '') for r in db.read_data(pid) if r.get('KATEGORI')})
+    db_cats = sorted({r.get('KATEGORI', '') for r in rows if r.get('KATEGORI')})
     # Union with configured categories so known ones still show even if currently unused.
     all_cats = sorted(set(CATEGORIES) | set(db_cats))
     audited_rows = sorted(db_audit.get_audited_rows())
     # Only show the Retensi column when at least one row actually has a value.
-    rows = db.read_data(pid)
     has_retensi = any((r.get('POT. RETENSI') or '').strip() not in ('', '0', '0.0') for r in rows)
-    ctx = build_dashboard_context(pid)
     ctx.update(
         tab='tabData',
         categories=all_cats,

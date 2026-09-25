@@ -25,12 +25,12 @@
 <div class="tab-content animate-in">
     <!-- DASHBOARD TAB -->
     <div class="tab-pane fade{{ ' show active' if tab == 'tabDashboard' }}" id="tabDashboard">
-        {% include "partials/_dashboard.html" %}
+        {% if tab == 'tabDashboard' %}{% include "partials/_dashboard.html" %}{% endif %}
     </div>
 
     <!-- DATA TABLE TAB -->
     <div class="tab-pane fade{{ ' show active' if tab == 'tabData' }}" id="tabData">
-        {% include "partials/_data_table.html" %}
+        {% if tab == 'tabData' %}{% include "partials/_data_table.html" %}{% endif %}
     </div>
 </div>
 
@@ -514,6 +514,7 @@ function dashboardVisible() {
 
 function initDashboardCharts() {
     if (_chartsInited) return;
+    if (!document.getElementById('chartKategori')) { _chartsInited = true; return; }
     if (typeof Chart === 'undefined') {
         if (typeof ensureChartJs === 'function') ensureChartJs(function (ok) { if (ok) initDashboardCharts(); });
         return;
