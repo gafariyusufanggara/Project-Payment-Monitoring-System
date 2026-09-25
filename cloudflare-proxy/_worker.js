@@ -4,9 +4,6 @@ export default {
   async fetch(req, env, ctx) {
     const url = new URL(req.url);
     const target = new URL(url.pathname + url.search, ORIGIN);
-    if (req.method === 'POST' && (url.pathname === '/import' || url.pathname === '/api/list-sheets')) {
-      return Response.redirect(target.toString(), 307);
-    }
     if (req.method === 'GET' && url.pathname.startsWith('/static/')) {
       const cacheKey = new Request(target.toString(), { method: 'GET' });
       const hit = await caches.default.match(cacheKey);
