@@ -24,7 +24,7 @@
     <!-- Shared data-table layer (pagination, column toggle, frozen cols, density).
          Loaded before the page style block so page CSS can still override it. -->
     <link
-      href="{{ url_for('static', filename='css/table.css') }}"
+      href="{{ static_url(filename='css/table.css') }}"
       rel="stylesheet"
     />
     {% block head_extra %}{% endblock %}
@@ -40,21 +40,21 @@
      Loaded after Bootstrap/table.css so it wins, and before page blocks
      so individual pages can still override. -->
 <link
-  href="{{ url_for('static', filename='css/base.css') }}"
+  href="{{ static_url(filename='css/base.css') }}"
   rel="stylesheet"
 />
 <!-- Design system bersama (token + komponen ds-*).
      Setelah base.css supaya menang atas gaya lama, sebelum base-late.css
      yang berisi override akhir modal. -->
 <link
-  href="{{ url_for('static', filename='css/app.css') }}"
+  href="{{ static_url(filename='css/app.css') }}"
   rel="stylesheet"
 />
 <!-- Gaya bersama halaman laporan (DPP/PPN/JT). Dimuat GLOBAL di <head> agar
      tidak ikut di-swap HTMX — mencegah flash "besar lalu mengecil" (FOUC)
      ketika halaman laporan dibuka via navigasi AJAX. Scoped ke kelas .lp-*. -->
 <link
-  href="{{ url_for('static', filename='css/laporan.css') }}"
+  href="{{ static_url(filename='css/laporan.css') }}"
   rel="stylesheet"
 />
     {% block styles %}{% endblock %}
@@ -263,7 +263,7 @@
     <!-- EDIT MODAL -->
     <!-- VIEW DETAIL MODAL -->
 <link
-  href="{{ url_for('static', filename='css/base-late.css') }}"
+  href="{{ static_url(filename='css/base-late.css') }}"
   rel="stylesheet"
 />
     <div class="modal fade" id="viewModal" tabindex="-1" aria-labelledby="viewModalLabel" aria-hidden="true">
@@ -425,7 +425,7 @@
           if (!_tableEnhancePromise) {
               _tableEnhancePromise = new Promise(function (resolve) {
                   const script = document.createElement('script');
-                  script.src = "{{ url_for('static', filename='js/table-enhance.js') }}";
+                  script.src = "{{ static_url(filename='js/table-enhance.js') }}";
                   script.onload = function () { resolve(window.TableEnhance || null); };
                   script.onerror = function () { _tableEnhancePromise = null; resolve(null); };
                   document.body.appendChild(script);
@@ -797,10 +797,10 @@
     </script>
     <!-- Toast global (pengganti alert()). Harus sebelum skrip halaman
          agar window.Toast siap dipakai. -->
-    <script src="{{ url_for('static', filename='js/toast.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/skeleton.js') }}"></script>
+    <script src="{{ static_url(filename='js/toast.js') }}"></script>
+    <script src="{{ static_url(filename='js/skeleton.js') }}"></script>
     <!-- Click-to-expand for truncated report-modal cells (data-full). -->
-    <script src="{{ url_for('static', filename='js/cell-expand.js') }}"></script>
+    <script src="{{ static_url(filename='js/cell-expand.js') }}"></script>
     {% block scripts %}{% endblock %}
   </body>
 </html>

@@ -9,6 +9,7 @@ Monitoring Hutang Reguler - Web App (MVC layout)
 
 Run: python app.py   Open: http://localhost:5000
 """
+import hashlib
 import os
 from datetime import timedelta
 
@@ -19,6 +20,7 @@ from db_audit import init_audit_db
 from services.excel_import import migrate_from_excel
 
 app = Flask(__name__)
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 31536000
 app.secret_key = os.environ.get('SECRET_KEY', 'hutang-monitoring-2026')
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=12)
@@ -43,6 +45,20 @@ app.register_blueprint(cicilan_bp)
 app.register_blueprint(project_bp)
 app.register_blueprint(contract_bp)
 app.register_blueprint(settings_bp)
+
+
+@app.context_processor
+def inject_static_version():
+    def static_url(filename):
+        path = os.path.join(app.static_folder, filename)
+        try:
+            with open(path, 'rb') as asset:
+                version = hashlib.md5(asset.read()).hexdigest()[:12]
+        except OSError:
+            version = '0'
+        return url_for('static', filename=filename, v=version)
+
+    return {'static_url': static_url}
 
 
 # ── Jinja filter: format money (Indonesian locale, no Rp prefix, no decimals) ──
