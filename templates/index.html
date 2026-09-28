@@ -41,6 +41,18 @@ const activeTab = '{{ tab }}';
 const activeTabButton = document.querySelector(`#mainTab [data-bs-target="#${activeTab}"]`);
 
 // === SEARCH + FILTER ===
+// Range date filter: true when the row date (YYYY-MM-DD) falls within
+// [from, to] inclusive. Empty bound = unbounded on that side. A row without a
+// date only fails when at least one bound is set.
+function inRange(dateVal, from, to) {
+    if (!from && !to) return true;
+    const d = (dateVal || '').slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return false;
+    if (from && d < from) return false;
+    if (to && d > to) return false;
+    return true;
+}
+
 function filterTable() {
     const q = (document.getElementById('searchInput')?.value || '').toLowerCase().trim();
     const dppFilter = document.getElementById('filterStatusDPP')?.value || '';
@@ -49,13 +61,10 @@ function filterTable() {
     const kbFilter = document.getElementById('filterKodeBiaya')?.value || '';
     const bayarFilter = document.getElementById('filterStatusBayar')?.value || '';
     const jtFilter = document.getElementById('filterJatuhTempo')?.value || '';
-    const blYMs = getCheckedYMs('berkas');
-    const bayarYMs = getCheckedYMs('bayar');
-    // "Pilih Semua" (all checked) = no filter; else rows with empty date would vanish.
-    const blAll = document.querySelectorAll('#ddBerkasOpts input').length;
-    const byAll = document.querySelectorAll('#ddBayarOpts input').length;
-    const blEff = blYMs.length === blAll ? [] : blYMs;
-    const byEff = bayarYMs.length === byAll ? [] : bayarYMs;
+    const blFrom = document.getElementById('berkasFrom')?.value || '';
+    const blTo = document.getElementById('berkasTo')?.value || '';
+    const byFrom = document.getElementById('bayarFrom')?.value || '';
+    const byTo = document.getElementById('bayarTo')?.value || '';
 
     // Epsilon to absorb float noise on money fields.
     const EPS = 0.5;
@@ -76,11 +85,9 @@ function filterTable() {
         const kbMatch = !kbFilter || (tr.dataset.kodeBiaya || '') === kbFilter;
 
         const bl = tr.dataset.tglBerkas || '';
-        const blYM = bl.length >= 7 ? bl.slice(0, 7) : '';
-        const blMatch = blEff.length === 0 || blEff.includes(blYM);
+        const blMatch = inRange(bl, blFrom, blTo);
         const by = tr.dataset.tglBayarDpp || '';
-        const byYM = by.length >= 7 ? by.slice(0, 7) : '';
-        const byMatch = byEff.length === 0 || byEff.includes(byYM);
+        const byMatch = inRange(by, byFrom, byTo);
 
         // Status bayar derived from sisa DPP + PPN.
         let bayarMatch = true;
@@ -129,7 +136,7 @@ function filterTable() {
     const countEl = document.getElementById('searchCount');
     const total = document.querySelectorAll('#dataTable tbody tr').length;
     const anyFilter = q || dppFilter || ppnFilter || catFilter || kbFilter
-        || bayarFilter || jtFilter || blEff.length || byEff.length;
+        || bayarFilter || jtFilter || blFrom || blTo || byFrom || byTo;
     const countText = anyFilter ? `${visible} dari ${total}` : '';
     if (countEl) {
         countEl.setAttribute('data-te-total', countText);
@@ -161,68 +168,70 @@ document.getElementById('filterReset')?.addEventListener('click', function () {
     });
     const inp = document.getElementById('searchInput');
     if (inp) inp.value = '';
-    // Uncheck month dropdowns (re-check "Semua").
-    document.querySelectorAll('.dd-filter .dd-all-cb').forEach(cb => { cb.checked = true; });
-    document.querySelectorAll('.dd-options input').forEach(cb => { cb.checked = false; });
+    // Clear the date-range filters.
+    ['berkasFrom', 'berkasTo', 'bayarFrom', 'bayarTo'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+    updateRangeLabels();
     filterTable();
 });
 
-const monthNames = ['','Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
-function getCheckedYMs(group) {
-    return Array.from(document.querySelectorAll(`#dd${group === 'berkas' ? 'Berkas' : 'Bayar'}Opts input:checked`)).map(cb => cb.value);
+// ── Date-range filters (Tgl. Berkas Lengkap & Tgl. Bayar DPP) ──
+// Each panel holds a "Dari" (from) and "Sampai" (to) date input; filtering
+// happens live on change. The toggle label reflects the active range.
+function updateRangeLabels() {
+    const fmt = v => { if (!v) return ''; const [y, m, d] = v.split('-'); return `${d}/${m}/${y}`; };
+    const setLabel = (ddId, from, to) => {
+        const ddEl = document.getElementById(ddId);
+        const label = ddEl?.querySelector('.dd-toggle-label');
+        if (!label) return;
+        const active = !!(from || to);
+        ddEl.classList.toggle('is-active', active);
+        if (!active) { label.textContent = label.dataset.base; return; }
+        if (from && to) label.textContent = `${fmt(from)} – ${fmt(to)}`;
+        else if (from) label.textContent = `≥ ${fmt(from)}`;
+        else label.textContent = `≤ ${fmt(to)}`;
+    };
+    setLabel('ddBerkas', document.getElementById('berkasFrom')?.value, document.getElementById('berkasTo')?.value);
+    setLabel('ddBayar', document.getElementById('bayarFrom')?.value, document.getElementById('bayarTo')?.value);
 }
-function buildYmCheckboxes(panelOptsId, dataAttr) {
-    const rows = document.querySelectorAll('#dataTable tbody tr');
-    const yms = new Map();
-    rows.forEach(tr => {
-        const v = tr.dataset[dataAttr] || '';
-        const ym = v.length >= 7 ? v.slice(0, 7) : '';
-        if (ym) {
-            const [y, m] = ym.split('-');
-            yms.set(ym, (monthNames[parseInt(m, 10)] || m) + ' ' + y);
-        }
-    });
-    const opts = document.getElementById(panelOptsId);
-    if (!opts) return;
-    if (yms.size === 0) {
-        opts.innerHTML = '<span class="text-muted" style="font-size:.72rem;padding:4px 8px;display:block">Tidak ada data tanggal</span>';
-        const allWrap = opts.closest('.dd-panel')?.querySelector('.dd-all');
-        if (allWrap) allWrap.style.display = 'none';
-        return;
-    }
-    Array.from(yms.keys()).sort().reverse().forEach(ym => {
-        const lbl = document.createElement('label');
-        lbl.innerHTML = `<input type="checkbox" value="${ym}"> ${yms.get(ym)}`;
-        opts.appendChild(lbl);
-    });
-}
-buildYmCheckboxes('ddBerkasOpts', 'tglBerkas');
-buildYmCheckboxes('ddBayarOpts', 'tglBayarDpp');
+document.querySelectorAll('.dd-toggle-label').forEach(l => { l.dataset.base = l.textContent; });
 
-// Dropdown open/close + "Pilih Semua" + option sync
+[['berkasFrom', 'berkasTo', 'ddBerkas'], ['bayarFrom', 'bayarTo', 'ddBayar']].forEach(([fId, tId, ddId]) => {
+    const fEl = document.getElementById(fId);
+    const tEl = document.getElementById(tId);
+    const sync = () => {
+        // Guard against a swapped range so the user never gets a silent empty list.
+        if (fEl.value && tEl.value && fEl.value > tEl.value) {
+            const tmp = fEl.value; fEl.value = tEl.value; tEl.value = tmp;
+        }
+        updateRangeLabels();
+        filterTable();
+    };
+    fEl?.addEventListener('change', sync);
+    tEl?.addEventListener('change', sync);
+});
+[['berkasClear', 'berkasFrom', 'berkasTo'], ['bayarClear', 'bayarFrom', 'bayarTo']].forEach(([btnId, fId, tId]) => {
+    document.getElementById(btnId)?.addEventListener('click', () => {
+        document.getElementById(fId).value = '';
+        document.getElementById(tId).value = '';
+        updateRangeLabels();
+        filterTable();
+    });
+});
+
+// Dropdown open/close
 document.querySelectorAll('.dd-filter').forEach(dd => {
     const btn = dd.querySelector('.dd-toggle');
-    const panel = dd.querySelector('.dd-panel');
-    const allCb = dd.querySelector('.dd-all-cb');
-    const opts = dd.querySelector('.dd-options');
     btn?.addEventListener('click', e => {
         e.stopPropagation();
         document.querySelectorAll('.dd-filter.open').forEach(d => { if (d !== dd) d.classList.remove('open'); });
         dd.classList.remove('dd-flip-up');
         const rect = dd.getBoundingClientRect();
         const spaceBelow = window.innerHeight - rect.bottom - 10;
-        if (spaceBelow < 280) dd.classList.add('dd-flip-up');
+        if (spaceBelow < 300) dd.classList.add('dd-flip-up');
         dd.classList.toggle('open');
-    });
-    opts?.addEventListener('change', () => {
-        const cbs = opts.querySelectorAll('input');
-        const checked = opts.querySelectorAll('input:checked').length;
-        if (allCb) allCb.checked = checked === cbs.length;
-        filterTable();
-    });
-    allCb?.addEventListener('change', () => {
-        opts.querySelectorAll('input').forEach(cb => cb.checked = allCb.checked);
-        filterTable();
     });
 });
 document.addEventListener('click', e => {
@@ -324,148 +333,7 @@ document.querySelectorAll('.th-sort').forEach(th => {
     });
 });
 
-// === VIEW ROW (read-only detail) ===
-let _viewRowIdx = null;
-
-function viewRow(rowIdx) {
-    _viewRowIdx = rowIdx;
-    fetch('/edit/' + rowIdx).then(r => r.json()).then(data => {
-        const rekanan = data['NAMA LEVELANSIR / REKANAN'] || '-';
-        const invoice = data['NO INVOICE'] || '-';
-        const statusDPP = data['STATUS TERHADAP DPP'] || '-';
-        const statusPPN = data['STATUS TERHADAP PPN'] || '-';
-        const total = parseFloat(data['TOTAL (INCLD)']) || 0;
-        const bayarDPP = parseFloat(data['PEMBAYARAN DPP']) || 0;
-        const bayarPPN = parseFloat(data['PEMBAYARAN PPN']) || 0;
-        const sisa = parseFloat(data['SISA HUTANG (INCLD PPN)']) || 0;
-
-        const badge = s => s === 'Lunas' ? 'vm-badge-lunas' : s === 'Belum Lunas' ? 'vm-badge-belum' : 'vm-badge-na';
-
-        // ── Header ──
-        document.getElementById('vmRekanan').textContent = rekanan;
-        document.getElementById('vmInvoice').textContent = invoice;
-        document.getElementById('vmBadges').innerHTML =
-            `<span class="vm-badge ${badge(statusDPP)}">DPP: ${statusDPP}</span>` +
-            `<span class="vm-badge ${badge(statusPPN)}">PPN: ${statusPPN}</span>`;
-
-        // ── Financial bar ──
-        const finItems = [
-            { label: 'Total (Incld)', val: money(total), cls: '#3d434c' },
-            { label: 'Bayar DPP', val: money(bayarDPP), cls: '#115e59', sub: data['TGL BAYAR DPP'] },
-            { label: 'Bayar PPN', val: money(bayarPPN), cls: '#115e59', sub: data['TGL BAYAR PPN'] },
-            { label: 'Sisa Hutang', val: money(sisa), cls: sisa > 0 ? '#b42318' : '#115e59' },
-        ];
-        document.getElementById('vmFinbar').innerHTML = finItems.map(f =>
-            `<div class="vm-finbar-item"><div class="vm-finbar-label">${f.label}</div><div class="vm-finbar-val" style="color:${f.cls}">${f.val}</div>` +
-            (f.sub ? `<div class="vm-finbar-sub"><i class="bi bi-calendar-check"></i> ${f.sub}</div>` : '') +
-            `</div>`
-        ).join('');
-
-        // ── Body — grouped sections ──
-        const skip = new Set(['R','_row','NAMA LEVELANSIR / REKANAN','NO INVOICE','TOTAL (INCLD)','PEMBAYARAN DPP','PEMBAYARAN PPN','SISA HUTANG (INCLD PPN)','TGL BAYAR DPP','TGL BAYAR PPN']);
-        const moneyFields = new Set(['TOTAL (INCLD)','PEMBAYARAN DPP','PEMBAYARAN PPN','SISA HUTANG (INCLD PPN)','SISA HUTANG DPP','SISA HUTANG PPN','HARGA (EXLD)','HARGA SATUAN','POT. RETENSI','POT. PPH','PPN','PEMBAYARAN POT. PPH','NILAI YG DITERIMA VENDOR']);
-        const boolHighlight = {'STATUS TERHADAP DPP':true,'STATUS TERHADAP PPN':true};
-
-        const val = f => data[f] != null && data[f] !== '' ? data[f] : '-';
-        const fieldLabel = {
-            'TGL TERIMA': 'TGL TERIMA BERKAS LENGKAP',
-            'TGL INV': 'TGL INVOICE',
-            'JTH TEMPO': 'TGL JATUH TEMPO',
-            'TGL FAKTUR PAJAK': 'TGL FAKTUR PAJAK MASUKAN',
-        };
-        const labelOf = k => fieldLabel[k] || k;
-
-        // Section renderer — each field appears in exactly one section, so no
-        // duplicates and logical neighbours (e.g. no. & tgl. faktur pajak) stay together.
-        const used = new Set();
-
-        function renderSection(num, title, fields, mode) {
-            const present = fields.filter(k => k in data);
-            if (present.length === 0) return '';
-            let html = `<div class="vm-section"><div class="vm-section-title"><span class="vm-num">${num}</span>${title}</div><div class="vm-grid">`;
-            for (const k of present) {
-                used.add(k);
-                let raw = val(k);
-                if (boolHighlight[k] && raw !== '-') {
-                    raw = `<span class="vm-badge ${badge(raw)}">${raw}</span>`;
-                } else if (mode === 'money') {
-                    raw = `<code>${moneyFields.has(k) && raw !== '-' ? money(parseFloat(raw)||0) : raw}</code>`;
-                }
-                html += `<div class="vm-field"><div class="vm-field-label">${labelOf(k)}</div><div class="vm-field-val">${raw}</div></div>`;
-            }
-            return html + '</div></div>';
-        }
-
-        // Group 1 — Dokumen & Status
-        const docFields = ['NO PO / KONTRAK','NO SERI FAKTUR PAJAK','TGL FAKTUR PAJAK',
-            'NO INVOICE INTERNAL','TGL INV','TGL TERIMA BERKAS','TGL TERIMA','JTH TEMPO',
-            'STATUS TERHADAP DPP','STATUS TERHADAP PPN','KETERANGAN PPN'];
-        // Group 2 — Keuangan
-        const finFields = ['HARGA SATUAN','VOLUME PROGRESS','HARGA (EXLD)',
-            'POT. RETENSI','POT. PPH','PPN','PEMBAYARAN POT. PPH','NILAI YG DITERIMA VENDOR',
-            'SISA HUTANG DPP','SISA HUTANG PPN'];
-        // Group 3 — Pembayaran (nominal sudah di header, di sini detail bukti)
-        const payFields = ['PEMBAYARAN DPP VIA DIVISI','NO BUKTI BAYAR DPP',
-            'PEMBAYARAN PPN VIA','NO BUKTI BAYAR PPN'];
-        // Group 4 — Detail
-        const detailFields = ['DESKRIPSI','KATEGORI','KETERANGAN','KODE BIAYA','KODE BIAYA2','TGL MASUK DIVISI'];
-
-        let bodyHtml = '';
-        bodyHtml += renderSection('01', 'Dokumen & Status', docFields, 'plain');
-        bodyHtml += renderSection('02', 'Keuangan', finFields, 'money');
-        bodyHtml += renderSection('03', 'Pembayaran', payFields, 'plain');
-        bodyHtml += renderSection('04', 'Detail', detailFields, 'plain');
-
-        // Remaining fields (expandable) — everything not shown above.
-        // Aging buckets and internal keys are hidden from the UI.
-        const hideFields = new Set(['BLM JATUH TEMPO','1-30 HARI','31-60 HARI','61-90 HARI','LEBIH 90 HARI','project_id']);
-        const remaining = Object.keys(data).filter(k => k !== '_row' && !skip.has(k) && !used.has(k) && !hideFields.has(k));
-        if (remaining.length > 0) {
-            bodyHtml += `<div class="vm-remaining"><details><summary><i class="bi bi-three-dots"></i> Semua field lainnya (${remaining.length})</summary><div class="vm-remaining-grid">`;
-            for (const k of remaining) {
-                const raw = val(k);
-                const display = moneyFields.has(k) && raw !== '-' ? money(parseFloat(raw)||0) : raw;
-                bodyHtml += `<div class="vm-field"><div class="vm-field-label">${labelOf(k)}</div><div class="vm-field-val">${display}</div></div>`;
-            }
-            bodyHtml += '</div></details></div>';
-        }
-
-        document.getElementById('vmBody').innerHTML = '<div class="vm-body-left">' + bodyHtml + '</div>';
-
-        // ── Catatan Audit right column ──
-        const dlg = document.querySelector('#viewModal .modal-dialog');
-        dlg.classList.remove('modal-dialog-wide');
-        const audited = {{ audited_rows|tojson }};
-        if (audited.includes(rowIdx)) {
-            dlg.classList.add('modal-dialog-wide');
-            fetch('/audit/row/' + rowIdx).then(r => r.json()).then(entries => {
-                if (entries && entries.length > 0) {
-                    let auditHtml = '<div class="vm-body-right"><div class="vm-section"><div class="vm-section-title"><span class="vm-num">04</span>Catatan Audit</div><div class="vm-audit-list">';
-                    for (const e of entries) {
-                        auditHtml += `<div class="vm-audit-item">`;
-                        auditHtml += `<div class="vm-audit-field">${e.field_name} <span class="vm-audit-time">(${e.changed_at})</span></div>`;
-                        auditHtml += `<div class="vm-audit-diff">`;
-                        auditHtml += `<span class="vm-old">${e.old_value || '(kosong)'}</span>`;
-                        auditHtml += `<i class="bi bi-arrow-right"></i>`;
-                        auditHtml += `<span class="vm-new">${e.new_value || '(kosong)'}</span>`;
-                        auditHtml += `</div></div>`;
-                    }
-                    auditHtml += '</div></div></div>';
-                    document.getElementById('vmBody').insertAdjacentHTML('beforeend', auditHtml);
-                } else {
-                    dlg.classList.remove('modal-dialog-wide');
-                }
-            }).catch(() => { dlg.classList.remove('modal-dialog-wide'); });
-        }
-
-        // Wire audit button
-        document.getElementById('viewEditBtn').onclick = function() {
-            bootstrap.Modal.getInstance(document.getElementById('viewModal')).hide();
-            editRow(_viewRowIdx);
-        };
-        new bootstrap.Modal(document.getElementById('viewModal')).show();
-    }).catch(() => Toast.err('Gagal memuat data. Coba lagi.'));
-}
+// === VIEW ROW (read-only detail) — shared implementation in base.html ===
 
 // === CLICK ROW → VIEW MODAL ===
 document.getElementById('dataTable')?.addEventListener('click', function(e) {

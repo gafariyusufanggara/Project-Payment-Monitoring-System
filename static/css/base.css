@@ -759,6 +759,76 @@
       .dd-options input {
         accent-color: var(--deep);
       }
+      .dd-range .dd-toggle-label {
+        white-space: nowrap;
+        max-width: 150px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .dd-panel--range {
+        min-width: 220px;
+        padding: 10px;
+      }
+      .dd-range-head {
+        font-size: 0.68rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        color: var(--muted);
+        margin-bottom: 8px;
+      }
+      .dd-range-field {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        font-size: 0.75rem;
+        color: var(--text);
+        margin-bottom: 8px;
+      }
+      .dd-range-field input[type="date"] {
+        flex: 1 1 auto;
+        min-width: 0;
+        padding: 5px 8px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        font-size: 0.75rem;
+        background: #fff;
+        color: var(--text);
+        font-family: inherit;
+      }
+      .dd-range-field input[type="date"]:focus {
+        border-color: var(--deep);
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(0, 86, 145, 0.12);
+      }
+      .dd-range-clear {
+        width: 100%;
+        margin-top: 2px;
+        padding: 6px 8px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: #fff;
+        color: var(--muted);
+        font-size: 0.72rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        font-family: inherit;
+        transition: border-color 0.15s, color 0.15s;
+      }
+      .dd-range-clear:hover {
+        border-color: #912018;
+        color: #912018;
+      }
+      .dd-filter.dd-range.is-active .dd-toggle {
+        border-color: var(--deep);
+        color: var(--deep);
+        background: #eaf0f6;
+      }
       .th-sort {
         cursor: pointer;
         user-select: none;

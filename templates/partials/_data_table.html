@@ -42,30 +42,42 @@
           <option value="safe">Aman (&gt; 30 hari)</option>
           <option value="unpaid_no_due">Belum Bayar (tanpa JT)</option>
         </select>
-        <div class="dd-filter">
-          <button class="dd-toggle">
-            <i class="bi bi-calendar3" style="font-size: 0.78rem"></i> Tgl.
-            Berkas <i class="bi bi-chevron-down"></i>
+        <div class="dd-filter dd-range" id="ddBerkas">
+          <button class="dd-toggle" type="button">
+            <i class="bi bi-calendar3" style="font-size: 0.78rem"></i>
+            <span class="dd-toggle-label">Tgl. Berkas</span>
+            <i class="bi bi-chevron-down"></i>
           </button>
-          <div class="dd-panel">
-            <label class="dd-all"
-              ><input type="checkbox" class="dd-all-cb" data-group="berkas" />
-              Semua</label
-            >
-            <div class="dd-options" id="ddBerkasOpts"></div>
+          <div class="dd-panel dd-panel--range">
+            <div class="dd-range-head">Rentang Tgl. Berkas Lengkap</div>
+            <label class="dd-range-field">Dari
+              <input type="date" id="berkasFrom" aria-label="Tgl. Berkas dari tanggal" />
+            </label>
+            <label class="dd-range-field">Sampai
+              <input type="date" id="berkasTo" aria-label="Tgl. Berkas sampai tanggal" />
+            </label>
+            <button type="button" class="dd-range-clear" id="berkasClear">
+              <i class="bi bi-x-circle"></i> Hapus rentang
+            </button>
           </div>
         </div>
-        <div class="dd-filter">
-          <button class="dd-toggle">
-            <i class="bi bi-currency-dollar" style="font-size: 0.78rem"></i>
-            Tgl. Bayar DPP <i class="bi bi-chevron-down"></i>
+        <div class="dd-filter dd-range" id="ddBayar">
+          <button class="dd-toggle" type="button">
+            <i class="bi bi-cash-stack" style="font-size: 0.78rem"></i>
+            <span class="dd-toggle-label">Tgl. Bayar DPP</span>
+            <i class="bi bi-chevron-down"></i>
           </button>
-          <div class="dd-panel">
-            <label class="dd-all"
-              ><input type="checkbox" class="dd-all-cb" data-group="bayar" />
-              Semua</label
-            >
-            <div class="dd-options" id="ddBayarOpts"></div>
+          <div class="dd-panel dd-panel--range">
+            <div class="dd-range-head">Rentang Tgl. Bayar DPP</div>
+            <label class="dd-range-field">Dari
+              <input type="date" id="bayarFrom" aria-label="Tgl. Bayar DPP dari tanggal" />
+            </label>
+            <label class="dd-range-field">Sampai
+              <input type="date" id="bayarTo" aria-label="Tgl. Bayar DPP sampai tanggal" />
+            </label>
+            <button type="button" class="dd-range-clear" id="bayarClear">
+              <i class="bi bi-x-circle"></i> Hapus rentang
+            </button>
           </div>
         </div>
         <div class="search-box ds-search">

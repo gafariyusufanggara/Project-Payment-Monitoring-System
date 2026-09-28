@@ -216,8 +216,8 @@ def build_laporan_data(project_id=None, cutoff_date=None):
     project_id: optional project filter forwarded to db.read_data.
     cutoff_date: optional date/datetime; when set, only data up to this date is included.
     """
-    month_names = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
-                   'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
+    month_names = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+                   'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
 
     # Month key: 'YYYY-MM'
     def month_keyfn(dt):
@@ -338,6 +338,16 @@ def build_laporan_data(project_id=None, cutoff_date=None):
     return report_rows, len(data)
 
 
+_MONTHS_FULL = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+                'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
+
+
+def _week_range_label(start, end):
+    """Human-readable long week label, e.g. '20 September 2026 - 26 September 2026'."""
+    return (f'{start.day} {_MONTHS_FULL[start.month]} {start.year}'
+            f' - {end.day} {_MONTHS_FULL[end.month]} {end.year}')
+
+
 def _week_key(dt):
     """Return 'YYYY-Www' week id where a week STARTS on Sunday and ENDS on
     Saturday. The id uses the Monday-based ISO year/week of the Tuesday inside
@@ -372,8 +382,8 @@ def build_mingguan_data(project_id=None, cutoff_date=None):
         all_weeks = sorted(all_weeks + [cur_wk])
 
     # Pass 3: build per-week report (week starts Sunday, closes Saturday)
-    month_names = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
-                   'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
+    month_names = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+                   'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
     report_rows = []
     vendor_last = {}  # tracks the most recent rc per rekan for empty-week fallback
     for wk in all_weeks:
@@ -383,6 +393,7 @@ def build_mingguan_data(project_id=None, cutoff_date=None):
         start = monday - timedelta(days=1)   # Sunday
         end = start + timedelta(days=6)        # Saturday
         label = f'{start:%d %b}–{end:%d %b %Y}'
+        label_long = _week_range_label(start, end)
         # Calendar month/year this week belongs to = its closing Saturday's month.
         year = end.year
         month = end.month
@@ -460,6 +471,7 @@ def build_mingguan_data(project_id=None, cutoff_date=None):
         report_rows.append({
             'key': wk,
             'label': label,
+            'label_long': label_long,
             'year': year,
             'month': month,
             'rekanan_list': rekanan_list,
@@ -528,11 +540,13 @@ def build_mingguan_data(project_id=None, cutoff_date=None):
             elif wk not in existing:
                 end   = cursor + timedelta(days=6)
                 label = f'{cursor:%d %b}–{end:%d %b %Y}'
+                label_long = _week_range_label(cursor, end)
                 # Carry forward last known cumulative totals, zero new-activity fields.
                 # Uses the nearest prior real week (not the chronologically last one).
                 report_rows.append({
                     'key': wk,
                     'label': label,
+                    'label_long': label_long,
                     'year': end.year,
                     'month': end.month,
                     'rekanan_list': last_rekan_list,
@@ -717,7 +731,7 @@ def _render_lbp(wb, ws, mdata, now_key, period_of, title_suffix='', project_id=N
 
     # ── Title row 4 (0-based row 3) spans C..Z (cols 2..25) ──
     ws.merge_range(3, 2, 3, 25,
-        f'REKAP PRESTASI UTANG & PEMBAYARAN UTANG — {mdata["label"]}{title_suffix}', title_fmt)
+        f'REKAP PRESTASI UTANG & PEMBAYARAN UTANG — {mdata.get("label_long") or mdata["label"]}{title_suffix}', title_fmt)
     ws.set_row(3, 26)
 
     # ── Header (2 rows) at Excel rows 5-6 (0-based 4-5) ──
@@ -1038,8 +1052,8 @@ def build_jatuh_tempo_data(project_id=None):
     Each rekanan entry:
         { 'rekanan': str, 'invoices': [...], 'total': int, 'count': int }
     """
-    month_names = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
-                   'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
+    month_names = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+                   'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
     data = db.read_data(project_id=project_id)
     from constants import is_excluded_row  # exclusion rules (Pengaturan)
     data = [r for r in data if not is_excluded_row(r)]

@@ -33,7 +33,7 @@
 
 {% set current_month = current_month if current_month is defined and current_month else (months[-1] if months else '') %}
 
-<div class="lp-rail lp-rail--select lp-rail--single lp-rail--bulanan" id="topRail">
+<div class="lp-rail lp-rail--select lp-rail--single lp-rail--bulanan{% if cutoff %} lp-rail--cutoff{% endif %}" id="topRail">
   <div class="lp-rail-group">
     <label class="lp-rail-label" for="monthSel"><i class="bi bi-calendar3"></i> Periode</label>
     <select id="monthSel" class="lp-sel" aria-label="Pilih periode bulanan">
@@ -41,10 +41,16 @@
       <option value="{{ r.key }}" {% if r.key == current_month %}selected{% endif %}>{{ r.label }}</option>
       {% endfor %}
     </select>
+    <span class="lp-rail-sep" aria-hidden="true"></span>
+    <label class="lp-rail-label lp-rail-label--plain" for="cutoffDay"><i class="bi bi-calendar-check"></i> Cut Off</label>
+    <input type="date" id="cutoffDay" class="lp-sel lp-sel--day" onchange="applyCutoff()" aria-label="Tanggal cut off" value="{{ cutoff if cutoff else '' }}" />
+    {% if cutoff %}
+    <button class="lp-btn" onclick="clearCutoff()" title="Hapus Cut Off"><i class="bi bi-x-circle"></i> Reset</button>
+    {% endif %}
   </div>
   <div class="lp-rail-group lp-rail-group--end">
-    <span class="lp-rail-period" id="cutoffMonthLabel">{{ current_month }}</span>
-    <button class="lp-btn lp-btn--primary" id="exportBtn" onclick="exportExcel(this)" title="Export periode aktif ke Excel"><i class="bi bi-download"></i> Export</button>
+    <span class="lp-rail-period" id="cutoffMonthLabel">{% for r in report_rows %}{% if r.key == current_month %}{{ r.label }}{% endif %}{% endfor %}</span>
+    <button class="lp-btn lp-btn--primary" id="exportBtn" onclick="exportExcel(this)" title="Unduh laporan periode aktif ke Excel"><i class="bi bi-download"></i> Unduh Laporan</button>
   </div>
 </div>
 
@@ -216,8 +222,18 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
       </div>
       <div class="modal-body">
-        <div class="lp-mlegend" aria-hidden="true"><span><span class="dot dot--h"></span>PPN</span><span><span class="dot dot--p"></span>Bayar</span><span><span class="dot dot--s-pos"></span>Sisa &gt;0</span><span><span class="dot dot--s-zero"></span>Lunas</span><span class="lp-mlegend-hint">bar kiri = periode aktif</span></div>
-        <div class="lp-scrollbox">
+        <div class="lp-mtable-toolbar">
+          <div class="lp-mtable-controls">
+            <label for="invoiceSearch">Cari invoice, PO, atau deskripsi</label>
+            <input type="search" id="invoiceSearch" class="form-control form-control-sm" autocomplete="off" placeholder="Ketik untuk menyaring detail…" aria-controls="modalInvoices">
+            <span id="invoiceCount" role="status" aria-live="polite"></span>
+          </div>
+          <section class="lp-current-totals" aria-label="Ringkasan periode dipilih">
+            <div><span>PPN saat ini</span><strong id="currentInvoiceTotal">Rp 0</strong></div>
+            <div><span>Bayar PPN saat ini</span><strong id="currentPaymentTotal">Rp 0</strong></div>
+          </section>
+        </div>
+        <div class="lp-scrollbox" tabindex="0" role="region" aria-label="Rincian invoice, dapat digulir horizontal dan vertikal">
           <table class="lp-mtbl">
             <thead>
               <tr>
@@ -226,16 +242,17 @@
                 <th scope="col" class="m-po">PO / Kontrak</th>
                 <th scope="col" class="m-jt">Jth Tempo</th>
                 <th scope="col" class="m-desc">Deskripsi</th>
-                <th scope="col" class="ar m-hutang">PPN</th>
+                <th scope="col" class="ar m-hutang">DPP</th>
+                <th scope="col" class="ar m-ppn">PPN</th>
                 <th scope="col" class="m-bayar-tgl">Tgl Bayar PPN</th>
                 <th scope="col" class="ar m-bayar">Bayar PPN</th>
                 <th scope="col" class="ar m-sisa">Sisa PPN</th>
               </tr>
             </thead>
             <tbody id="modalInvoices">
-              <tr class="em"><td colspan="9"><i class="bi bi-hand-index"></i>Pilih levelansir untuk melihat detail</td></tr>
+              <tr class="em"><td colspan="10"><i class="bi bi-hand-index"></i>Pilih levelansir untuk melihat detail</td></tr>
             </tbody>
-            <tfoot id="modalTfoot" hidden><tr><td class="l" colspan="5">Total</td><td id="ftPpn" class="m-h"></td><td class="l"></td><td id="ftBayar" class="m-p"></td><td id="ftSisa" class="m-s"></td></tr></tfoot>
+            <tfoot id="modalTfoot" hidden><tr><td class="l" colspan="5">Total</td><td id="ftDpp" class="m-h"></td><td id="ftPpn" class="m-h"></td><td class="l"></td><td id="ftBayar" class="m-p"></td><td id="ftSisa" class="m-s"></td></tr></tfoot>
           </table>
         </div>
       </div>
@@ -250,9 +267,13 @@ const REKANAN_DATA = {{ report_rows | tojson }};
 function monthSel(){ return document.getElementById('monthSel'); }
 function activeMonthKey(){ const s=monthSel(); return s?s.value:''; }
 function setSelValue(sel,key){ if(!sel||!key) return false; for(let i=0;i<sel.options.length;i++){ if(sel.options[i].value===key){ sel.value=key; return true; } } return false; }
-function selectMonth(key){ setSelValue(monthSel(), key); document.querySelectorAll('.month-section').forEach(el=>{ el.hidden=(el.id!=='section-'+key); }); const lbl=document.getElementById('cutoffMonthLabel'); if(lbl) lbl.textContent=key; if(window.TableEnhance) window.TableEnhance.refresh(); }
+function monthLabel(key){ const s=monthSel(); if(s){ for(const o of s.options){ if(o.value===key) return o.textContent.trim(); } } return key; }
+function selectMonth(key){ setSelValue(monthSel(), key); document.querySelectorAll('.month-section').forEach(el=>{ el.hidden=(el.id!=='section-'+key); }); const lbl=document.getElementById('cutoffMonthLabel'); if(lbl) lbl.textContent=monthLabel(key); if(window.TableEnhance) window.TableEnhance.refresh(); }
 function bindMonthSel(){ const sel=monthSel(); if(!sel||sel.dataset.bound) return; sel.dataset.bound='1'; sel.addEventListener('change', function(){ selectMonth(this.value); }); if(sel.value) selectMonth(sel.value); }
-function exportExcel(btn){ btn=btn||document.getElementById('exportBtn'); const orig=btn.innerHTML; btn.innerHTML='<span class="spinner-border spinner-border-sm me-1" role="status"></span> Export...'; btn.disabled=true; const key=activeMonthKey(); window.location.href='/laporan-ppn/export'+(key?'?month='+encodeURIComponent(key):''); setTimeout(()=>{ btn.innerHTML=orig; btn.disabled=false; },3000); }
+function currentCutoffDate(){ const daySel=document.getElementById('cutoffDay'); return daySel?daySel.value:''; }
+function exportExcel(btn){ btn=btn||document.getElementById('exportBtn'); const orig=btn.innerHTML; btn.innerHTML='<span class="spinner-border spinner-border-sm me-1" role="status"></span> Mengunduh...'; btn.disabled=true; const key=activeMonthKey(); const params=new URLSearchParams(); if(key) params.set('month', key); const cutoff=currentCutoffDate(); if(cutoff) params.set('cutoff', cutoff); const qs=params.toString(); window.location.href='/laporan-ppn/export'+(qs?'?'+qs:''); setTimeout(()=>{ btn.innerHTML=orig; btn.disabled=false; },3000); }
+function applyCutoff(){ const key=activeMonthKey(); const params=new URLSearchParams(); const cutoff=currentCutoffDate(); if(cutoff) params.set('cutoff', cutoff); if(key) params.set('month', key); const qs=params.toString(); window.location.href='/laporan-ppn'+(qs?'?'+qs:''); }
+function clearCutoff(){ const daySel=document.getElementById('cutoffDay'); if(daySel) daySel.value=''; applyCutoff(); }
 let _activeRow=null;
 function showDetail(monthKey,rekanan,rowEl){
   if(_activeRow) _activeRow.classList.remove('selected');
@@ -261,19 +282,27 @@ function showDetail(monthKey,rekanan,rowEl){
   for(const m of REKANAN_DATA){ const rec=m.rekanan_list.find(s=>s.rekanan===rekanan); if(rec&&rec.invoices) for(const inv of rec.invoices) allInvoices.push({...inv, bulan:m.label, bulanKey:m.key}); }
   allInvoices.sort((a,b)=>(a.tgl_berkas<b.tgl_berkas?-1:a.tgl_berkas>b.tgl_berkas?1:0));
   document.getElementById('modalLabel').innerHTML='<i class="bi bi-receipt"></i> '+esc(rekanan)+' <span class="mm">'+allInvoices.length+' invoice · '+monthKey+'</span>';
+  const search=document.getElementById('invoiceSearch'); search.value='';
   const body=document.getElementById('modalInvoices'); const tfoot=document.getElementById('modalTfoot');
-  if(allInvoices.length===0){ body.innerHTML='<tr class="em"><td colspan="9"><i class="bi bi-inbox"></i>Tidak ada data untuk '+esc(rekanan)+'</td></tr>'; if(tfoot) tfoot.hidden=true; }
+  let currentInvoiceTotal=0, currentPaymentTotal=0;
+  if(allInvoices.length===0){ document.getElementById('currentInvoiceTotal').textContent='Rp 0'; document.getElementById('currentPaymentTotal').textContent='Rp 0'; body.innerHTML='<tr class="em"><td colspan="10"><i class="bi bi-inbox"></i>Tidak ada data untuk '+esc(rekanan)+'</td></tr>'; if(tfoot) tfoot.hidden=true; }
   else {
-    let tPpn=0,tB=0,tS=0;
+    let tDpp=0,tPpn=0,tB=0,tS=0;
     body.innerHTML=allInvoices.map(inv=>{
-      const sisa=Math.max(0,(Number(inv.ppn)||0)-(Number(inv.bayar_ppn)||0)); tPpn+=Number(inv.ppn)||0; tB+=Number(inv.bayar_ppn)||0; tS+=sisa;
+      const sisa=Math.max(0,(Number(inv.ppn)||0)-(Number(inv.bayar_ppn)||0)); tDpp+=Number(inv.harga_excl)||0; tPpn+=Number(inv.ppn)||0; tB+=Number(inv.bayar_ppn)||0; tS+=sisa;
       const cls=sisa>0?'sn':'sz';
       const invYM=String(inv.tgl_berkas||'').slice(0,7); const payYM=String(inv.tgl_bayar_ppn||'').slice(0,7);
-      const rc=[invYM===monthKey?'hl-cur':'', payYM===monthKey?'hl-p':''].filter(Boolean).join(' ');
-      return '<tr class="'+rc+'"><td class="l">'+esc(inv.tgl_berkas)+'</td>'+CellExpand.td(inv.invoice,'l iv',40)+CellExpand.td(inv.po,'l',25)+'<td class="l">'+esc(inv.jth_tempo)+'</td>'+CellExpand.td(inv.deskripsi,'l',40)+'<td class="m-h">'+fmt(inv.ppn)+'</td><td class="l">'+esc(inv.tgl_bayar_ppn)+'</td><td class="m-p">'+fmt(inv.bayar_ppn)+'</td><td class="m-s '+cls+'">'+fmt(sisa)+'</td></tr>';
+      const invoiceIsCurrent=invYM===monthKey; const paymentIsCurrent=payYM===monthKey;
+      if(invoiceIsCurrent) currentInvoiceTotal+=Number(inv.ppn??0)||0;
+      if(paymentIsCurrent) currentPaymentTotal+=Number(inv.bayar_ppn??0)||0;
+      return '<tr data-search="'+esc([inv.invoice,inv.po,inv.deskripsi].join(' ').toLowerCase())+'"><td class="l '+(invoiceIsCurrent?'hl-date-invoice':'')+'">'+esc(inv.tgl_berkas)+'</td>'+CellExpand.td(inv.invoice,'l iv',40)+CellExpand.td(inv.po,'l',25)+'<td class="l">'+esc(inv.jth_tempo)+'</td>'+CellExpand.td(inv.deskripsi,'l',40)+'<td class="m-h">'+fmt(inv.harga_excl)+'</td><td class="m-h">'+fmt(inv.ppn)+'</td><td class="l '+(paymentIsCurrent?'hl-date-payment':'')+'">'+esc(inv.tgl_bayar_ppn)+'</td><td class="m-p">'+fmt(inv.bayar_ppn)+'</td><td class="m-s '+cls+'">'+fmt(sisa)+'</td></tr>';
     }).join('');
-    if(tfoot){ tfoot.hidden=false; document.getElementById('ftPpn').textContent=fmt(tPpn); document.getElementById('ftBayar').textContent=fmt(tB); const ftS=document.getElementById('ftSisa'); ftS.textContent=fmt(tS); ftS.className=tS>0?'t-s-pos':'t-s-zero'; }
+    if(tfoot){ tfoot.hidden=false; document.getElementById('ftDpp').textContent=fmt(tDpp); document.getElementById('ftPpn').textContent=fmt(tPpn); document.getElementById('ftBayar').textContent=fmt(tB); const ftS=document.getElementById('ftSisa'); ftS.textContent=fmt(tS); ftS.className=tS>0?'t-s-pos':'t-s-zero'; }
   }
+  document.getElementById('currentInvoiceTotal').textContent='Rp '+fmt(currentInvoiceTotal);
+  document.getElementById('currentPaymentTotal').textContent='Rp '+fmt(currentPaymentTotal);
+  const filterInvoices=()=>{ const query=search.value.trim().toLocaleLowerCase('id-ID'); let visible=0; body.querySelectorAll('tr[data-search]').forEach(row=>{ row.hidden=query&&!row.dataset.search.includes(query); if(!row.hidden) visible++; }); document.getElementById('invoiceCount').textContent=query?(visible+' dari '+allInvoices.length+' invoice'):(allInvoices.length+' invoice'); };
+  search.oninput=filterInvoices; filterInvoices();
   const modalEl=document.getElementById('ppnModal'); const modal=bootstrap.Modal.getOrCreateInstance(modalEl); modal.show();
   modalEl.addEventListener('hidden.bs.modal', function _onHide(){ modalEl.removeEventListener('hidden.bs.modal', _onHide); if(_activeRow){ _activeRow.classList.remove('selected'); _activeRow=null; } });
 }

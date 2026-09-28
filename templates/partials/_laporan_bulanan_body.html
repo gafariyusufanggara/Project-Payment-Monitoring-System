@@ -127,9 +127,9 @@
           <tr
             data-rekan="{{ s.rekanan | e }}"
             data-month="{{ r.key }}"
-            onclick="showDetail('{{ r.key }}', '{{ s.rekanan | e }}', this)"
-            onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showDetail('{{ r.key }}','{{ s.rekanan | e }}',this)}"
-            tabindex="0" role="button" aria-label="Detail {{ s.rekanan | e }}"
+             onclick="showDetail('{{ r.key }}', this.dataset.rekan, this)"
+             onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showDetail(this.dataset.month,this.dataset.rekan,this)}"
+             tabindex="0" role="button" aria-label="Buka detail invoice {{ s.rekanan | e }}"
           >
             <td class="c-no">{{ loop.index }}</td>
             <td>

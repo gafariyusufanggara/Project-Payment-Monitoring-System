@@ -692,6 +692,143 @@
           setVal('TOTAL (INCLD)', Math.round(h - retensi - pot + ppn));
       }
 
+      // ═══ Shared VIEW (detail) modal (used by Data Invoice & Verifikasi pages) ═══
+      const money = v => Math.round(Number(v || 0)).toLocaleString('id-ID');
+      const auditedRows = {{ (audited_rows|default([]))|tojson }};
+      let _viewRowIdx = null;
+
+      function viewRow(rowIdx) {
+          _viewRowIdx = rowIdx;
+          fetch('/edit/' + rowIdx).then(r => r.json()).then(data => {
+              const rekanan = data['NAMA LEVELANSIR / REKANAN'] || '-';
+              const invoice = data['NO INVOICE'] || '-';
+              const statusDPP = data['STATUS TERHADAP DPP'] || '-';
+              const statusPPN = data['STATUS TERHADAP PPN'] || '-';
+              const total = parseFloat(data['TOTAL (INCLD)']) || 0;
+              const bayarDPP = parseFloat(data['PEMBAYARAN DPP']) || 0;
+              const bayarPPN = parseFloat(data['PEMBAYARAN PPN']) || 0;
+              const sisa = parseFloat(data['SISA HUTANG (INCLD PPN)']) || 0;
+
+              const badge = s => s === 'Lunas' ? 'vm-badge-lunas' : s === 'Belum Lunas' ? 'vm-badge-belum' : 'vm-badge-na';
+
+              // ── Header ──
+              document.getElementById('vmRekanan').textContent = rekanan;
+              document.getElementById('vmInvoice').textContent = invoice;
+              document.getElementById('vmBadges').innerHTML =
+                  `<span class="vm-badge ${badge(statusDPP)}">DPP: ${statusDPP}</span>` +
+                  `<span class="vm-badge ${badge(statusPPN)}">PPN: ${statusPPN}</span>`;
+
+              // ── Financial bar ──
+              const finItems = [
+                  { label: 'Total (Incld)', val: money(total), cls: '#3d434c' },
+                  { label: 'Bayar DPP', val: money(bayarDPP), cls: '#115e59', sub: data['TGL BAYAR DPP'] },
+                  { label: 'Bayar PPN', val: money(bayarPPN), cls: '#115e59', sub: data['TGL BAYAR PPN'] },
+                  { label: 'Sisa Hutang', val: money(sisa), cls: sisa > 0 ? '#b42318' : '#115e59' },
+              ];
+              document.getElementById('vmFinbar').innerHTML = finItems.map(f =>
+                  `<div class="vm-finbar-item"><div class="vm-finbar-label">${f.label}</div><div class="vm-finbar-val" style="color:${f.cls}">${f.val}</div>` +
+                  (f.sub ? `<div class="vm-finbar-sub"><i class="bi bi-calendar-check"></i> ${f.sub}</div>` : '') +
+                  `</div>`
+              ).join('');
+
+              // ── Body — grouped sections ──
+              const skip = new Set(['R','_row','NAMA LEVELANSIR / REKANAN','NO INVOICE','TOTAL (INCLD)','PEMBAYARAN DPP','PEMBAYARAN PPN','SISA HUTANG (INCLD PPN)','TGL BAYAR DPP','TGL BAYAR PPN']);
+              const moneyFields = new Set(['TOTAL (INCLD)','PEMBAYARAN DPP','PEMBAYARAN PPN','SISA HUTANG (INCLD PPN)','SISA HUTANG DPP','SISA HUTANG PPN','HARGA (EXLD)','HARGA SATUAN','POT. RETENSI','POT. PPH','PPN','PEMBAYARAN POT. PPH','NILAI YG DITERIMA VENDOR']);
+              const boolHighlight = {'STATUS TERHADAP DPP':true,'STATUS TERHADAP PPN':true};
+
+              const val = f => data[f] != null && data[f] !== '' ? data[f] : '-';
+              const fieldLabel = {
+                  'TGL TERIMA': 'TGL TERIMA BERKAS LENGKAP',
+                  'TGL INV': 'TGL INVOICE',
+                  'JTH TEMPO': 'TGL JATUH TEMPO',
+                  'TGL FAKTUR PAJAK': 'TGL FAKTUR PAJAK MASUKAN',
+              };
+              const labelOf = k => fieldLabel[k] || k;
+
+              const used = new Set();
+
+              function renderSection(num, title, fields, mode) {
+                  const present = fields.filter(k => k in data);
+                  if (present.length === 0) return '';
+                  let html = `<div class="vm-section"><div class="vm-section-title"><span class="vm-num">${num}</span>${title}</div><div class="vm-grid">`;
+                  for (const k of present) {
+                      used.add(k);
+                      let raw = val(k);
+                      if (boolHighlight[k] && raw !== '-') {
+                          raw = `<span class="vm-badge ${badge(raw)}">${raw}</span>`;
+                      } else if (mode === 'money') {
+                          raw = `<code>${moneyFields.has(k) && raw !== '-' ? money(parseFloat(raw)||0) : raw}</code>`;
+                      }
+                      html += `<div class="vm-field"><div class="vm-field-label">${labelOf(k)}</div><div class="vm-field-val">${raw}</div></div>`;
+                  }
+                  return html + '</div></div>';
+              }
+
+              const docFields = ['NO PO / KONTRAK','NO SERI FAKTUR PAJAK','TGL FAKTUR PAJAK',
+                  'NO INVOICE INTERNAL','TGL INV','TGL TERIMA BERKAS','TGL TERIMA','JTH TEMPO',
+                  'STATUS TERHADAP DPP','STATUS TERHADAP PPN','KETERANGAN PPN'];
+              const finFields = ['HARGA SATUAN','VOLUME PROGRESS','HARGA (EXLD)',
+                  'POT. RETENSI','POT. PPH','PPN','PEMBAYARAN POT. PPH','NILAI YG DITERIMA VENDOR',
+                  'SISA HUTANG DPP','SISA HUTANG PPN'];
+              const payFields = ['PEMBAYARAN DPP VIA DIVISI','NO BUKTI BAYAR DPP',
+                  'PEMBAYARAN PPN VIA','NO BUKTI BAYAR PPN'];
+              const detailFields = ['DESKRIPSI','KATEGORI','KETERANGAN','KODE BIAYA','KODE BIAYA2','TGL MASUK DIVISI'];
+
+              let bodyHtml = '';
+              bodyHtml += renderSection('01', 'Dokumen & Status', docFields, 'plain');
+              bodyHtml += renderSection('02', 'Keuangan', finFields, 'money');
+              bodyHtml += renderSection('03', 'Pembayaran', payFields, 'plain');
+              bodyHtml += renderSection('04', 'Detail', detailFields, 'plain');
+
+              const hideFields = new Set(['BLM JATUH TEMPO','1-30 HARI','31-60 HARI','61-90 HARI','LEBIH 90 HARI','project_id']);
+              const remaining = Object.keys(data).filter(k => k !== '_row' && !skip.has(k) && !used.has(k) && !hideFields.has(k));
+              if (remaining.length > 0) {
+                  bodyHtml += `<div class="vm-remaining"><details><summary><i class="bi bi-three-dots"></i> Semua field lainnya (${remaining.length})</summary><div class="vm-remaining-grid">`;
+                  for (const k of remaining) {
+                      const raw = val(k);
+                      const display = moneyFields.has(k) && raw !== '-' ? money(parseFloat(raw)||0) : raw;
+                      bodyHtml += `<div class="vm-field"><div class="vm-field-label">${labelOf(k)}</div><div class="vm-field-val">${display}</div></div>`;
+                  }
+                  bodyHtml += '</div></details></div>';
+              }
+
+              document.getElementById('vmBody').innerHTML = '<div class="vm-body-left">' + bodyHtml + '</div>';
+
+              // ── Catatan Audit right column ──
+              const dlg = document.querySelector('#viewModal .modal-dialog');
+              dlg.classList.remove('modal-dialog-wide');
+              if (auditedRows.includes(rowIdx)) {
+                  dlg.classList.add('modal-dialog-wide');
+                  fetch('/audit/row/' + rowIdx).then(r => r.json()).then(entries => {
+                      if (entries && entries.length > 0) {
+                          let auditHtml = '<div class="vm-body-right"><div class="vm-section"><div class="vm-section-title"><span class="vm-num">04</span>Catatan Audit</div><div class="vm-audit-list">';
+                          for (const e of entries) {
+                              auditHtml += `<div class="vm-audit-item">`;
+                              auditHtml += `<div class="vm-audit-field">${e.field_name} <span class="vm-audit-time">(${e.changed_at})</span></div>`;
+                              auditHtml += `<div class="vm-audit-diff">`;
+                              auditHtml += `<span class="vm-old">${e.old_value || '(kosong)'}</span>`;
+                              auditHtml += `<i class="bi bi-arrow-right"></i>`;
+                              auditHtml += `<span class="vm-new">${e.new_value || '(kosong)'}</span>`;
+                              auditHtml += `</div></div>`;
+                          }
+                          auditHtml += '</div></div></div>';
+                          document.getElementById('vmBody').insertAdjacentHTML('beforeend', auditHtml);
+                      } else {
+                          dlg.classList.remove('modal-dialog-wide');
+                      }
+                  }).catch(() => { dlg.classList.remove('modal-dialog-wide'); });
+              }
+
+              // Wire audit button
+              document.getElementById('viewEditBtn').onclick = function() {
+                  bootstrap.Modal.getInstance(document.getElementById('viewModal')).hide();
+                  editRow(_viewRowIdx);
+              };
+              new bootstrap.Modal(document.getElementById('viewModal')).show();
+          }).catch(() => Toast.err('Gagal memuat data. Coba lagi.'));
+      }
+      window.viewRow = viewRow;
+
       function editRow(rowIdx) {
           fetch('/edit/' + rowIdx).then(r => r.json()).then(data => {
               const val = f => data[f] != null ? String(data[f]) : '';

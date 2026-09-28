@@ -123,7 +123,9 @@
   .vf-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 86, 145,.18); }
   .vf-btn:disabled { opacity: .5; cursor: not-allowed; }
   .vf-btn--danger:hover:not(:disabled) { border-color: #912018; color: #912018; background: #fef0ee; }
-  .vf-table tbody tr { content-visibility: auto; contain-intrinsic-size: auto 86px; }
+  .vf-table tbody tr { content-visibility: auto; contain-intrinsic-size: auto 86px; cursor: pointer; }
+  .vf-table tbody tr.vf-row-stub { cursor: default; }
+  .vf-table tbody td:first-child, .vf-table tbody td:last-child { cursor: default; }
   .vf-single-panel {
     position: fixed; z-index: 10000; background: #fff; border: 1px solid #e3e5e8;
     border-radius: 8px; padding: 12px 14px; box-shadow: 0 10px 25px -5px rgba(51, 51, 51,.1);
@@ -676,6 +678,18 @@
     if (filterToolbar && window.innerWidth <= 640) {
       filterToolbar.setAttribute("aria-label", "Saringan dan aksi verifikasi");
     }
+
+    // Klik baris (bukan checkbox/aksi) → buka modal detail, sama seperti Data Invoice.
+    if (vfTable) {
+      vfTable.addEventListener("click", function (e) {
+        if (e.target.closest("input, button, a, form, .vf-single-panel")) return;
+        const tr = e.target.closest("tbody tr");
+        if (!tr || tr.classList.contains("vf-no-results") || tr.style.display === "none") return;
+        const idx = tr.dataset.rowIdx;
+        if (idx && typeof window.viewRow === "function") window.viewRow(parseInt(idx, 10));
+      });
+    }
+
     markChecked();
     applyFilters();
   }

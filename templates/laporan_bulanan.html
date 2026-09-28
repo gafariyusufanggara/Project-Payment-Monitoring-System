@@ -31,19 +31,14 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
       </select>
       <span class="lp-rail-sep" aria-hidden="true"></span>
       <label class="lp-rail-label lp-rail-label--plain" for="cutoffDay"><i class="bi bi-calendar-check"></i> Cut Off</label>
-      <select id="cutoffDay" class="lp-sel lp-sel--day" onchange="applyCutoff()" aria-label="Tanggal cut off">
-        <option value="">Semua</option>
-        {% for d in range(1, 32) %}
-        <option value="{{ '%02d'|format(d) }}" {% if cutoff and cutoff[-2:] == '%02d'|format(d) %}selected{% endif %}>{{ d }}</option>
-        {% endfor %}
-      </select>
+      <input type="date" id="cutoffDay" class="lp-sel lp-sel--day" onchange="applyCutoff()" aria-label="Tanggal cut off" value="{{ cutoff if cutoff else '' }}" />
       {% if cutoff %}
       <button class="lp-btn" onclick="clearCutoff()" title="Hapus Cut Off"><i class="bi bi-x-circle"></i> Reset</button>
       {% endif %}
     </div>
     <div class="lp-rail-group lp-rail-group--end">
-      <span class="lp-rail-period" id="cutoffMonthLabel">{{ current_month }}</span>
-      <button class="lp-btn lp-btn--primary" id="exportBtn" onclick="exportExcel(this)" title="Export periode aktif ke Excel"><i class="bi bi-download"></i> Export</button>
+      <span class="lp-rail-period" id="cutoffMonthLabel">{% for r in report_rows %}{% if r.key == current_month %}{{ r.label }}{% endif %}{% endfor %}</span>
+      <button class="lp-btn lp-btn--primary" id="exportBtn" onclick="exportExcel(this)" title="Unduh laporan periode aktif ke Excel"><i class="bi bi-download"></i> Unduh Laporan</button>
     </div>
   </div>
 
@@ -69,8 +64,18 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
         ></button>
       </div>
       <div class="modal-body">
-        <div class="lp-mlegend" aria-hidden="true"><span><span class="dot dot--h"></span>Hutang</span><span><span class="dot dot--p"></span>Bayar</span><span><span class="dot dot--s-pos"></span>Sisa &gt;0</span><span><span class="dot dot--s-zero"></span>Lunas</span><span class="lp-mlegend-hint">bar kiri = periode aktif</span></div>
-        <div class="lp-scrollbox">
+        <div class="lp-mtable-toolbar">
+          <div class="lp-mtable-controls">
+            <label for="invoiceSearch">Cari invoice, PO, atau deskripsi</label>
+            <input type="search" id="invoiceSearch" class="form-control form-control-sm" autocomplete="off" placeholder="Ketik untuk menyaring detail…" aria-controls="modalInvoices">
+            <span id="invoiceCount" role="status" aria-live="polite"></span>
+          </div>
+          <section class="lp-current-totals" aria-label="Ringkasan periode dipilih">
+            <div><span>Invoice DPP saat ini</span><strong id="currentInvoiceTotal">Rp 0</strong></div>
+            <div><span>Bayar DPP saat ini</span><strong id="currentPaymentTotal">Rp 0</strong></div>
+          </section>
+        </div>
+        <div class="lp-scrollbox" tabindex="0" role="region" aria-label="Rincian invoice, dapat digulir horizontal dan vertikal">
           <table class="lp-mtbl">
             <thead>
               <tr>
@@ -87,20 +92,17 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
                 <th scope="col" class="m-bayar-tgl">Tgl Bayar DPP</th>
                 <th scope="col" class="ar m-bayar">Bayar DPP</th>
                 <th scope="col" class="ar m-sisa">Sisa DPP</th>
-                <th scope="col" class="m-bayar-tgl">Tgl Bayar PPN</th>
-                <th scope="col" class="ar m-bayar">Bayar PPN</th>
-                <th scope="col" class="ar m-sisa">Sisa PPN</th>
               </tr>
             </thead>
             <tbody id="modalInvoices">
               <tr class="em">
-                <td colspan="16">
+                <td colspan="13">
                   <i class="bi bi-hand-index"></i>Pilih levelansir untuk melihat
                   detail
                 </td>
               </tr>
             </tbody>
-            <tfoot id="modalTfoot" hidden><tr><td class="l" colspan="6">Total</td><td id="ftHutang"></td><td id="ftPpn"></td><td id="ftPph"></td><td id="ftRetensi"></td><td class="l"></td><td id="ftBayar" class="m-p"></td><td id="ftSisa" class="m-s"></td><td class="l"></td><td id="ftBayarPpn" class="m-p"></td><td id="ftSisaPpn" class="m-s"></td></tr></tfoot>
+            <tfoot id="modalTfoot" hidden><tr><td class="l" colspan="6">Total</td><td id="ftHutang"></td><td id="ftPpn"></td><td id="ftPph"></td><td id="ftRetensi"></td><td class="l"></td><td id="ftBayar" class="m-p"></td><td id="ftSisa" class="m-s"></td></tr></tfoot>
           </table>
         </div>
       </div>
@@ -137,13 +139,13 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
   function exportExcel(btn) {
       btn = btn || document.getElementById('exportBtn');
       const orig = btn.innerHTML;
-      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Export...';
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Mengunduh...';
       btn.disabled = true;
       const key = activeMonthKey();
       const day = document.getElementById('cutoffDay') ? document.getElementById('cutoffDay').value : '';
       const params = new URLSearchParams();
       if (key) params.set('month', key);
-      if (day && key) params.set('cutoff', key + '-' + day);
+      if (day) params.set('cutoff', day);
       const qs = params.toString();
       window.location.href = '/laporan-bulanan/export' + (qs ? '?' + qs : '');
       setTimeout(() => { btn.innerHTML = orig; btn.disabled = false; }, 3000);
@@ -158,35 +160,63 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
       return false;
   }
 
+  function monthLabel(key) {
+      const sel = monthSel();
+      if (sel) { for (const opt of sel.options) { if (opt.value === key) return opt.textContent.trim(); } }
+      return key;
+  }
+
   function selectMonth(key) {
       setSelValue(monthSel(), key);
       document.querySelectorAll('.month-section').forEach(el => { el.hidden = (el.id !== 'section-' + key); });
       const lbl = document.getElementById('cutoffMonthLabel');
-      if (lbl) lbl.textContent = key;
+      if (lbl) lbl.textContent = monthLabel(key);
   }
 
   // ─── cutoff date (fetch-based, no page refresh) ───
   function applyCutoff() {
-      const day = document.getElementById('cutoffDay').value;
+      const dayControl = document.getElementById('cutoffDay');
       const monthKey = activeMonthKey();
       const params = new URLSearchParams();
+      const reportBody = document.getElementById('reportBody');
+      const liveError = document.getElementById('cutoffError');
+      if (liveError) liveError.remove();
+      reportBody.setAttribute('aria-busy', 'true');
+      const day = dayControl.value;
       params.set('partial', '1');
-      if (day && monthKey) {
-          params.set('cutoff', monthKey + '-' + day);
+      if (day) {
+          params.set('cutoff', day);
       }
       if (monthKey) {
           params.set('month', monthKey);
       }
-      fetch('/laporan-bulanan?' + params.toString())
-          .then(r => r.text().then(html => ({ html, period: r.headers.get('X-LP-Period') })))
-          .then(({ html, period }) => {
-              document.getElementById('reportBody').innerHTML = html;
-              readPayload();
-              const secs = document.querySelectorAll('.month-section');
-              const fallbackKey = secs.length > 0 ? secs[secs.length - 1].id.replace('section-', '') : '';
-              restorePeriod(period || monthKey || fallbackKey);
-          })
-          .catch(() => { location.reload(); });
+       fetch('/laporan-bulanan?' + params.toString())
+           .then(r => {
+               if (!r.ok) throw new Error('Permintaan laporan gagal.');
+               return r.text().then(html => ({ html, period: r.headers.get('X-LP-Period') }));
+           })
+           .then(({ html, period }) => {
+               reportBody.innerHTML = html;
+               readPayload();
+               const secs = document.querySelectorAll('.month-section');
+               const fallbackKey = secs.length > 0 ? secs[secs.length - 1].id.replace('section-', '') : '';
+               restorePeriod(period || monthKey || fallbackKey);
+           })
+           .catch(() => {
+               const alert = document.createElement('div');
+               alert.id = 'cutoffError';
+               alert.className = 'alert alert-danger lp-cutoff-error';
+               alert.setAttribute('role', 'alert');
+               alert.textContent = 'Laporan gagal diperbarui. Pilihan tetap tersimpan; coba lagi.';
+               const retry = document.createElement('button');
+               retry.type = 'button';
+               retry.className = 'btn btn-sm btn-outline-danger ms-2';
+               retry.textContent = 'Coba lagi';
+               retry.addEventListener('click', applyCutoff);
+               alert.append(retry);
+               reportBody.prepend(alert);
+           })
+           .finally(() => reportBody.removeAttribute('aria-busy'));
   }
 
   function clearCutoff() {
@@ -199,7 +229,7 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
       setSelValue(monthSel(), key);
       document.querySelectorAll('.month-section').forEach(el => { el.hidden = (el.id !== 'section-' + key); });
       const lbl = document.getElementById('cutoffMonthLabel');
-      if (lbl) lbl.textContent = key;
+      if (lbl) lbl.textContent = monthLabel(key);
   }
 
   // #monthSel kini di rail atas (tidak ikut partial), bind sekali saja.
@@ -232,32 +262,39 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
       }
       allInvoices.sort((a, b) => (a.tgl_berkas < b.tgl_berkas ? -1 : a.tgl_berkas > b.tgl_berkas ? 1 : 0));
 
-      document.getElementById('modalLabel').innerHTML =
-          '<i class="bi bi-receipt"></i> ' +
-          esc(rekanan) +
-          ' <span class="mm">' + allInvoices.length + ' invoice</span>';
+       document.getElementById('modalLabel').innerHTML =
+           '<i class="bi bi-receipt"></i> ' +
+           esc(rekanan) +
+           ' <span class="mm">Periode ' + esc(monthKey) + ' · ' + allInvoices.length + ' invoice</span>';
 
-      const body = document.getElementById('modalInvoices');
-      const tfoot = document.getElementById('modalTfoot');
-      if (allInvoices.length === 0) {
-          body.innerHTML = '<tr class="em"><td colspan="16"><i class="bi bi-inbox"></i>Tidak ada data untuk ' + esc(rekanan) + '</td></tr>';
+       const search = document.getElementById('invoiceSearch');
+       search.value = '';
+       const body = document.getElementById('modalInvoices');
+       const tfoot = document.getElementById('modalTfoot');
+       let currentInvoiceTotal = 0, currentPaymentTotal = 0;
+       if (allInvoices.length === 0) {
+           document.getElementById('currentInvoiceTotal').textContent = 'Rp 0';
+           document.getElementById('currentPaymentTotal').textContent = 'Rp 0';
+           body.innerHTML = '<tr class="em"><td colspan="16"><i class="bi bi-inbox"></i>Tidak ada data untuk ' + esc(rekanan) + '</td></tr>';
+
           if (tfoot) tfoot.hidden = true;
       } else {
-          let tH = 0, tPpn = 0, tPph = 0, tRet = 0, tB = 0, tS = 0, tBppn = 0, tSppn = 0;
-          body.innerHTML = allInvoices.map(inv => {
+        let tH = 0, tPpn = 0, tPph = 0, tRet = 0, tB = 0, tS = 0;
+
+       body.innerHTML = allInvoices.map(inv => {
+
               const invSisaDpp = Math.max(0, (Number(inv.harga_excl)||0) - (Number(inv.bayar_dpp)||0));
-              const invSisaPpn = Math.max(0, (Number(inv.ppn)||0) - (Number(inv.bayar_ppn)||0));
-              tH += Number(inv.harga_excl)||0; tPpn += Number(inv.ppn)||0; tPph += Number(inv.pot_pph)||0; tRet += Number(inv.retensi)||0; tB += Number(inv.bayar_dpp)||0; tS += invSisaDpp; tBppn += Number(inv.bayar_ppn)||0; tSppn += invSisaPpn;
+              tH += Number(inv.harga_excl)||0; tPpn += Number(inv.ppn)||0; tPph += Number(inv.pot_pph)||0; tRet += Number(inv.retensi)||0; tB += Number(inv.bayar_dpp)||0; tS += invSisaDpp;
               const sisaClass = invSisaDpp > 0 ? 'sn' : 'sz';
-              const sisaPpnClass = invSisaPpn > 0 ? 'sn' : 'sz';
               const invYM = String(inv.tgl_berkas || '').slice(0, 7);
-              const payYM = String(inv.tgl_bayar_dpp || '').slice(0, 7);
-              const rowClasses = [
-                  invYM === monthKey ? 'hl-cur' : '',
-                  payYM === monthKey ? 'hl-p' : ''
-              ].filter(Boolean).join(' ');
-              return `<tr class="${rowClasses}">
-                <td class="l">${esc(inv.tgl_berkas)}</td>
+               const payYM = String(inv.tgl_bayar_dpp || '').slice(0, 7);
+               const invoiceIsCurrent = invYM === monthKey;
+               const paymentIsCurrent = payYM === monthKey;
+               if (invoiceIsCurrent) currentInvoiceTotal += Number(inv.harga_excl ?? 0) || 0;
+               if (paymentIsCurrent) currentPaymentTotal += Number(inv.bayar_dpp ?? 0) || 0;
+                return `<tr data-search="${esc([inv.invoice, inv.po, inv.deskripsi].join(' ').toLowerCase())}">
+                 <td class="l ${invoiceIsCurrent ? 'hl-date-invoice' : ''}">${esc(inv.tgl_berkas)}</td>
+
                 <td class="l">${esc(inv.tgl_inv)}</td>
                 ${CellExpand.td(inv.invoice, 'l iv', 40)}
                 ${CellExpand.td(inv.po, 'l', 25)}
@@ -267,12 +304,10 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
                 <td>${fmt(inv.ppn)}</td>
                 <td>${fmt(inv.pot_pph)}</td>
                 <td>${fmt(inv.retensi)}</td>
-                <td class="l">${esc(inv.tgl_bayar_dpp)}</td>
+                 <td class="l ${paymentIsCurrent ? 'hl-date-payment' : ''}">${esc(inv.tgl_bayar_dpp)}</td>
+
                 <td class="m-p">${fmt(inv.bayar_dpp)}</td>
                 <td class="m-s ${sisaClass}">${fmt(invSisaDpp)}</td>
-                <td class="l">${esc(inv.tgl_bayar_ppn)}</td>
-                <td class="m-p">${fmt(inv.bayar_ppn)}</td>
-                <td class="m-s ${sisaPpnClass}">${fmt(invSisaPpn)}</td>
               </tr>`;
           }).join('');
           if (tfoot) {
@@ -285,14 +320,23 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
               const ftS = document.getElementById('ftSisa');
               ftS.textContent = fmt(tS);
               ftS.className = tS > 0 ? 't-s-pos' : 't-s-zero';
-              document.getElementById('ftBayarPpn').textContent = fmt(tBppn);
-              const ftSppn = document.getElementById('ftSisaPpn');
-              ftSppn.textContent = fmt(tSppn);
-              ftSppn.className = tSppn > 0 ? 't-s-pos' : 't-s-zero';
-          }
-      }
+           }
+       }
+       document.getElementById('currentInvoiceTotal').textContent = `Rp ${fmt(currentInvoiceTotal)}`;
+       document.getElementById('currentPaymentTotal').textContent = `Rp ${fmt(currentPaymentTotal)}`;
+       const filterInvoices = () => {
+           const query = search.value.trim().toLocaleLowerCase('id-ID');
+           let visible = 0;
+           body.querySelectorAll('tr[data-search]').forEach(row => {
+               row.hidden = query && !row.dataset.search.includes(query);
+               if (!row.hidden) visible++;
+           });
+           document.getElementById('invoiceCount').textContent = query ? `${visible} dari ${allInvoices.length} invoice` : `${allInvoices.length} invoice`;
+       };
+       search.oninput = filterInvoices;
+       filterInvoices();
 
-      const modalEl = document.getElementById('laporanModal');
+       const modalEl = document.getElementById('laporanModal');
       const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
       modal.show();
       modalEl.addEventListener('hidden.bs.modal', function _onHide() {

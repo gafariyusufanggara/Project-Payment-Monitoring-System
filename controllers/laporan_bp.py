@@ -151,14 +151,17 @@ def laporan_jatuh_tempo():
 @bp.route('/laporan-ppn')
 def laporan_ppn():
     from services.project_context import get_read_filter
-    report_rows, data_count = build_ppn_data(project_id=get_read_filter())
+    cutoff_str = request.args.get('cutoff', '').strip()
+    cutoff_date = _parse_cutoff(cutoff_str)
+    report_rows, data_count = build_ppn_data(project_id=get_read_filter(), cutoff_date=cutoff_date)
     now_key = date.today().strftime('%Y-%m')
     months = [r['key'] for r in report_rows]
     current_month = now_key if now_key in months else (months[-1] if months else '')
     return render_template('laporan_ppn.html',
                            report_rows=report_rows,
                            data_count=data_count,
-                           current_month=current_month)
+                           current_month=current_month,
+                           cutoff=cutoff_str)
 
 
 @bp.route('/laporan-ppn/export')
@@ -166,7 +169,9 @@ def laporan_ppn_export():
     from services.laporan_ppn import build_ppn_excel_export
     from services.project_context import get_read_filter
     month_key = request.args.get('month') or None
-    buf = build_ppn_excel_export(month_key=month_key, project_id=get_read_filter())
+    cutoff_date = _parse_cutoff(request.args.get('cutoff'))
+    buf = build_ppn_excel_export(month_key=month_key, project_id=get_read_filter(),
+                                 cutoff_date=cutoff_date)
     month_label = month_key or date.today().strftime('%Y-%m')
     return send_file(
         buf,
@@ -179,7 +184,10 @@ def laporan_ppn_export():
 @bp.route('/laporan-ppn-mingguan')
 def laporan_ppn_mingguan():
     from services.project_context import get_read_filter
-    report_rows, data_count = build_ppn_mingguan_data(project_id=get_read_filter())
+    cutoff_str = request.args.get('cutoff', '').strip()
+    cutoff_date = _parse_cutoff(cutoff_str)
+    report_rows, data_count = build_ppn_mingguan_data(project_id=get_read_filter(),
+                                                      cutoff_date=cutoff_date)
     weeks = [r['key'] for r in report_rows]
     # Deep link: ?week=YYYY-Www preselects that week.
     week_key = request.args.get('week', '').strip()
@@ -188,7 +196,8 @@ def laporan_ppn_mingguan():
     return render_template('laporan_ppn_mingguan.html',
                            report_rows=report_rows,
                            data_count=data_count,
-                           current_week=week_key)
+                           current_week=week_key,
+                           cutoff=cutoff_str)
 
 
 @bp.route('/laporan-ppn-mingguan/export')
@@ -196,7 +205,9 @@ def laporan_ppn_mingguan_export():
     from services.laporan_ppn import build_ppn_mingguan_excel_export
     from services.project_context import get_read_filter
     week_key = request.args.get('week') or None
-    buf = build_ppn_mingguan_excel_export(week_key=week_key, project_id=get_read_filter())
+    cutoff_date = _parse_cutoff(request.args.get('cutoff'))
+    buf = build_ppn_mingguan_excel_export(week_key=week_key, project_id=get_read_filter(),
+                                          cutoff_date=cutoff_date)
     label = week_key or 'mingguan'
     return send_file(
         buf,

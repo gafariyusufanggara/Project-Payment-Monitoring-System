@@ -35,7 +35,7 @@ def verifikasi():
         counts=counts,
         duplicates=duplicates,
         ignored_count=count_ignored(pid),
-        audited_rows=get_audited_rows(),
+        audited_rows=sorted(get_audited_rows()),
     )
 
 

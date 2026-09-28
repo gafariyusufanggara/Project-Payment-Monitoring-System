@@ -29,8 +29,8 @@ if s.rekanan not in all_rekanan %} {% set _ = all_rekanan.append(s.rekanan) %}
       </select>
     </div>
     <div class="lp-rail-group lp-rail-group--end">
-      <span class="lp-rail-period" id="jtPeriodLabel">{{ current_month }}</span>
-      <button class="lp-btn lp-btn--primary" id="exportBtn" onclick="exportExcel(this)" title="Export periode aktif ke Excel"><i class="bi bi-download"></i> Export</button>
+      <span class="lp-rail-period" id="jtPeriodLabel">{% for r in report_rows %}{% if r.key == current_month %}{{ r.label }}{% endif %}{% endfor %}</span>
+      <button class="lp-btn lp-btn--primary" id="exportBtn" onclick="exportExcel(this)" title="Unduh laporan periode aktif ke Excel"><i class="bi bi-download"></i> Unduh Laporan</button>
     </div>
   </div>
 
@@ -172,8 +172,18 @@ if s.rekanan not in all_rekanan %} {% set _ = all_rekanan.append(s.rekanan) %}
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
       </div>
       <div class="modal-body">
-        <div class="lp-mlegend" aria-hidden="true"><span><span class="dot dot--h"></span>Hutang</span><span><span class="dot dot--p"></span>Bayar</span><span><span class="dot dot--s-pos"></span>Sisa &gt;0</span><span><span class="dot dot--s-zero"></span>Lunas</span><span class="lp-mlegend-hint">bar kiri = periode aktif</span></div>
-        <div class="lp-scrollbox">
+        <div class="lp-mtable-toolbar">
+          <div class="lp-mtable-controls">
+            <label for="invoiceSearch">Cari invoice, PO, atau deskripsi</label>
+            <input type="search" id="invoiceSearch" class="form-control form-control-sm" autocomplete="off" placeholder="Ketik untuk menyaring detail…" aria-controls="modalInvoices">
+            <span id="invoiceCount" role="status" aria-live="polite"></span>
+          </div>
+          <section class="lp-current-totals" aria-label="Ringkasan periode dipilih">
+            <div><span>Hutang DPP saat ini</span><strong id="currentInvoiceTotal">Rp 0</strong></div>
+            <div><span>Bayar DPP saat ini</span><strong id="currentPaymentTotal">Rp 0</strong></div>
+          </section>
+        </div>
+        <div class="lp-scrollbox" tabindex="0" role="region" aria-label="Rincian invoice, dapat digulir horizontal dan vertikal">
           <table class="lp-mtbl">
             <thead>
               <tr>
@@ -214,11 +224,16 @@ function setSelValue(sel, key) {
   for (let i = 0; i < sel.options.length; i++) { if (sel.options[i].value === key) { sel.value = key; return true; } }
   return false;
 }
+function monthLabel(key) {
+  const sel = monthSel();
+  if (sel) { for (const opt of sel.options) { if (opt.value === key) return opt.textContent.trim(); } }
+  return key;
+}
 function selectMonth(key) {
   setSelValue(monthSel(), key);
   document.querySelectorAll('.month-section').forEach(el => { el.hidden = (el.id !== 'section-' + key); });
   const lbl = document.getElementById('jtPeriodLabel');
-  if (lbl) lbl.textContent = key;
+  if (lbl) lbl.textContent = monthLabel(key);
 }
 function bindMonthSel() {
   const sel = monthSel();
@@ -231,7 +246,7 @@ function bindMonthSel() {
 function exportExcel(btn) {
   btn = btn || document.getElementById('exportBtn');
   const orig = btn.innerHTML;
-  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Export...';
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Mengunduh...';
   btn.disabled = true;
   const key = activeMonthKey();
   const params = key ? '?month=' + encodeURIComponent(key) : '';
@@ -258,9 +273,14 @@ function showDetail(monthKey, rekanan, rowEl) {
   document.getElementById('modalLabel').innerHTML =
     '<i class="bi bi-receipt"></i> ' + esc(rekanan) + ' — Jatuh Tempo ' + monthLabel + ' <span class="mm">' + invoices.length + ' invoice</span>';
 
+  const search = document.getElementById('invoiceSearch');
+  search.value = '';
   const body = document.getElementById('modalInvoices');
   const tfoot = document.getElementById('modalTfoot');
+  let currentInvoiceTotal = 0, currentPaymentTotal = 0;
   if (invoices.length === 0) {
+    document.getElementById('currentInvoiceTotal').textContent = 'Rp 0';
+    document.getElementById('currentPaymentTotal').textContent = 'Rp 0';
     body.innerHTML = '<tr class="em"><td colspan="12"><i class="bi bi-inbox"></i>Tidak ada data untuk ' + esc(rekanan) + '</td></tr>';
     if (tfoot) tfoot.hidden = true;
   } else {
@@ -272,9 +292,12 @@ function showDetail(monthKey, rekanan, rowEl) {
       const sisaClass = invSisaDpp > 0 ? 'sn' : 'sz';
       const invYM = String(inv.tgl_berkas||'').slice(0,7);
       const payYM = String(inv.tgl_bayar_dpp||'').slice(0,7);
-      const rowClasses = [invYM === monthKey ? 'hl-cur' : '', payYM === monthKey ? 'hl-p' : ''].filter(Boolean).join(' ');
-      return `<tr class="${rowClasses}">
-        <td class="l">${esc(inv.tgl_berkas)}</td>
+      const invoiceIsCurrent = invYM === monthKey;
+      const paymentIsCurrent = payYM === monthKey;
+      if (invoiceIsCurrent) currentInvoiceTotal += Number(inv.harga_excl ?? 0) || 0;
+      if (paymentIsCurrent) currentPaymentTotal += Number(inv.bayar_dpp ?? 0) || 0;
+      return `<tr data-search="${esc([inv.invoice, inv.po, inv.deskripsi].join(' ').toLowerCase())}">
+        <td class="l ${invoiceIsCurrent ? 'hl-date-invoice' : ''}">${esc(inv.tgl_berkas)}</td>
         ${CellExpand.td(inv.invoice, 'l iv', 40)}
         ${CellExpand.td(inv.po, 'l', 25)}
         <td class="l">${esc(inv.jth_tempo)}</td>
@@ -282,7 +305,7 @@ function showDetail(monthKey, rekanan, rowEl) {
         <td class="m-h">${fmt(inv.harga_excl)}</td>
         <td>${fmt(inv.ppn)}</td>
         <td>${fmt(inv.pot_pph)}</td>
-        <td class="l">${esc(inv.tgl_bayar_dpp)}</td>
+        <td class="l ${paymentIsCurrent ? 'hl-date-payment' : ''}">${esc(inv.tgl_bayar_dpp)}</td>
         <td class="m-p">${fmt(inv.bayar_dpp)}</td>
         <td class="m-s ${sisaClass}">${fmt(invSisaDpp)}</td>
         <td class="l st-${inv.status_key}">${esc(inv.status_label)}</td>
@@ -299,6 +322,19 @@ function showDetail(monthKey, rekanan, rowEl) {
       ftS.className = tS > 0 ? 't-s-pos' : 't-s-zero';
     }
   }
+  document.getElementById('currentInvoiceTotal').textContent = 'Rp ' + fmt(currentInvoiceTotal);
+  document.getElementById('currentPaymentTotal').textContent = 'Rp ' + fmt(currentPaymentTotal);
+  const filterInvoices = () => {
+    const query = search.value.trim().toLocaleLowerCase('id-ID');
+    let visible = 0;
+    body.querySelectorAll('tr[data-search]').forEach(row => {
+      row.hidden = query && !row.dataset.search.includes(query);
+      if (!row.hidden) visible++;
+    });
+    document.getElementById('invoiceCount').textContent = query ? (visible + ' dari ' + invoices.length + ' invoice') : (invoices.length + ' invoice');
+  };
+  search.oninput = filterInvoices;
+  filterInvoices();
 
   const modalEl = document.getElementById('jtModal');
   const modal = bootstrap.Modal.getOrCreateInstance(modalEl);

@@ -426,7 +426,7 @@
 .lp-mtbl thead { position: sticky; top: 0; z-index: 7; }
 .lp-mtbl thead th {
   background: #eef0f2; color: #3d434c;
-  font-family: "Inter", system-ui, sans-serif; font-size: 0.53rem; font-weight: 800;
+  font-family: "Inter", system-ui, sans-serif; font-size: 0.61rem; font-weight: 800;
   text-transform: uppercase; letter-spacing: 0.06em; padding: 9px 12px;
   white-space: nowrap; text-align: left; border-bottom: 2px solid var(--border, #e3e5e8);
 }
@@ -447,10 +447,8 @@
 .lp-mtbl tbody tr { border-left: 3px solid transparent; transition: var(--transition-smooth, all .25s cubic-bezier(.4,0,.2,1)); }
 .lp-mtbl tbody tr:nth-child(even) { background: #f7f8f9; }
 .lp-mtbl tbody tr:hover { background: #eef0f2; }
-.lp-mtbl tbody tr.hl-cur { background: rgba(0, 86, 145,.05) !important; border-left: 3px solid var(--lp-primary); } /* detector: side-tab intentional — period highlight cur vs pay */
-.lp-mtbl tbody tr.hl-p { background: rgba(13,148,136,.05) !important; border-left: 3px solid var(--lp-teal); }
-.lp-mtbl tbody tr.hl-cur td.l.iv { color: var(--lp-primary-dark); }
-.lp-mtbl tbody tr.hl-p td.l.iv { color: var(--lp-teal-dark); }
+.lp-mtbl tbody td.hl-date-invoice { background: #dce8f2 !important; color: #16324f; box-shadow: inset 0 0 0 1px #8aa7bf; font-weight: 800; }
+.lp-mtbl tbody td.hl-date-payment { background: #d5ebe5 !important; color: #115e59; box-shadow: inset 0 0 0 1px #80b7a9; font-weight: 800; }
 
 /* ── Click-to-expand text cells (Invoice, PO / Kontrak, Deskripsi) ──
    A long value is truncated with … by cell-expand.js (the same treatment the
@@ -514,6 +512,8 @@
 .lp-rail--cutoff { border-color: var(--lp-primary); }
 .lp-rail--cutoff .lp-rail-period { background: var(--lp-primary); border-color: var(--lp-primary-dark); color: #fff; }
 .lp-sel--day { min-width: 0; width: 92px; }
+input.lp-sel--day { width: 150px; }
+input.lp-sel--day::-webkit-calendar-picker-indicator { cursor: pointer; }
 .lp-btn--primary { background: var(--lp-primary); border-color: var(--lp-primary-dark); color: #fff; }
 .lp-btn--primary:hover { background: var(--lp-primary-dark); border-color: var(--lp-primary-dark); color: #fff; }
 .lp-bulanan ::selection { background: var(--lp-primary-ring); }
@@ -565,10 +565,20 @@
 .lp-mlegend .dot--s-pos { background: var(--danger, #e74c3c); }
 .lp-mlegend .dot--s-zero { background: var(--success, #2ECC40); }
 .lp-mlegend-hint { margin-left: auto; color: var(--muted, #667080); font-weight: 500; }
+.lp-mtable-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 16px; background: #f7f8f9; border-bottom: 1px solid var(--border, #e3e5e8); }
+.lp-mtable-controls { display: flex; align-items: center; gap: 10px; flex: 1 1 420px; min-width: 220px; }
+.lp-mtable-controls label { font-size: .72rem; font-weight: 700; white-space: nowrap; margin: 0; }
+.lp-mtable-controls input { max-width: 320px; }
+.lp-mtable-controls [role="status"] { margin-left: auto; color: var(--muted, #667080); font-size: .72rem; white-space: nowrap; }
+.lp-current-totals { display: flex; align-items: center; gap: 18px; flex: none; }
+.lp-current-totals > div { display: grid; gap: 3px; padding-left: 12px; border-left: 2px solid var(--lp-primary); }
+.lp-current-totals > div:last-child { border-color: var(--lp-teal); }
+.lp-current-totals span { color: #4d5766; font-size: .64rem; font-weight: 700; white-space: nowrap; }
+.lp-current-totals strong { color: #243447; font-family: "JetBrains Mono", "SF Mono", monospace; font-size: .82rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .lp-scrollbox { overflow: auto; }
 .lp-mtbl { min-width: 880px; }
 /* DPP modal has extra columns (Tgl Inv, Retensi, PPN payment) — wider floor */
-#laporanModal .lp-mtbl { min-width: 1320px; }
+#laporanModal .lp-mtbl { min-width: 1180px; }
 /* Frozen first column (Tgl Berkas) must be opaque: a sticky cell sits above
    scrolling content, so without its own background the columns behind bleed
    through it. Each row state is repeated here with an OPAQUE colour (the
@@ -580,19 +590,16 @@
   box-shadow: inset -1px 0 0 var(--border, #e3e5e8);
 }
 .lp-mtbl tbody tr:nth-child(even) td:first-child { background: #f7f8f9; }
-.lp-mtbl tbody tr.hl-cur td:first-child { background: #f2f7fa; }
-.lp-mtbl tbody tr.hl-p td:first-child { background: #f3faf9; }
 .lp-mtbl tbody tr:hover td:first-child { background: #eef0f2; }
 /* The frozen footer cell must outrank its scrolling siblings, otherwise the
    sticky "Total" label is painted over once the row is scrolled sideways.
    (thead th:first-child already gets z-index 12 from table.css.) */
 .lp-mtbl tfoot td:first-child { z-index: 7; }
-/* grup kolom: hutang = biru, bayar = teal, sisa = netral tegas */
+/* Group financial columns with existing ledger tokens and reserve color for semantic states. */
 .lp-mtbl thead th.m-hutang { background: var(--lp-primary-light); color: var(--lp-primary-dark); box-shadow: inset 0 2px 0 var(--lp-primary); }
-.lp-mtbl thead th.m-bayar { background: var(--lp-teal-light); color: var(--lp-teal-dark); box-shadow: inset 0 2px 0 var(--lp-teal); }
+.lp-mtbl thead th.m-bayar { background: var(--lp-neutral-soft, #edf2f7); color: var(--lp-ink, #243447); box-shadow: inset 0 2px 0 var(--lp-primary); }
 .lp-mtbl thead th.m-sisa { background: #f7f8f9; color: #333333; box-shadow: inset 0 2px 0 #333333; }
-.lp-mtbl tbody td.m-h { color: var(--lp-primary-dark); font-weight: 600; }
-.lp-mtbl tbody td.m-p { color: var(--lp-teal-dark); font-weight: 600; }
+.lp-mtbl tbody td.m-h, .lp-mtbl tbody td.m-p { color: var(--lp-ink, #243447); font-weight: 600; }
 .lp-mtbl tbody td.m-s { font-weight: 800; }
 .lp-mtbl tfoot td {
   position: sticky; bottom: 0; background: #f7f8f9; z-index: 6;
@@ -607,8 +614,20 @@
 .lp-mtbl tfoot td.t-s-zero { color: var(--success, #2ECC40); }
 @media (max-width: 640px) {
   .lp-mlegend { font-size: 0.7rem; padding: 10px 14px; }
+  .lp-mlegend-hint { margin-left: 0; flex-basis: 100%; }
+  .lp-mtable-toolbar { align-items: stretch; flex-direction: column; gap: 12px; }
+  .lp-mtable-controls { align-items: stretch; flex-wrap: wrap; min-width: 0; }
+  .lp-mtable-controls label { flex-basis: 100%; }
+  .lp-mtable-controls input { max-width: none; }
+  .lp-mtable-controls [role="status"] { margin-left: 0; }
+  .lp-current-totals { justify-content: space-between; gap: 10px; }
+  .lp-current-totals > div { min-width: 0; }
+  .lp-current-totals strong { font-size: .76rem; }
   .lp-modal .modal-header { padding: 14px 16px 12px; }
 }
+.lp-cutoff-error { margin: 12px 0; }
+#reportBody[aria-busy="true"] { opacity: .65; pointer-events: none; }
+.lp-mtbl tbody tr[hidden] { display: none; }
 
 /* ══ MINGGUAN POLISH (scoped, 2026-09) ══ */
 .lp-rail--mingguan { justify-content: space-between; gap: 10px; }

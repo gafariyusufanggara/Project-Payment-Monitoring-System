@@ -26,9 +26,11 @@
   .kpi-ico--rose { background: #fef0ee; color: #912018; }
   .kpi-ico--amber { background: #fdf6d8; color: #8a6d00; }
   .kc-page { --c1w: 300px; }
-  .kc-page #kcTable { min-width: 1060px; }
+  .kc-page #kcTable { min-width: 1280px; }
   .kc-page #kcTable thead th.col-sticky-left,
-  .kc-page #kcTable tbody td.col-sticky-left { width: var(--c1w); min-width: var(--c1w); max-width: var(--c1w); }
+  .kc-page #kcTable tbody td.col-sticky-left { width: 48px; min-width: 48px; max-width: 48px; text-align: center; }
+  .kc-page #kcTable thead th.col-sticky-left-2,
+  .kc-page #kcTable tbody td.col-sticky-left-2 { width: var(--c1w); min-width: var(--c1w); max-width: var(--c1w); }
   .kc-vend { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
   .kc-vend-name { font-weight: 600; font-size: .8rem; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .kc-no { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -152,15 +154,18 @@
         <table class="table dt-table" id="kcTable" data-enhance="kontrak">
           <thead>
             <tr>
-              <th class="col-sticky-left">Vendor / Rekanan</th>
-              <th class="text-end">Total DPP</th>
-              <th class="text-end">Total PPN</th>
+              <th class="col-sticky-left text-center" style="width: 48px">No.</th>
+              <th class="col-sticky-left-2">Vendor / Rekanan</th>
+              <th class="text-end">DPP Kontrak</th>
+              <th class="text-end">PPN Kontrak</th>
               <th class="text-end">Tagihan DPP</th>
               <th class="text-end">Tagihan PPN</th>
               <th class="text-end">Belum Ditagih (DPP)</th>
               <th class="text-end">Belum Ditagih (PPN)</th>
-              <th>Terbayar DPP</th>
-              <th>Terbayar PPN</th>
+              <th class="text-end">Terbayar DPP (Rp)</th>
+              <th>Terbayar DPP (%)</th>
+              <th class="text-end">Terbayar PPN (Rp)</th>
+              <th>Terbayar PPN (%)</th>
               <th class="text-center col-sticky-right">Stat. Invoice</th>
             </tr>
           </thead>
@@ -170,7 +175,10 @@
                 data-vendor="{{ c.vendor }}"
                 data-status="{{ 'Ada' if c.status_invoice == 'Ada Invoice' else 'Belum' }}">
               {% set is_ada = c.status_invoice == 'Ada Invoice' %}
-              <td class="col-sticky-left">
+              <td class="col-sticky-left" data-type="num" data-v="{{ loop.index }}">
+                <span class="row-num">{{ loop.index }}</span>
+              </td>
+              <td class="col-sticky-left-2">
                 <div class="kc-vend">
                   <div class="kc-vend-name" title="{{ c.vendor }}">{{ c.vendor if c.vendor else 'Vendor belum diisi' }}{% if not c.vendor %} <span class="ds-badge ds-badge-amber" style="font-size:.62rem;vertical-align:middle"><i class="bi bi-exclamation-triangle"></i> lengkapi</span>{% endif %}</div>
                   <div class="kc-no" title="{{ c.no_kontrak }}"><a href="{{ url_for('contract.contract_detail', contract_id=c.id) }}">{{ c.no_kontrak }}</a></div>
@@ -182,17 +190,19 @@
               <td class="cell-money">{{ c.tertagih_ppn|money }}</td>
               <td class="cell-money{% if is_ada and c.sisa_kontrak|float > 0 %} kc-owe{% endif %}{% if c.sisa_kontrak|float > 0 %} text-danger{% elif not is_ada %} text-muted{% else %} text-success{% endif %}" style="font-weight:700">{{ c.sisa_kontrak|money }}</td>
               <td class="cell-money{% if is_ada and c.sisa_ppn|float > 0 %} kc-owe{% endif %}{% if c.sisa_ppn|float > 0 %} text-danger{% elif not is_ada %} text-muted{% else %} text-success{% endif %}" style="font-weight:700">{{ c.sisa_ppn|money }}</td>
+              <td class="cell-money">{{ c.dibayar|money }}</td>
               <td class="kc-prog">
                 {{ pay_bar(c.progres if c.total_dpp and c.total_dpp > 0 else none,
                            c.over,
                            'Progres pembayaran DPP ' ~ c.no_kontrak,
-                           'Total DPP belum diisi.') }}
+                           'DPP Kontrak belum diisi.') }}
               </td>
+              <td class="cell-money">{{ c.dibayar_ppn|money }}</td>
               <td class="kc-prog">
                 {{ pay_bar(c.progres_ppn if c.nilai_ppn and c.nilai_ppn > 0 else none,
                            c.over_ppn,
                            'Progres pembayaran PPN ' ~ c.no_kontrak,
-                           'Total PPN belum diisi.') }}
+                           'PPN Kontrak belum diisi.') }}
               </td>
               <td class="text-center col-sticky-right">
                 {% if is_ada %}

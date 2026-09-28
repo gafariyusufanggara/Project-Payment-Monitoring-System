@@ -272,6 +272,8 @@ def _overdue_set(data, today):
 
 
 def _monthly_data(data):
+    month_names = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+                   'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
     deduped = _dedup_debt_rows(data)
     monthly_data = {}
     for row in deduped:
@@ -281,7 +283,7 @@ def _monthly_data(data):
         try:
             dt = datetime.strptime(str(jth), '%Y-%m-%d')
             key = dt.strftime('%Y-%m')
-            label = dt.strftime('%b %Y')
+            label = f'{month_names[dt.month]} {dt.year}'
         except (ValueError, TypeError):
             continue
         if key not in monthly_data:
