@@ -350,17 +350,18 @@ def _week_key(dt):
     return f'{iso_year}-W{iso_week:02d}'
 
 
-def build_mingguan_data(project_id=None):
+def build_mingguan_data(project_id=None, cutoff_date=None):
     """Compute the weekly laporan dataset (period = Sunday..Saturday week).
 
     Same formulas as the monthly report, but grouped by week instead of month.
     project_id: optional project filter forwarded to db.read_data.
+    cutoff_date: optional date/datetime; when set, only data up to this date is included.
     Returns (report_rows, data_count).
     """
     def week_keyfn(dt):
         return _week_key(dt)
 
-    rekan_cum, all_weeks, sorted_rekan, data = _build_cum(week_keyfn, project_id=project_id)
+    rekan_cum, all_weeks, sorted_rekan, data = _build_cum(week_keyfn, project_id=project_id, cutoff_date=cutoff_date)
 
     # Ensure current week is included so empty weeks still show vendor data
     today    = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
@@ -607,7 +608,8 @@ def _col_letter(col):
 VENDOR_SUBTOTAL_COLS = (15, 16, 17, 18, 19, 20, 21, 22, 24, 25)
 
 
-def _render_lbp(wb, ws, mdata, now_key, period_of, title_suffix='', project_id=None):
+def _render_lbp(wb, ws, mdata, now_key, period_of, title_suffix='', project_id=None,
+                cutoff_date=None):
     """Shared LBP sheet renderer for monthly & weekly exports.
 
     Renders the selected period as a wide hierarchical table: one summary row
@@ -622,11 +624,23 @@ def _render_lbp(wb, ws, mdata, now_key, period_of, title_suffix='', project_id=N
         now_key: period key string used to classify detail rows (== mdata['key']).
         period_of: callable('YYYY-MM-DD') -> period key, matching now_key's scheme.
         title_suffix: extra text appended to the big title (e.g. ' (Mingguan)').
+        cutoff_date: optional date/datetime; when set, detail rows (hutang & bayar)
+                     are filtered to the same date window as ``_build_cum`` so the
+                     exported invoice rows agree with the vendor summary numbers.
     """
     # Full invoice history per rekan (detail rows) — deduped so detail rows match vendor summary.
     from services.dashboard import _dedup_debt_rows
     hist = defaultdict(list)
     for row in _dedup_debt_rows(db.read_data(project_id=project_id)):
+        # Cut Off: skip invoices received after the cutoff date, exactly like
+        # _build_cum does, so detail rows can't reintroduce data the summary hid.
+        if cutoff_date is not None:
+            tgl = row.get('TGL TERIMA')
+            try:
+                if tgl and datetime.strptime(str(tgl), '%Y-%m-%d').date() > cutoff_date:
+                    continue
+            except (ValueError, TypeError):
+                pass
         rekan = (row.get('NAMA LEVELANSIR / REKANAN') or 'Unknown').strip() or 'Unknown'
         hist[rekan].append(row)
 
@@ -844,9 +858,14 @@ def _render_lbp(wb, ws, mdata, now_key, period_of, title_suffix='', project_id=N
             if dp > 0:
                 resolved_m = _resolve_pay_period(inv.get('TGL BAYAR DPP'),
                                                  inv.get('TGL TERIMA'),
-                                                 period_of_dt)
+                                                 period_of_dt, cutoff_date)
                 if resolved_m is None:
-                    resolved_m = pay_m
+                    # No cutoff: keep the previous fallback. WITH a cutoff, a
+                    # None means the payment is after the cutoff date, so it must
+                    # NOT be counted (falling back to pay_m would undo the filter
+                    # and make detail rows disagree with the vendor summary).
+                    if cutoff_date is None:
+                        resolved_m = pay_m
                 if resolved_m == now_key:
                     p_si = dp
                 elif resolved_m and resolved_m < now_key:
@@ -925,15 +944,17 @@ def _render_lbp(wb, ws, mdata, now_key, period_of, title_suffix='', project_id=N
 
 
 
-def build_excel_export(month_key=None, project_id=None):
+def build_excel_export(month_key=None, project_id=None, cutoff_date=None):
     """Build the monthly LBP (Rekap Prestasi Utang & Pembayaran Utang) Excel report.
 
     Renders the selected month (default: current month) via the shared
-    ``_render_lbp`` renderer. project_id filters the data. Returns io.BytesIO positioned at 0.
+    ``_render_lbp`` renderer. project_id filters the data.
+    cutoff_date: optional date/datetime; when set, only data up to this date is
+    included (matches the web view's Cut Off). Returns io.BytesIO positioned at 0.
     """
     import xlsxwriter
 
-    report_rows, _ = build_laporan_data(project_id=project_id)
+    report_rows, _ = build_laporan_data(project_id=project_id, cutoff_date=cutoff_date)
     now_key = month_key or datetime.now().strftime('%Y-%m')
     mdata = next((r for r in report_rows if r['key'] == now_key), None)
     if mdata is None and report_rows:
@@ -944,22 +965,24 @@ def build_excel_export(month_key=None, project_id=None):
     buf = io.BytesIO()
     wb = xlsxwriter.Workbook(buf, {'in_memory': True, 'strings_to_numbers': False})
     ws = wb.add_worksheet('LBP')
-    _render_lbp(wb, ws, mdata, now_key, _month_of, project_id=project_id)
+    _render_lbp(wb, ws, mdata, now_key, _month_of, project_id=project_id, cutoff_date=cutoff_date)
     wb.close()
     buf.seek(0)
     return buf
 
 
-def build_weekly_excel_export(week_key=None, project_id=None):
+def build_weekly_excel_export(week_key=None, project_id=None, cutoff_date=None):
     """Build the weekly LBP (Rekap Prestasi Utang & Pembayaran Utang) Excel report.
 
     Same layout as the monthly export, but the period is a Sunday..Saturday week
     (key 'YYYY-Www'), classified per invoice via ``_week_of``. project_id filters the
-    data. Defaults to the latest available week when no ``week_key`` is supplied. Returns io.BytesIO.
+    data. Defaults to the latest available week when no ``week_key`` is supplied.
+    cutoff_date: optional date/datetime; when set, only data up to this date is
+    included (matches the web view's Cut Off). Returns io.BytesIO.
     """
     import xlsxwriter
 
-    report_rows, _ = build_mingguan_data(project_id=project_id)
+    report_rows, _ = build_mingguan_data(project_id=project_id, cutoff_date=cutoff_date)
     now_key = week_key
     if now_key is None and report_rows:
         now_key = report_rows[-1]['key']   # default: latest week
@@ -972,7 +995,8 @@ def build_weekly_excel_export(week_key=None, project_id=None):
     buf = io.BytesIO()
     wb = xlsxwriter.Workbook(buf, {'in_memory': True, 'strings_to_numbers': False})
     ws = wb.add_worksheet('LBP')
-    _render_lbp(wb, ws, mdata, now_key, _week_of, title_suffix=' (Mingguan)', project_id=project_id)
+    _render_lbp(wb, ws, mdata, now_key, _week_of, title_suffix=' (Mingguan)',
+                project_id=project_id, cutoff_date=cutoff_date)
     wb.close()
     buf.seek(0)
     return buf

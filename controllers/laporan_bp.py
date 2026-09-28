@@ -20,12 +20,7 @@ def laporan():
     from services.project_context import get_read_filter
     pid = get_read_filter()
     cutoff_str = request.args.get('cutoff', '').strip()
-    cutoff_date = None
-    if cutoff_str:
-        try:
-            cutoff_date = datetime.strptime(cutoff_str, '%Y-%m-%d').date()
-        except (ValueError, TypeError):
-            pass
+    cutoff_date = _parse_cutoff(cutoff_str)
     report_rows, data_count = build_laporan_data(project_id=pid, cutoff_date=cutoff_date)
     months = [r['key'] for r in report_rows]
     active_month = request.args.get('month', '').strip()
@@ -54,12 +49,7 @@ def laporan_data():
     from services.project_context import get_read_filter
     pid = get_read_filter()
     cutoff_str = request.args.get('cutoff', '').strip()
-    cutoff_date = None
-    if cutoff_str:
-        try:
-            cutoff_date = datetime.strptime(cutoff_str, '%Y-%m-%d').date()
-        except (ValueError, TypeError):
-            pass
+    cutoff_date = _parse_cutoff(cutoff_str)
     report_rows, data_count = build_laporan_data(project_id=pid, cutoff_date=cutoff_date)
     months = [r['key'] for r in report_rows]
     return jsonify({
@@ -73,17 +63,39 @@ def laporan_data():
 def laporan_mingguan():
     from services.project_context import get_read_filter
     pid = get_read_filter()
-    report_rows, data_count = build_mingguan_data(project_id=pid)
+    cutoff_str = request.args.get('cutoff', '').strip()
+    cutoff_date = _parse_cutoff(cutoff_str)
+    report_rows, data_count = build_mingguan_data(project_id=pid, cutoff_date=cutoff_date)
+    weeks = [r['key'] for r in report_rows]
+    # Deep link: ?week=YYYY-Www preselects that week (used by cutoff reload).
+    week_key = request.args.get('week', '').strip()
+    if not week_key or week_key not in weeks:
+        week_key = weeks[-1] if weeks else ''
     return render_template('laporan_mingguan.html',
                            report_rows=report_rows,
-                           data_count=data_count)
+                           data_count=data_count,
+                           cutoff=cutoff_str,
+                           current_week=week_key)
+
+
+def _parse_cutoff(raw):
+    """Parse a 'YYYY-MM-DD' cutoff query value into a date, or None."""
+    raw = (raw or '').strip()
+    if not raw:
+        return None
+    try:
+        return datetime.strptime(raw, '%Y-%m-%d').date()
+    except (ValueError, TypeError):
+        return None
 
 
 @bp.route('/laporan-bulanan/export')
 def laporan_export():
     from services.project_context import get_read_filter
     month_key = request.args.get('month') or None
-    buf = build_excel_export(month_key=month_key, project_id=get_read_filter())
+    cutoff_date = _parse_cutoff(request.args.get('cutoff'))
+    buf = build_excel_export(month_key=month_key, project_id=get_read_filter(),
+                             cutoff_date=cutoff_date)
     month_label = month_key or datetime.now().strftime('%Y-%m')
     return send_file(
         buf,
@@ -97,7 +109,9 @@ def laporan_export():
 def laporan_mingguan_export():
     from services.project_context import get_read_filter
     week_key = request.args.get('week') or None
-    buf = build_weekly_excel_export(week_key=week_key, project_id=get_read_filter())
+    cutoff_date = _parse_cutoff(request.args.get('cutoff'))
+    buf = build_weekly_excel_export(week_key=week_key, project_id=get_read_filter(),
+                                    cutoff_date=cutoff_date)
     label = week_key or datetime.now().strftime('%Y-W%V')
     return send_file(
         buf,

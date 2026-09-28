@@ -140,7 +140,12 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
       btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Export...';
       btn.disabled = true;
       const key = activeMonthKey();
-      window.location.href = '/laporan-bulanan/export' + (key ? '?month=' + encodeURIComponent(key) : '');
+      const day = document.getElementById('cutoffDay') ? document.getElementById('cutoffDay').value : '';
+      const params = new URLSearchParams();
+      if (key) params.set('month', key);
+      if (day && key) params.set('cutoff', key + '-' + day);
+      const qs = params.toString();
+      window.location.href = '/laporan-bulanan/export' + (qs ? '?' + qs : '');
       setTimeout(() => { btn.innerHTML = orig; btn.disabled = false; }, 3000);
   }
 

@@ -19,9 +19,11 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
 
 
 <div class="animate-in lp-body lp-mingguan">
-  {% set current_week = weeks[-1] if weeks else '' %} {% set ns =
-  namespace(cy=0, cm=0) %} {% for r in report_rows %}{% set ns.cy = r.year %}{%
-  set ns.cm = r.month %}{% endfor %}
+  {% set current_week = current_week if (current_week is defined and current_week) else (weeks[-1] if weeks else '') %} {% set ns =
+  namespace(cy=0, cm=0) %} {% for r in report_rows %}{% if r.key == current_week
+  %}{% set ns.cy = r.year %}{% set ns.cm = r.month %}{% endif %}{% endfor %} {% if
+  ns.cy == 0 %}{% for r in report_rows %}{% set ns.cy = r.year %}{% set ns.cm =
+  r.month %}{% endfor %}{% endif %}
 
   <!-- ═══ FILTER BAR ═══ -->
   <div class="lp-rail lp-rail--select lp-rail--mingguan" id="topRail">
@@ -43,6 +45,17 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
       </option>
       {% endif %} {% endfor %}
       </select>
+      <span class="lp-rail-sep" aria-hidden="true"></span>
+      <label class="lp-rail-label lp-rail-label--plain" for="cutoffDay"><i class="bi bi-calendar-check"></i> Cut Off</label>
+      <select id="cutoffDay" class="lp-sel lp-sel--day" onchange="applyCutoff()" aria-label="Tanggal cut off">
+        <option value="">Semua</option>
+        {% for d in range(1, 32) %}
+        <option value="{{ '%02d'|format(d) }}" {% if cutoff and cutoff[-2:] == '%02d'|format(d) %}selected{% endif %}>{{ d }}</option>
+        {% endfor %}
+      </select>
+      {% if cutoff %}
+      <button class="lp-btn" onclick="clearCutoff()" title="Hapus Cut Off"><i class="bi bi-x-circle"></i> Reset</button>
+      {% endif %}
     </div>
     <div class="lp-rail-group lp-rail-group--end">
       <span class="lp-rail-period" id="weekLabel">{{ current_week }}</span>
@@ -356,12 +369,45 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
       if (lbl) lbl.textContent = key;
       afterVisibleChange();
   }
+  // ─── cut off (YYYY-MM-DD built from selected month + day) ───
+  function currentCutoffDate() {
+      const daySel = document.getElementById('cutoffDay');
+      const day = daySel ? daySel.value : '';
+      if (!day) return '';
+      const mSel = document.getElementById('monthSel');
+      if (!mSel || mSel.selectedIndex < 0) return '';
+      const opt = mSel.options[mSel.selectedIndex];
+      const year = opt.dataset.year;
+      const month = String(opt.value).padStart(2, '0');
+      if (!year || !month) return '';
+      return year + '-' + month + '-' + day;
+  }
   function exportExcel(btn) {
       btn = btn || document.getElementById('exportBtn');
       if (btn) { btn.disabled = true; setTimeout(() => btn.disabled = false, 1500); }
       const activeBtn = document.querySelector('#weekBar .lp-rail-btn.active');
       const key = activeBtn ? activeBtn.getAttribute('data-key') : '';
-      window.location.href = '/laporan-mingguan/export' + (key ? '?week=' + encodeURIComponent(key) : '');
+      const params = new URLSearchParams();
+      if (key) params.set('week', key);
+      const cutoff = currentCutoffDate();
+      if (cutoff) params.set('cutoff', cutoff);
+      const qs = params.toString();
+      window.location.href = '/laporan-mingguan/export' + (qs ? '?' + qs : '');
+  }
+  function applyCutoff() {
+      const cutoff = currentCutoffDate();
+      const params = new URLSearchParams();
+      const activeBtn = document.querySelector('#weekBar .lp-rail-btn.active');
+      const key = activeBtn ? activeBtn.getAttribute('data-key') : '';
+      if (cutoff) params.set('cutoff', cutoff);
+      if (key) params.set('week', key);
+      const qs = params.toString();
+      window.location.href = '/laporan-mingguan' + (qs ? '?' + qs : '');
+  }
+  function clearCutoff() {
+      const daySel = document.getElementById('cutoffDay');
+      if (daySel) daySel.value = '';
+      applyCutoff();
   }
   function bindMingguanEvents(){
     const mSel = document.getElementById('monthSel');
@@ -372,11 +418,14 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
       bindMingguanEvents();
       const btns = document.querySelectorAll('#weekBar .lp-rail-btn');
       if (!btns.length) return;
-      const last = btns[btns.length - 1];
+      // Prefer the week the server marked active (deep link / cutoff reload);
+      // otherwise default to the latest week.
+      const activeBtn = document.querySelector('#weekBar .lp-rail-btn.active');
+      const anchor = activeBtn || btns[btns.length - 1];
       const mSel = document.getElementById('monthSel');
       if (mSel) {
           for (const opt of mSel.options) {
-              if (opt.dataset.year === last.dataset.year && String(opt.value) === String(last.dataset.month)) {
+              if (opt.dataset.year === anchor.dataset.year && String(opt.value) === String(anchor.dataset.month)) {
                   mSel.value = opt.value;
                   break;
               }
