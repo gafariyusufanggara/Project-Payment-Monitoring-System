@@ -338,6 +338,27 @@ def build_laporan_data(project_id=None, cutoff_date=None):
     return report_rows, len(data)
 
 
+def build_vendor_invoice_index(project_id=None, cutoff_date=None):
+    """Return {rekanan: [invoice, ...]} for the detail modal.
+
+    Reuses build_laporan_data so the invoices shown match the Laporan DPP
+    Bulanan modal exactly (same dedup, same cumulative window). Each vendor's
+    invoices are gathered across every month and sorted by TGL TERIMA, so the
+    dashboard "Rincian per Levelansir" rows can open the same detail view.
+    """
+    report_rows, _ = build_laporan_data(project_id=project_id, cutoff_date=cutoff_date)
+    index = {}
+    for month in report_rows:
+        for s in month['rekanan_list']:
+            key = (s['rekanan'] or '').strip()
+            bucket = index.setdefault(key, [])
+            for inv in s['invoices']:
+                bucket.append(inv)
+    for key, invs in index.items():
+        invs.sort(key=lambda i: (str(i.get('tgl_berkas') or ''), str(i.get('invoice') or '')))
+    return index
+
+
 _MONTHS_FULL = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
                 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
 

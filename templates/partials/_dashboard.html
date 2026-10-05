@@ -76,6 +76,27 @@
     .ds-card-body { padding: 14px; }
   }
   @media (prefers-reduced-motion: reduce) { .ds-kpi, .ds-card { transition: none; } }
+  /* Rincian per Levelansir — baris dapat diklik untuk membuka detail invoice.
+     Umpan balik cukup dari hover (mouse) & focus-visible (keyboard); tanpa
+     highlight permanen setelah baris diklik. */
+  .dash-vendor-row { cursor: pointer; }
+  .dash-vendor-row:hover td { background: #eef0f2 !important; }
+  .dash-vendor-row:focus-visible { outline: 2px solid #16324f; outline-offset: -2px; }
+  /* Chip jumlah levelansir, sejajar kanan dengan judul section. */
+  .dash-sec-count {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: #eef0f2;
+    color: #4d5766;
+    font-size: .7rem;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .dash-sec-count i { font-size: .8rem; }
 </style>
 
 <div class="dash-wrap">
@@ -215,10 +236,47 @@
     </div>
   </div>
 
+  <!-- Status potongan (PPh + Retensi): pengurang nilai tagihan, bukan utang vendor.
+       Dipisah dari "Status Distribusi" (DPP/PPN = utang ke vendor yang dibayar
+       bertahap) agar tidak ambigu — PPh disetor ke pajak, Retensi ditahan. -->
+  <div class="ds-card">
+    <div class="ds-card-body">
+      <h2 class="ds-section-title">Status Potongan</h2>
+      <table class="ds-table">
+        <thead><tr><th>Jenis</th><th class="text-end">Nilai</th><th>Keterangan</th></tr></thead>
+        <tbody>
+          <tr>
+            <td style="font-weight:600">PPh</td>
+            <td class="cell-money">{{ total_pph|money }}</td>
+            <td><span class="ds-badge {% if status_pph_pct >= 90 %}ds-badge-green{% elif status_pph_pct >= 50 %}ds-badge-gray{% else %}ds-badge-red{% endif %}">Disetor {{ status_pph_pct }}%</span> <span style="color:#667080;font-size:.72rem">{{ total_pph_paid|money }}</span></td>
+          </tr>
+          <tr>
+            <td style="font-weight:600">Retensi</td>
+            <td class="cell-money">{{ total_retensi|money }}</td>
+            <td><span class="ds-badge ds-badge-gray">Ditahan</span></td>
+          </tr>
+          <tr>
+            <td style="font-weight:700">Total Potongan</td>
+            <td class="cell-money" style="font-weight:700">{{ (total_pph + total_retensi)|money }}</td>
+            <td style="color:#667080;font-size:.72rem">PPh + Retensi</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
   <!-- Rincian per levelansir -->
   <div class="ds-card">
     <div class="ds-card-body">
-      <h2 class="ds-section-title">Rincian per Levelansir</h2>
+      <h2 class="ds-section-title">
+        Rincian per Levelansir
+        {% if rekanan_detail_sorted %}
+        <span class="dash-sec-count" title="Jumlah levelansir/rekanan pada tabel ini">
+          <i class="bi bi-people"></i>
+          {{ rekanan_detail_sorted | length }} Levelansir
+        </span>
+        {% endif %}
+      </h2>
       {% if rekanan_detail_sorted %}
       <div class="table-scroll" style="max-height:380px;overflow:auto">
         <table class="ds-table">
@@ -231,7 +289,15 @@
           </thead>
           <tbody>
             {% for name, info in rekanan_detail_sorted %}
-            <tr>
+            <tr
+              class="dash-vendor-row"
+              data-rekanan="{{ name | e }}"
+              tabindex="0"
+              role="button"
+              aria-label="Buka detail invoice {{ name | e }}"
+              onclick="showVendorDetail(this.dataset.rekanan)"
+              onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showVendorDetail(this.dataset.rekanan)}"
+            >
               <td><span class="row-num">{{ loop.index }}</span></td>
               <td style="font-weight:600;font-size:.74rem">{{ name }}</td>
               <td class="text-center"><span class="ds-badge ds-badge-gray">{{ info.jumlah }}</span></td>

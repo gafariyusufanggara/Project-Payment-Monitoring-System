@@ -122,7 +122,7 @@ COL_WIDTHS = {
 }
 
 STATUS_DPP = ['Lunas', 'Belum Lunas']
-STATUS_PPN = ['Ada PPN', 'Tidak ada PPN', 'Ditanggung Rekanan']
+STATUS_PPN = ['Lunas', 'Belum Lunas', 'Tidak ada PPN']
 
 
 # ========== CONFIG HELPERS ==========

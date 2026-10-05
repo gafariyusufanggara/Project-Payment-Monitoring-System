@@ -117,7 +117,7 @@ Semua kolom disimpan sebagai `TEXT`, dikonversi ke `float`/`int` saat diproses.
 | `TGL TERIMA BERKAS` | DATE | Tanggal berkas diterima |
 | `NAMA LEVELANSIR / REKANAN` | TEXT | Nama vendor/rekanan |
 | `STATUS TERHADAP DPP` | TEXT | `Lunas` / `Belum Lunas` |
-| `STATUS TERHADAP PPN` | TEXT | `Ada PPN` / `Tidak ada PPN` / `Ditanggung Rekanan` |
+| `STATUS TERHADAP PPN` | TEXT | `Lunas` / `Belum Lunas` / `Tidak ada PPN` |
 | `KETERANGAN PPN` | TEXT | Catatan PPN |
 | `NO INVOICE INTERNAL` | TEXT | **Nomor invoice internal** — prioritas untuk dedup |
 | `NO INVOICE` | TEXT | Nomor invoice dari vendor |

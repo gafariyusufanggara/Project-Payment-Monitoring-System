@@ -110,14 +110,6 @@
             <i class="bi bi-file-earmark-text"></i> <span>Kontrak Vendor</span>
           </button>
 
-          <div class="sidebar-section">Import Data</div>
-          <button class="nav-item" onclick="navigateTo('/import')">
-            <i class="bi bi-receipt"></i> <span>Import Invoice</span>
-          </button>
-          <button class="nav-item" onclick="navigateTo('/kontrak/import')">
-            <i class="bi bi-file-earmark-arrow-up"></i> <span>Import Kontrak</span>
-          </button>
-
           <div class="sidebar-section">Data Transaksi</div>
           <button class="nav-item" onclick="navigateTo('/data-hutang')">
             <i class="bi bi-table"></i> <span>Data Invoice</span>
@@ -175,17 +167,26 @@
             <span>Laporan PPN Mingguan</span>
           </button>
 
+          <div class="sidebar-section">Import Data</div>
+          <button class="nav-item" onclick="navigateTo('/import')">
+            <i class="bi bi-receipt"></i> <span>Import Invoice</span>
+          </button>
+          <button class="nav-item" onclick="navigateTo('/kontrak/import')">
+            <i class="bi bi-file-earmark-arrow-up"></i> <span>Import Kontrak</span>
+          </button>
+
           <div class="sidebar-section">Sistem</div>
-          <button class="nav-item" onclick="navigateTo('/pengaturan')">
-            <i class="bi bi-slash-circle"></i> <span>Exclude</span>
-            {% if (exclude_cat_count|default(0) + exclude_rek_count|default(0)) > 0 %}
+          {% set _exc_n = exclude_cat_count|default(0) + exclude_rek_count|default(0) %}
+          <button class="nav-item" onclick="navigateTo('/pengaturan')" id="navExclude">
+            <i class="bi bi-slash-circle"></i> <span>Exclude Rekanan</span>
             <span
               class="nav-badge nav-badge-neutral"
+              id="sidebarExcBadge"
               title="{{ exclude_tip }}"
+              {% if _exc_n == 0 %}hidden{% endif %}
             >
-              {{ exclude_cat_count|default(0) + exclude_rek_count|default(0) }}
+              {{ _exc_n }}
             </span>
-            {% endif %}
           </button>
           {% endblock %}
         </nav>
@@ -214,20 +215,21 @@
                 aria-label="Filter berdasarkan proyek"
                 data-active="{{ active_project_id }}"
               >
-                <option value="all">Semua Proyek</option>
+                <option value="all" {% if active_project_id in (None, '', 'all') %}selected{% endif %}>Semua Proyek</option>
                 {% for pid, label in project_list %}
-                <option value="{{ pid }}">{{ label }}</option>
+                <option value="{{ pid }}" {% if active_project_id|string == pid|string %}selected{% endif %}>{{ label }}</option>
                 {% endfor %}
               </select>
             </div>
             {% endblock %}
             <div class="topbar-badges">
-              {% if (exclude_cat_count|default(0) + exclude_rek_count|default(0)) > 0 and request.path != '/pengaturan' %}
-              <a class="topbar-badge" style="background:#fdf6d8;color:#8a6d00;text-decoration:none" href="/pengaturan" onclick="navigateTo('/pengaturan');return false;" title="{{ exclude_tip }} - tidak ikut dihitung di Dashboard & Laporan. Klik untuk ubah."><i class="bi bi-eye-slash"></i> Exclude: {% if exclude_cat_count %}{{ exclude_cat_count }} kat{% endif %}{% if exclude_cat_count and exclude_rek_count %} • {% endif %}{% if exclude_rek_count %}{{ exclude_rek_count }} rekanan{% endif %} ({{ exclude_row_count }} baris)</a>
-              {% endif %}
+              <a class="topbar-badge" id="topbarExcludeBadge" style="background:#fdf6d8;color:#8a6d00;text-decoration:none;{% if (exclude_cat_count|default(0) + exclude_rek_count|default(0)) == 0 or request.path == '/pengaturan' %}display:none{% endif %}" href="/pengaturan" onclick="navigateTo('/pengaturan');return false;" title="{{ exclude_tip }} - tidak ikut dihitung di Dashboard & Laporan. Klik untuk ubah."><i class="bi bi-eye-slash"></i> Exclude: <span id="topbarExcludeDetail">{% if exclude_cat_count %}{{ exclude_cat_count }} kat{% endif %}{% if exclude_cat_count and exclude_rek_count %} • {% endif %}{% if exclude_rek_count %}{{ exclude_rek_count }} rekanan{% endif %} ({{ exclude_row_count }} baris)</span></a>
               {% block topbar_badges %}{% endblock %}
-              <a class="topbar-badge topbar-logout" href="{{ url_for('auth.logout') }}" title="Keluar"><i class="bi bi-box-arrow-right"></i> Keluar</a>
             </div>
+            <span class="topbar-divider" aria-hidden="true"></span>
+            <button type="button" class="topbar-logout" id="logoutBtn" onclick="openLogoutModal()" title="Keluar dari aplikasi">
+              <i class="bi bi-box-arrow-right"></i><span class="logout-label">Keluar</span>
+            </button>
           </div>
         </div>
         {% endblock %}
@@ -277,6 +279,7 @@
                 <div class="vm-invoice-ref">
                   <i class="bi bi-receipt"></i> <span id="vmInvoice"></span>
                 </div>
+                <div class="vm-header-meta" id="vmHeaderMeta"></div>
               </div>
               <div style="display:flex;align-items:flex-start;gap:10px;flex:none">
                 <div class="vm-header-badges" id="vmBadges"></div>
@@ -363,6 +366,27 @@
               </button>
             </div>
           </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- LOGOUT CONFIRM MODAL — dialog konfirmasi sebelum sesi diputus.
+         Berada di body level (di luar #mainContent & .content-area) supaya
+         position:fixed modal tidak terperangkap ancestor ber-transform. -->
+    <div class="modal fade" id="logoutModal" tabindex="-1" aria-labelledby="logoutModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content lgo-card">
+          <div class="lgo-body">
+            <div class="lgo-icon"><i class="bi bi-box-arrow-right"></i></div>
+            <h5 class="lgo-title" id="logoutModalLabel">Keluar dari aplikasi?</h5>
+            <p class="lgo-text">Sesi Anda akan diakhiri dan Anda perlu memasukkan password lagi untuk masuk.</p>
+          </div>
+          <div class="lgo-actions">
+            <button type="button" class="lgo-btn lgo-btn-cancel" data-bs-dismiss="modal">Batal</button>
+            <a class="lgo-btn lgo-btn-confirm" href="{{ url_for('auth.logout') }}" id="logoutConfirm">
+              <i class="bi bi-box-arrow-right"></i> Ya, Keluar
+            </a>
+          </div>
         </div>
       </div>
     </div>
@@ -517,6 +541,7 @@
               document.body.style.removeProperty('padding-right');
               updateActiveNav();
               runPageReady();
+              initProjectScope();
               ensureTableEnhance(evt.target);
               // Scroll area konten ke atas untuk halaman baru.
               const ca = document.querySelector('.content-area');
@@ -707,7 +732,8 @@
               const total = parseFloat(data['TOTAL (INCLD)']) || 0;
               const bayarDPP = parseFloat(data['PEMBAYARAN DPP']) || 0;
               const bayarPPN = parseFloat(data['PEMBAYARAN PPN']) || 0;
-              const sisa = parseFloat(data['SISA HUTANG (INCLD PPN)']) || 0;
+              const sisaDPP = parseFloat(data['SISA HUTANG DPP']) || 0;
+              const sisaPPN = parseFloat(data['SISA HUTANG PPN']) || 0;
 
               const badge = s => s === 'Lunas' ? 'vm-badge-lunas' : s === 'Belum Lunas' ? 'vm-badge-belum' : 'vm-badge-na';
 
@@ -718,12 +744,22 @@
                   `<span class="vm-badge ${badge(statusDPP)}">DPP: ${statusDPP}</span>` +
                   `<span class="vm-badge ${badge(statusPPN)}">PPN: ${statusPPN}</span>`;
 
+              // ── Header meta: Kategori + Deskripsi (di bawah Nomor Invoice) ──
+              const kategori = (data['KATEGORI'] || '').trim();
+              const deskripsi = (data['DESKRIPSI'] || '').trim();
+              const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+              let metaHtml = '';
+              if (kategori) metaHtml += `<span class="vm-header-chip"><i class="bi bi-tag"></i> ${esc(kategori)}</span>`;
+              if (deskripsi) metaHtml += `<span class="vm-header-desc">${esc(deskripsi)}</span>`;
+              document.getElementById('vmHeaderMeta').innerHTML = metaHtml;
+
               // ── Financial bar ──
               const finItems = [
-                  { label: 'Total (Incld)', val: money(total), cls: '#3d434c' },
+                  { label: 'TOTAL (INCLUDE PPN)', val: money(total), cls: '#3d434c' },
                   { label: 'Bayar DPP', val: money(bayarDPP), cls: '#115e59', sub: data['TGL BAYAR DPP'] },
                   { label: 'Bayar PPN', val: money(bayarPPN), cls: '#115e59', sub: data['TGL BAYAR PPN'] },
-                  { label: 'Sisa Hutang', val: money(sisa), cls: sisa > 0 ? '#b42318' : '#115e59' },
+                  { label: 'SISA HUTANG (DPP)', val: money(sisaDPP), cls: sisaDPP > 0 ? '#b42318' : '#115e59' },
+                  { label: 'SISA HUTANG (PPN)', val: money(sisaPPN), cls: sisaPPN > 0 ? '#b42318' : '#115e59' },
               ];
               document.getElementById('vmFinbar').innerHTML = finItems.map(f =>
                   `<div class="vm-finbar-item"><div class="vm-finbar-label">${f.label}</div><div class="vm-finbar-val" style="color:${f.cls}">${f.val}</div>` +
@@ -732,9 +768,10 @@
               ).join('');
 
               // ── Body — grouped sections ──
-              const skip = new Set(['R','_row','NAMA LEVELANSIR / REKANAN','NO INVOICE','TOTAL (INCLD)','PEMBAYARAN DPP','PEMBAYARAN PPN','SISA HUTANG (INCLD PPN)','TGL BAYAR DPP','TGL BAYAR PPN']);
+              const skip = new Set(['R','_row','NAMA LEVELANSIR / REKANAN','NO INVOICE','TOTAL (INCLD)','PEMBAYARAN DPP','PEMBAYARAN PPN','SISA HUTANG (INCLD PPN)','TGL BAYAR DPP','TGL BAYAR PPN','DESKRIPSI','KATEGORI','PEMBAYARAN POT. PPH']);
               const moneyFields = new Set(['TOTAL (INCLD)','PEMBAYARAN DPP','PEMBAYARAN PPN','SISA HUTANG (INCLD PPN)','SISA HUTANG DPP','SISA HUTANG PPN','HARGA (EXLD)','HARGA SATUAN','POT. RETENSI','POT. PPH','PPN','PEMBAYARAN POT. PPH','NILAI YG DITERIMA VENDOR']);
               const boolHighlight = {'STATUS TERHADAP DPP':true,'STATUS TERHADAP PPN':true};
+              const highlightFields = new Set(['HARGA (EXLD)', 'POT. RETENSI', 'POT. PPH', 'PPN', 'SISA HUTANG DPP', 'SISA HUTANG PPN']);
 
               const val = f => data[f] != null && data[f] !== '' ? data[f] : '-';
               const fieldLabel = {
@@ -742,6 +779,7 @@
                   'TGL INV': 'TGL INVOICE',
                   'JTH TEMPO': 'TGL JATUH TEMPO',
                   'TGL FAKTUR PAJAK': 'TGL FAKTUR PAJAK MASUKAN',
+                  'HARGA (EXLD)': 'Harga (DPP)',
               };
               const labelOf = k => fieldLabel[k] || k;
 
@@ -759,7 +797,7 @@
                       } else if (mode === 'money') {
                           raw = `<code>${moneyFields.has(k) && raw !== '-' ? money(parseFloat(raw)||0) : raw}</code>`;
                       }
-                      html += `<div class="vm-field"><div class="vm-field-label">${labelOf(k)}</div><div class="vm-field-val">${raw}</div></div>`;
+                      html += `<div class="vm-field${highlightFields.has(k) ? ' vm-field--hl' : ''}"><div class="vm-field-label">${labelOf(k)}</div><div class="vm-field-val">${raw}</div></div>`;
                   }
                   return html + '</div></div>';
               }
@@ -768,11 +806,11 @@
                   'NO INVOICE INTERNAL','TGL INV','TGL TERIMA BERKAS','TGL TERIMA','JTH TEMPO',
                   'STATUS TERHADAP DPP','STATUS TERHADAP PPN','KETERANGAN PPN'];
               const finFields = ['HARGA SATUAN','VOLUME PROGRESS','HARGA (EXLD)',
-                  'POT. RETENSI','POT. PPH','PPN','PEMBAYARAN POT. PPH','NILAI YG DITERIMA VENDOR',
-                  'SISA HUTANG DPP','SISA HUTANG PPN'];
+                  'POT. RETENSI','POT. PPH','PPN',
+                  'SISA HUTANG DPP','SISA HUTANG PPN','NILAI YG DITERIMA VENDOR'];
               const payFields = ['PEMBAYARAN DPP VIA DIVISI','NO BUKTI BAYAR DPP',
                   'PEMBAYARAN PPN VIA','NO BUKTI BAYAR PPN'];
-              const detailFields = ['DESKRIPSI','KATEGORI','KETERANGAN','KODE BIAYA','KODE BIAYA2','TGL MASUK DIVISI'];
+              const detailFields = ['KETERANGAN','KODE BIAYA','KODE BIAYA2','TGL MASUK DIVISI'];
 
               let bodyHtml = '';
               bodyHtml += renderSection('01', 'Dokumen & Status', docFields, 'plain');
@@ -915,12 +953,33 @@
           }).catch(() => Toast.err('Gagal memuat data. Coba lagi.'));
       }
 
+      // ═══ Exclude badge sync (sidebar + topbar) ═══
+      // Sidebar berada DI LUAR #mainContent, jadi HTMX tidak menyegarkannya.
+      // Halaman Pengaturan memanggil ini setiap kali exclusion berubah agar
+      // badge (dan sembunyinya saat 0) langsung ikut ter-update.
+      function syncExcludeBadges(n) {
+        n = parseInt(n, 10) || 0;
+        const sb = document.getElementById('sidebarExcBadge');
+        if (sb) { sb.textContent = n; sb.hidden = n <= 0; }
+        const tb = document.getElementById('topbarExcludeBadge');
+        if (tb && window.location.pathname !== '/pengaturan') {
+          tb.style.display = n > 0 ? '' : 'none';
+        }
+      }
+      window.syncExcludeBadges = syncExcludeBadges;
+
       // ═══ Project scope selector (topbar) ═══
-      (function initProjectScope() {
+      // Topbar berada DI DALAM #mainContent, jadi HTMX menukar <select> ini
+      // setiap navigasi. initProjectScope() karena itu idempotent dan dipanggil
+      // ulang tiap htmx:afterSwap — tanpa itu listener hilang & nilai kembali
+      // ke "Semua Proyek" (opsi pertama).
+      function initProjectScope() {
         const sel = document.getElementById('projectScope');
         if (!sel) return;
         const active = sel.getAttribute('data-active') || 'all';
         sel.value = (active && String(active) !== '') ? String(active) : 'all';
+        if (sel.dataset.scopeBound === '1') return;
+        sel.dataset.scopeBound = '1';
         sel.addEventListener('change', function () {
           const body = JSON.stringify({ project_id: this.value });
           fetch('/api/set-project', {
@@ -930,7 +989,28 @@
           }).then(() => { window.location.reload(); })
             .catch(() => { window.location.reload(); });
         });
-      })();
+      }
+      initProjectScope();
+
+      // ═══ Logout confirmation (topbar) ═══
+      // Topbar di dalam #mainContent → tombol di-swap HTMX, jadi pakai fungsi
+      // global yang dipanggil inline (onclick). Modal-nya sendiri di body level
+      // (tak ikut ter-swap), jadi instance-nya di-cache & dipakai ulang.
+      function openLogoutModal() {
+        const el = document.getElementById('logoutModal');
+        if (!el || !window.bootstrap) return;
+        (bootstrap.Modal.getInstance(el) || new bootstrap.Modal(el)).show();
+      }
+      window.openLogoutModal = openLogoutModal;
+
+      // Enter/Space pada tombol Keluar → buka konfirmasi (aksesibilitas keyboard).
+      document.addEventListener('keydown', function (e) {
+        const btn = e.target.closest && e.target.closest('#logoutBtn');
+        if (btn && (e.key === 'Enter' || e.key === ' ')) {
+          e.preventDefault();
+          openLogoutModal();
+        }
+      });
     </script>
     <!-- Toast global (pengganti alert()). Harus sebelum skrip halaman
          agar window.Toast siap dipakai. -->

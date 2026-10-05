@@ -252,6 +252,34 @@ def get_categories():
     return jsonify({'categories': CATEGORIES})
 
 
+@bp.route('/api/vendor-invoices')
+def vendor_invoices():
+    """Detail invoice per levelansir untuk modal Dashboard.
+
+    Query: ?rekanan=<nama>. Mengembalikan daftar invoice dalam format yang
+    sama dengan modal Laporan DPP Bulanan (build_vendor_invoice_index), agar
+    dashboard bisa memakai tampilan detail yang identik.
+    """
+    from services.laporan import build_vendor_invoice_index
+    from services.project_context import get_read_filter
+    rekanan = (request.args.get('rekanan') or '').strip()
+    if not rekanan:
+        return jsonify({'error': 'Parameter rekanan wajib diisi'}), 400
+    index = build_vendor_invoice_index(project_id=get_read_filter())
+    # Cocokkan nama secara persis dulu; fallback ke trim-match agar tahan
+    # terhadap spasi ganda / trailing space yang berbeda antar sumber.
+    invoices = index.get(rekanan)
+    if invoices is None:
+        target = rekanan.casefold()
+        for name, invs in index.items():
+            if (name or '').strip().casefold() == target:
+                invoices = invs
+                break
+    if invoices is None:
+        return jsonify({'rekanan': rekanan, 'invoices': []})
+    return jsonify({'rekanan': rekanan, 'invoices': invoices})
+
+
 @bp.route('/api/categories', methods=['POST'])
 def add_category():
     data = request.get_json()

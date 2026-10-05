@@ -81,9 +81,11 @@ def build_dashboard_context(project_id=None, for_table=False):
             'total_sisa_ppn': 0,
             'total_retensi': 0,
             'total_pph': 0,
+            'total_pph_paid': 0,
             'sisa_hutang': 0,
             'status_dpp_pct': 0,
             'status_ppn_pct': 0,
+            'status_pph_pct': 0,
             'sisa_dpp_pct': 0,
             'sisa_ppn_pct': 0,
             'total_harga_excl': 0,
@@ -107,6 +109,9 @@ def build_dashboard_context(project_id=None, for_table=False):
     # aturan exclude, dan tanpa dedup.
     total_retensi = sum(safe_float(r.get('POT. RETENSI')) for r in data)
     total_pph = sum(safe_float(r.get('POT. PPH')) for r in data)
+    # PPh yang sudah dibayar/disetor (kolom PEMBAYARAN POT. PPH) — dipakai baris
+    # PPh di tabel "Status Distribusi" agar konsisten dgn DPP/PPN.
+    total_pph_paid = sum(safe_float(r.get('PEMBAYARAN POT. PPH')) for r in calc)
     total_dpp_paid = sum(safe_float(r.get('PEMBAYARAN DPP')) for r in calc)
     total_ppn_paid = sum(safe_float(r.get('PEMBAYARAN PPN')) for r in calc)
     total_harga_excl_raw = sum(safe_float(r.get('HARGA (EXLD)')) for r in deduped)
@@ -135,6 +140,7 @@ def build_dashboard_context(project_id=None, for_table=False):
     _ppn_base = total_ppn_raw or 1
     status_dpp_pct = round(total_dpp_paid / _dpp_base * 100)
     status_ppn_pct = round(total_ppn_paid / _ppn_base * 100)
+    status_pph_pct = round(total_pph_paid / (total_pph or 1) * 100)
     sisa_dpp_pct = round(total_sisa_dpp / _dpp_base * 100)
     sisa_ppn_pct = round(total_sisa_ppn / _ppn_base * 100)
 
@@ -148,11 +154,13 @@ def build_dashboard_context(project_id=None, for_table=False):
         'total_sisa_ppn': total_sisa_ppn,
         'total_retensi': total_retensi,
         'total_pph': total_pph,
+        'total_pph_paid': total_pph_paid,
         'sisa_hutang': sisa_hutang,
         'lunas_count': lunas_count,
         'belum_count': belum_count,
         'status_dpp_pct': status_dpp_pct,
         'status_ppn_pct': status_ppn_pct,
+        'status_pph_pct': status_pph_pct,
         'sisa_dpp_pct': sisa_dpp_pct,
         'sisa_ppn_pct': sisa_ppn_pct,
         'total_harga_excl': total_harga_excl,

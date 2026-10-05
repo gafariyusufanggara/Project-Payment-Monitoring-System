@@ -5,95 +5,150 @@
   <div class="table-wrapper animate-in">
     <div class="table-toolbar">
       <div class="table-toolbar-filters">
-      <div class="filter-group">
-        <select class="filter-select" id="filterStatusDPP">
-          <option value="">Status DPP</option>
-          <option value="Lunas">Lunas</option>
-          <option value="Belum Lunas">Belum Lunas</option>
-        </select>
-        <select class="filter-select" id="filterStatusPPN">
-          <option value="">Status PPN</option>
-          <option value="Ada PPN">Ada PPN</option>
-          <option value="Tidak ada PPN">Tidak ada PPN</option>
-          <option value="Ditanggung Rekanan">Ditanggung Rekanan</option>
-        </select>
-        <select class="filter-select" id="filterKategori">
-          <option value="">Kategori</option>
-          {% for cat in categories %}
-          <option value="{{ cat }}">{{ cat }}</option>
-          {% endfor %}
-        </select>
-        <select class="filter-select" id="filterKodeBiaya">
-          <option value="">Kode Biaya</option>
-          {% for kb in kode_biaya_list %}
-          <option value="{{ kb[0] }}">{{ kb[0] }} — {{ kb[1] }}</option>
-          {% endfor %}
-        </select>
-        <select class="filter-select" id="filterStatusBayar">
-          <option value="">Status Bayar</option>
-          <option value="lunas">Lunas (DPP &amp; PPN)</option>
-          <option value="sebagian">Sebagian</option>
-          <option value="belum">Belum Bayar</option>
-        </select>
-        <select class="filter-select" id="filterJatuhTempo">
-          <option value="">Jatuh Tempo</option>
-          <option value="overdue">Lewat Jatuh Tempo</option>
-          <option value="due">Jatuh Tempo ≤ 30 hari</option>
-          <option value="safe">Aman (&gt; 30 hari)</option>
-          <option value="unpaid_no_due">Belum Bayar (tanpa JT)</option>
-        </select>
-        <div class="dd-filter dd-range" id="ddBerkas">
-          <button class="dd-toggle" type="button">
-            <i class="bi bi-calendar3" style="font-size: 0.78rem"></i>
-            <span class="dd-toggle-label">Tgl. Berkas</span>
-            <i class="bi bi-chevron-down"></i>
-          </button>
-          <div class="dd-panel dd-panel--range">
-            <div class="dd-range-head">Rentang Tgl. Berkas Lengkap</div>
-            <label class="dd-range-field">Dari
-              <input type="date" id="berkasFrom" aria-label="Tgl. Berkas dari tanggal" />
-            </label>
-            <label class="dd-range-field">Sampai
-              <input type="date" id="berkasTo" aria-label="Tgl. Berkas sampai tanggal" />
-            </label>
-            <button type="button" class="dd-range-clear" id="berkasClear">
-              <i class="bi bi-x-circle"></i> Hapus rentang
+
+        <div class="ft-top">
+          <div class="search-box ds-search ft-search">
+            <i class="bi bi-search"></i>
+            <input
+              type="text"
+              id="searchInput"
+              placeholder="Cari invoice, rekanan, PO, deskripsi..."
+              autocomplete="off"
+              aria-label="Cari data invoice"
+            />
+            <button type="button" class="ft-search-clear" id="searchClear" aria-label="Bersihkan pencarian" hidden>
+              <i class="bi bi-x-lg"></i>
             </button>
+            <kbd class="ft-search-kbd" aria-hidden="true">/</kbd>
           </div>
-        </div>
-        <div class="dd-filter dd-range" id="ddBayar">
-          <button class="dd-toggle" type="button">
-            <i class="bi bi-cash-stack" style="font-size: 0.78rem"></i>
-            <span class="dd-toggle-label">Tgl. Bayar DPP</span>
-            <i class="bi bi-chevron-down"></i>
+          <span class="ft-count" id="searchCount" aria-live="polite"></span>
+          <button type="button" class="filter-reset" id="filterReset" title="Reset semua filter">
+            <i class="bi bi-arrow-counterclockwise"></i> Reset
           </button>
-          <div class="dd-panel dd-panel--range">
-            <div class="dd-range-head">Rentang Tgl. Bayar DPP</div>
-            <label class="dd-range-field">Dari
-              <input type="date" id="bayarFrom" aria-label="Tgl. Bayar DPP dari tanggal" />
-            </label>
-            <label class="dd-range-field">Sampai
-              <input type="date" id="bayarTo" aria-label="Tgl. Bayar DPP sampai tanggal" />
-            </label>
-            <button type="button" class="dd-range-clear" id="bayarClear">
-              <i class="bi bi-x-circle"></i> Hapus rentang
-            </button>
+        </div>
+
+        <div class="ft-groups">
+
+          <div class="ft-cluster">
+            <span class="ft-cluster-label"><i class="bi bi-shield-check"></i> Status</span>
+            <select class="filter-select" id="filterStatusDPP" aria-label="Filter status DPP">
+              <option value="">DPP: Semua</option>
+              <option value="Lunas">DPP: Lunas</option>
+              <option value="Belum Lunas">DPP: Belum Lunas</option>
+            </select>
+            <select class="filter-select" id="filterStatusPPN" aria-label="Filter status PPN">
+              <option value="">PPN: Semua</option>
+              <option value="Lunas">PPN: Lunas</option>
+              <option value="Belum Lunas">PPN: Belum Lunas</option>
+              <option value="Tidak ada PPN">PPN: Tidak Ada</option>
+            </select>
+            <select class="filter-select" id="filterStatusBayar" aria-label="Filter status bayar">
+              <option value="">Bayar: Semua</option>
+              <option value="lunas">Bayar: Lunas</option>
+              <option value="sebagian">Bayar: Sebagian</option>
+              <option value="belum">Bayar: Belum</option>
+            </select>
           </div>
+
+          <div class="ft-cluster">
+            <span class="ft-cluster-label"><i class="bi bi-tags"></i> Klasifikasi</span>
+            <select class="filter-select" id="filterKategori" aria-label="Filter kategori">
+              <option value="">Kategori: Semua</option>
+              {% for cat in categories %}
+              <option value="{{ cat }}">{{ cat }}</option>
+              {% endfor %}
+            </select>
+            <select class="filter-select" id="filterKodeBiaya" aria-label="Filter kode biaya">
+              <option value="">Kode Biaya: Semua</option>
+              {% for kb in kode_biaya_list %}
+              <option value="{{ kb[0] }}">{{ kb[0] }} — {{ kb[1] }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="ft-cluster">
+            <span class="ft-cluster-label"><i class="bi bi-calendar3"></i> Tanggal</span>
+            <div class="dd-filter dd-range" id="ddBerkas">
+              <button class="dd-toggle" type="button" aria-haspopup="true" aria-expanded="false">
+                <i class="bi bi-file-earmark-text" style="font-size: 0.78rem"></i>
+                <span class="dd-toggle-label">Tgl. Berkas</span>
+                <i class="bi bi-chevron-down"></i>
+              </button>
+              <div class="dd-panel dd-panel--range">
+                <div class="dd-range-head">Rentang Tgl. Berkas Lengkap</div>
+                <label class="dd-range-field">Dari
+                  <input type="date" id="berkasFrom" aria-label="Tgl. Berkas dari tanggal" />
+                </label>
+                <label class="dd-range-field">Sampai
+                  <input type="date" id="berkasTo" aria-label="Tgl. Berkas sampai tanggal" />
+                </label>
+                <button type="button" class="dd-range-clear" id="berkasClear">
+                  <i class="bi bi-x-circle"></i> Hapus rentang
+                </button>
+              </div>
+            </div>
+            <div class="dd-filter dd-range" id="ddBayar">
+              <button class="dd-toggle" type="button" aria-haspopup="true" aria-expanded="false">
+                <i class="bi bi-cash-stack" style="font-size: 0.78rem"></i>
+                <span class="dd-toggle-label">Tgl. Bayar</span>
+                <i class="bi bi-chevron-down"></i>
+              </button>
+              <div class="dd-panel dd-panel--range">
+                <div class="dd-range-head">Rentang Tgl. Bayar DPP</div>
+                <label class="dd-range-field">Dari
+                  <input type="date" id="bayarFrom" aria-label="Tgl. Bayar DPP dari tanggal" />
+                </label>
+                <label class="dd-range-field">Sampai
+                  <input type="date" id="bayarTo" aria-label="Tgl. Bayar DPP sampai tanggal" />
+                </label>
+                <button type="button" class="dd-range-clear" id="bayarClear">
+                  <i class="bi bi-x-circle"></i> Hapus rentang
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="ft-cluster">
+            <span class="ft-cluster-label"><i class="bi bi-hourglass-split"></i> Jatuh Tempo</span>
+            <select class="filter-select" id="filterJatuhTempo" aria-label="Filter jatuh tempo">
+              <option value="">JT: Semua</option>
+              <option value="overdue">Lewat Jatuh Tempo</option>
+              <option value="due">Jatuh Tempo &le; 30 hari</option>
+              <option value="safe">Aman (&gt; 30 hari)</option>
+              <option value="unpaid_no_due">Belum Bayar (tanpa JT)</option>
+            </select>
+          </div>
+
+          <div class="ft-cluster">
+            <span class="ft-cluster-label"><i class="bi bi-cash-coin"></i> Sisa Hutang DPP</span>
+            <div class="dd-filter dd-range" id="ddSisa">
+              <button class="dd-toggle" type="button" aria-haspopup="true" aria-expanded="false">
+                <i class="bi bi-sliders" style="font-size: 0.78rem"></i>
+                <span class="dd-toggle-label">Rentang Nilai</span>
+                <i class="bi bi-chevron-down"></i>
+              </button>
+              <div class="dd-panel dd-panel--range">
+                <div class="dd-range-head">Rentang Sisa Hutang DPP</div>
+                <label class="dd-range-field">Min
+                  <input type="number" id="sisaMin" min="0" step="any" inputmode="numeric" placeholder="0" aria-label="Sisa hutang DPP minimum" />
+                </label>
+                <label class="dd-range-field">Maks
+                  <input type="number" id="sisaMax" min="0" step="any" inputmode="numeric" placeholder="Tak terbatas" aria-label="Sisa hutang DPP maksimum" />
+                </label>
+                <div class="dd-range-quick">
+                  <button type="button" data-sisa-min="1">Ada sisa</button>
+                  <button type="button" data-sisa-min="" data-sisa-max="0">Lunas</button>
+                </div>
+                <button type="button" class="dd-range-clear" id="sisaClear">
+                  <i class="bi bi-x-circle"></i> Hapus rentang
+                </button>
+              </div>
+            </div>
+          </div>
+
         </div>
-        <div class="search-box ds-search">
-          <i class="bi bi-search"></i>
-          <input
-            type="text"
-            id="searchInput"
-            placeholder="Cari invoice, rekanan, PO..."
-            autocomplete="off"
-          />
-          <span class="search-count" id="searchCount"></span>
-        </div>
-        <button type="button" class="filter-reset" id="filterReset" title="Reset semua filter">
-          <i class="bi bi-x-circle"></i> Reset
-        </button>
-      </div>
+
+        <div class="ft-chips" id="filterChips" hidden></div>
       </div>
     </div>
 
@@ -110,9 +165,9 @@
               NAMA LEVELANSIR <span class="sort-arrow">▲</span>
             </th>
             <th class="th-sort" data-col="2" style="width: 85px">
-              TGL BERKAS <span class="sort-arrow">▲</span>
+              TGL BERKAS LENGKAP <span class="sort-arrow">▲</span>
             </th>
-            <th class="th-sort" data-col="3" style="min-width: 90px">NO. INV INTERNAL <span class="sort-arrow">▲</span></th>
+            <th class="th-sort" data-col="3" style="min-width: 90px">NO. INV CICILAN <span class="sort-arrow">▲</span></th>
             <th class="th-sort" data-col="4" style="min-width: 110px">
               NO. INVOICE <span class="sort-arrow">▲</span>
             </th>
@@ -123,7 +178,7 @@
               TGL INVOICE <span class="sort-arrow">▲</span>
             </th>
             <th class="th-sort" data-col="7" style="width: 90px">
-              TGL TERIMA <span class="sort-arrow">▲</span>
+              TGL TERIMA BERKAS <span class="sort-arrow">▲</span>
             </th>
             <th class="th-sort" data-col="8" style="min-width: 110px">
               NO. SERI FAKTUR <span class="sort-arrow">▲</span>
@@ -226,13 +281,13 @@
               {% else %}<span class="badge-kategori">-</span>{% endif %}
             </td>
             <td class="text-center" data-type="text" data-v="{{ row['STATUS TERHADAP PPN'] or '' }}">
-              {% if row['STATUS TERHADAP PPN'] == 'Ada PPN' %}<span
+              {% if row['STATUS TERHADAP PPN'] == 'Lunas' %}<span
                 class="badge-status badge-lunas"
-                >Ada PPN</span
+                >Lunas</span
               >
-              {% elif row['STATUS TERHADAP PPN'] == 'Ditanggung Rekanan' %}<span
+              {% elif row['STATUS TERHADAP PPN'] == 'Belum Lunas' %}<span
                 class="badge-status badge-belum"
-                >Ditanggung</span
+                >Belum</span
               >
               {% else %}<span
                 class="badge-kategori"

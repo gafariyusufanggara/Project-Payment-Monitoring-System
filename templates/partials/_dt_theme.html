@@ -44,15 +44,12 @@
     box-shadow: var(--dt-shadow-md);
   }
 
-  /* ─── Filter Toolbar: aksi kanan atas, baris filter di bawah ─── */
+  /* ─── Filter Toolbar ─── */
   .dt-invoice .table-toolbar {
-    padding: 16px 22px;
+    padding: 14px 22px 16px;
     background: linear-gradient(135deg, #f7f8f9 0%, #eef0f2 100%);
     border-bottom: 1px solid var(--dt-border);
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 10px 12px;
+    display: block;
     position: relative;
   }
   .dt-invoice .table-toolbar::after {
@@ -70,18 +67,186 @@
     );
   }
 
-  
-  /* filter mengisi ruang dan membungkus baris sendiri bila perlu */
-  .dt-invoice .table-toolbar-filters { flex: 1 1 auto; order: 1; min-width: 0; }
+  .dt-invoice .table-toolbar-filters {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+  }
 
-  /* ─── Filter Controls ─── */
-  .dt-invoice .filter-group {
+  /* ─── Top row: search (flex-grow) + live count + reset ─── */
+  .dt-invoice .ft-top {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 10px;
     flex-wrap: wrap;
-    flex: 1;
-    justify-content: flex-start;
+  }
+  .dt-invoice .ft-top .search-box.ft-search {
+    flex: 1 1 320px;
+    max-width: 520px;
+  }
+  .dt-invoice .ft-top .search-box.ft-search input {
+    width: 100%;
+    padding-right: 56px;
+  }
+  .dt-invoice .ft-top .search-box.ft-search input:focus {
+    width: 100%;
+  }
+  .dt-invoice .ft-search-clear {
+    position: absolute;
+    right: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border: none;
+    border-radius: 50%;
+    background: #eef0f2;
+    color: #667080;
+    font-size: 0.6rem;
+    cursor: pointer;
+    transition: var(--dt-transition);
+  }
+  .dt-invoice .ft-search-clear:hover {
+    background: #fef0ee;
+    color: #912018;
+  }
+  .dt-invoice .ft-search-kbd {
+    position: absolute;
+    right: 34px;
+    padding: 1px 6px;
+    border: 1px solid var(--dt-border);
+    border-radius: 5px;
+    background: #f7f8f9;
+    color: #94a3b8;
+    font-size: 0.62rem;
+    font-family: "JetBrains Mono", monospace;
+    pointer-events: none;
+  }
+  .dt-invoice .ft-search:focus-within .ft-search-kbd,
+  .dt-invoice .ft-search:has(input:not(:placeholder-shown)) .ft-search-kbd {
+    display: none;
+  }
+  .dt-invoice .ft-count {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #4d5766;
+    white-space: nowrap;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: #eef0f2;
+    opacity: 0;
+    transition: var(--dt-transition);
+  }
+  .dt-invoice .ft-count.is-active {
+    opacity: 1;
+    background: var(--dt-accent-soft);
+    color: var(--dt-accent);
+  }
+  .dt-invoice .ft-top .filter-reset {
+    margin-left: auto;
+  }
+  .dt-invoice .filter-reset.is-active {
+    border-color: #e0a3a3;
+    background: #fef0ee;
+    color: #912018;
+  }
+
+  /* ─── Filter clusters (grouped by concern) ─── */
+  .dt-invoice .ft-groups {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 8px 10px;
+  }
+  .dt-invoice .ft-cluster {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 6px 10px 6px 8px;
+    border: 1px solid var(--dt-border);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.6);
+  }
+  .dt-invoice .ft-cluster-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding-right: 8px;
+    margin-right: 2px;
+    border-right: 1px solid var(--dt-border);
+    font-size: 0.66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: #667080;
+    white-space: nowrap;
+  }
+  .dt-invoice .ft-cluster-label i {
+    font-size: 0.72rem;
+    color: var(--dt-accent);
+  }
+  .dt-invoice .ft-cluster .filter-select,
+  .dt-invoice .ft-cluster .dd-toggle {
+    background: #fff;
+  }
+
+  /* ─── Active-filter chips ─── */
+  .dt-invoice .ft-chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    padding-top: 2px;
+  }
+  .dt-invoice .ft-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 4px 3px 9px;
+    border-radius: 20px;
+    background: #fff;
+    border: 1px solid #c4ddef;
+    box-shadow: 0 1px 2px rgba(51, 51, 51, 0.05);
+    font-size: 0.7rem;
+    animation: ft-chip-in 0.18s ease-out;
+  }
+  @keyframes ft-chip-in {
+    from { opacity: 0; transform: scale(0.92); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  .dt-invoice .ft-chip-lbl {
+    font-weight: 700;
+    color: var(--dt-accent);
+  }
+  .dt-invoice .ft-chip-val {
+    color: #33414f;
+    font-weight: 500;
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .dt-invoice .ft-chip-x {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: #eef0f2;
+    color: #667080;
+    font-size: 0.55rem;
+    cursor: pointer;
+    transition: var(--dt-transition);
+  }
+  .dt-invoice .ft-chip-x:hover {
+    background: #912018;
+    color: #fff;
   }
 
   .dt-invoice .filter-select {
@@ -223,6 +388,46 @@
   }
   .dt-invoice .dd-options input {
     accent-color: var(--dt-accent);
+  }
+  /* Range panel: number inputs + quick presets */
+  .dt-invoice .dd-panel--range .dd-range-field input[type="number"] {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: 100%;
+    padding: 5px 8px;
+    border-radius: 8px;
+    border: 1px solid var(--dt-border);
+    font-size: 0.73rem;
+    background: #fff;
+    color: var(--dt-navy);
+    font-family: inherit;
+  }
+  .dt-invoice .dd-panel--range .dd-range-field input[type="number"]:focus {
+    border-color: var(--dt-accent);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 86, 145, 0.12);
+  }
+  .dt-invoice .dd-range-quick {
+    display: flex;
+    gap: 6px;
+    margin: 2px 0 8px;
+  }
+  .dt-invoice .dd-range-quick button {
+    flex: 1;
+    padding: 5px 8px;
+    border-radius: 8px;
+    border: 1px solid var(--dt-border);
+    background: #f7f8f9;
+    color: var(--dt-accent);
+    font-size: 0.7rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: var(--dt-transition);
+  }
+  .dt-invoice .dd-range-quick button:hover {
+    border-color: var(--dt-accent);
+    background: var(--dt-accent-soft);
   }
 
   /* ─── Search ─── */
@@ -672,24 +877,30 @@
 
   /* ─── Responsive ─── */
   @media (max-width: 992px) {
-    .dt-invoice .filter-group {
-      justify-content: flex-start;
+    .dt-invoice .ft-top .search-box.ft-search {
+      flex: 1 1 100%;
+      max-width: none;
     }
-    .dt-invoice .search-box {
-      flex: 1;
+    .dt-invoice .ft-top .filter-reset {
+      margin-left: 0;
     }
-    .dt-invoice .search-box input {
-      width: 100%;
-    }
-    .dt-invoice .search-box input:focus {
-      width: 100%;
+    .dt-invoice .ft-cluster {
+      flex: 1 1 calc(50% - 10px);
     }
   }
-  @media (max-width: 576px) {
-    .dt-invoice .filter-group .filter-select,
-    .dt-invoice .filter-group .dd-toggle {
+  @media (max-width: 640px) {
+    .dt-invoice .ft-groups {
+      flex-direction: column;
+    }
+    .dt-invoice .ft-cluster {
+      flex: 1 1 auto;
+      width: 100%;
+    }
+    .dt-invoice .ft-cluster .filter-select,
+    .dt-invoice .ft-cluster .dd-toggle {
+      flex: 1 1 auto;
       font-size: 0.72rem;
-      padding: 5px 22px 5px 8px;
+      padding: 5px 22px 5px 10px;
     }
   }
 </style>

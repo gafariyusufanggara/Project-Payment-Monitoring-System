@@ -216,6 +216,8 @@ topbar_title %}Exclude{% endblock %} {% block topbar_icon %}bi-slash-circle{% en
     const n = document.querySelectorAll('#excSummary .st-chip').length;
     const t = document.getElementById('sumTotal'); if (t) t.textContent = n;
     const tb = document.getElementById('topbarExcNum'); if (tb) tb.textContent = n;
+    // Sidebar badge berada di luar #mainContent (tidak ikut HTMX) — sinkronkan.
+    if (window.syncExcludeBadges) window.syncExcludeBadges(n);
   }
   async function toggleExcluded(input) {
     const body = {

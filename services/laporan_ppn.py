@@ -37,7 +37,14 @@ def build_ppn_data(project_id=None, cutoff_date=None):
     rekan_cum, all_months, sorted_rekan, data = _build_cum(
         month_keyfn, filter_fn=_has_ppn, project_id=project_id, cutoff_date=cutoff_date)
 
+    # Ensure current month is included so the period dropdown always offers the
+    # running month even when no PPN transaction exists yet (matches DPP bulanan).
+    now_key = datetime.now().strftime('%Y-%m')
+    if now_key not in all_months:
+        all_months = sorted(all_months + [now_key])
+
     report_rows = []
+    vendor_last = {}  # most recent rc per rekan, for empty-month fallback
     for mk in all_months:
         y, m = mk.split('-')
         label = f'{month_names[int(m)]} {y}'
@@ -52,6 +59,29 @@ def build_ppn_data(project_id=None, cutoff_date=None):
         for rekan in sorted_rekan:
             rc = rekan_cum.get((rekan, mk))
             if rc is None:
+                # Fall back to last known cumulative state for empty months
+                # (e.g. the running month with no new PPN activity yet), so the
+                # carried-forward PPN balances still show instead of a blank page.
+                # Mirrors build_ppn_mingguan_data and build_laporan_data.
+                last = vendor_last.get(rekan)
+                if last is None:
+                    continue
+                rc = {
+                    'lalu_ppn': last['sd_ppn'],
+                    'saat_ini_ppn': 0,
+                    'sd_ppn': last['sd_ppn'],
+                    'lalu_bayar_ppn': last['sd_bayar_ppn'],
+                    'saat_ini_bayar_ppn': 0,
+                    'sd_bayar_ppn': last['sd_bayar_ppn'],
+                    'invoices': [],
+                    'count': 0,
+                    'ppn_pay_count': 0,
+                    'sisa_ppn': last['sisa_ppn'],
+                }
+            else:
+                vendor_last[rekan] = rc
+            # Skip vendors with no PPN activity at all up to/in this month.
+            if rc['sd_ppn'] == 0 and rc['sd_bayar_ppn'] == 0:
                 continue
 
             tot_lalu_ppn += rc['lalu_ppn']
