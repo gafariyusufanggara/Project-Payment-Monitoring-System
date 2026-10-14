@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %} {% block title %}Laporan Jatuh Tempo - Project Payment Monitoring System{% endblock %} {% block topbar_title %}Laporan Jatuh Tempo{% endblock %}
+﻿{% extends "base.html" %} {% block title %}Laporan Jatuh Tempo - Project Payment Monitoring System{% endblock %} {% block topbar_title %}Rekap Jatuh Tempo{% endblock %}
 {% block topbar_icon %}bi-calendar-x{% endblock %} {% set all_rekanan = [] %} {% for r in report_rows %} {% for s in r.rekanan_list %} {%
 if s.rekanan not in all_rekanan %} {% set _ = all_rekanan.append(s.rekanan) %}
 {% endif %} {% endfor %} {% endfor %} {% block topbar_badges %}

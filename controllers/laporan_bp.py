@@ -8,7 +8,10 @@ from datetime import datetime, date
 
 from flask import Blueprint, render_template, send_file, request, jsonify
 
-from services.laporan import build_laporan_data, build_mingguan_data, build_excel_export, build_weekly_excel_export, build_jatuh_tempo_data
+from services.laporan import (build_laporan_data, build_mingguan_data,
+                              build_excel_export, build_weekly_excel_export,
+                              build_jatuh_tempo_data,
+                              current_week_key, current_month_key)
 from services.jt_excel import build_jt_excel
 from services.laporan_ppn import build_ppn_data, build_ppn_mingguan_data
 
@@ -215,3 +218,44 @@ def laporan_ppn_mingguan_export():
         as_attachment=True,
         download_name=f'LPPM_Monitoring_Hutang_{label}.xlsx',
     )
+
+
+# ── RINGKASAN PERIODE (Inv. Minggu Ini / Inv. Bulan Ini) ──────────────
+# Halaman ringkas: invoice yang MASUK periode berjalan (kolom "Saat Ini"
+# pada Rekap DPP) + pembayaran DPP periode tsb. Memakai builder yang sama
+# dengan Rekap agar angka selalu konsisten.
+
+def _ringkasan_minggu_ini(project_id):
+    report_rows, _ = build_mingguan_data(project_id=project_id)
+    key = current_week_key()
+    row = next((r for r in report_rows if r['key'] == key), None)
+    return key, row
+
+
+def _ringkasan_bulan_ini(project_id):
+    report_rows, _ = build_laporan_data(project_id=project_id)
+    key = current_month_key()
+    row = next((r for r in report_rows if r['key'] == key), None)
+    return key, row
+
+
+@bp.route('/inv-minggu-ini')
+def inv_minggu_ini():
+    from services.project_context import get_read_filter
+    key, row = _ringkasan_minggu_ini(get_read_filter())
+    return render_template('inv_periode.html',
+                           mode='minggu',
+                           period_key=key,
+                           period_label=(row or {}).get('label_long', key),
+                           row=row)
+
+
+@bp.route('/inv-bulan-ini')
+def inv_bulan_ini():
+    from services.project_context import get_read_filter
+    key, row = _ringkasan_bulan_ini(get_read_filter())
+    return render_template('inv_periode.html',
+                           mode='bulan',
+                           period_key=key,
+                           period_label=(row or {}).get('label', key),
+                           row=row)

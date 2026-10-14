@@ -151,6 +151,31 @@ def inject_notif_counts():
         _tip.append('Kategori: ' + _short(EXCLUDED_CATEGORIES))
     if rek_n:
         _tip.append('Rekanan: ' + _short(EXCLUDED_REKANAN))
+    # Total levelansir aktif periode berjalan (untuk badge sidebar Inv. Minggu/Bulan Ini).
+    # Ringan: single SQL COUNT DISTINCT, konsisten dgn tabel Ringkasan Levelansir.
+    from services.laporan import current_week_key, current_month_key
+    from datetime import date as _date, timedelta as _td, datetime as _dt
+    def _week_range(key):
+        y, w = key.split('-W')
+        monday = _dt.fromisocalendar(int(y), int(w), 1)
+        start = monday - _td(days=1)          # Sunday
+        end = start + _td(days=6)             # Saturday
+        return start.date().isoformat(), end.date().isoformat()
+    def _month_range(key):
+        y, m = (int(x) for x in key.split('-'))
+        start = _date(y, m, 1)
+        end = _date(y + (m // 12), (m % 12) + 1, 1) - _td(days=1)
+        return start.isoformat(), end.isoformat()
+    try:
+        _ws, _we = _week_range(current_week_key())
+        period_week_vendors = db.count_period_vendors(_ws, _we, _rf)
+    except Exception:
+        period_week_vendors = 0
+    try:
+        _ms, _me = _month_range(current_month_key())
+        period_month_vendors = db.count_period_vendors(_ms, _me, _rf)
+    except Exception:
+        period_month_vendors = 0
     return {
         'update_label': _fmt_upd(_latest),
         'update_inv_ts': _inv_ts,
@@ -167,6 +192,8 @@ def inject_notif_counts():
         'verification_completion': counts['completion_count'],
         'verification_warning': counts['warning_count'],
         'audit_total': audit_total,
+        'period_week_vendors': period_week_vendors,
+        'period_month_vendors': period_month_vendors,
         'form_fields': FORM_FIELDS,
         'date_fields': DATE_FIELDS,
         'numeric_fields': NUMERIC_FIELDS,

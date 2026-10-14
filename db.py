@@ -356,3 +356,48 @@ def count_excluded_rows(project_id=None):
             params,
         )
         return cur.fetchone()[0] or 0
+
+
+def count_period_vendors(period_start, period_end, project_id=None):
+    """COUNT levelansir/rekanan yang PUNYA AKTIVITAS dalam rentang periode.
+
+    Definisi identik dengan tabel "Ringkasan Levelansir" di Inv. Minggu/Bulan
+    Ini: rekanan yang punya baris hutang masuk periode (TGL TERIMA di rentang)
+    ATAU pembayaran DPP periode (TGL BAYAR DPP di rentang). PPN/PPH/Retensi
+    mengikuti TGL TERIMA sehingga sudah tercakup.
+
+    Ringan (single SQL COUNT DISTINCT) — sama seperti count_excluded_rows,
+    agar context processor badge tidak perlu memuat seluruh tabel.
+
+    period_start, period_end: 'YYYY-MM-DD' (inklusif). project_id mengikuti
+    aturan scope read_data. Rekanan kosong ('') diabaikan.
+    """
+    from constants import EXCLUDED_CATEGORIES, EXCLUDED_REKANAN
+    params = [period_start, period_end, period_start, period_end]
+    excl = []
+    cats = [c.strip().lower() for c in EXCLUDED_CATEGORIES if (c or '').strip()]
+    reks = [r.strip().lower() for r in EXCLUDED_REKANAN if (r or '').strip()]
+    if cats:
+        excl.append('LOWER(TRIM(COALESCE("KATEGORI", \'\'))) IN (%s)'
+                    % ','.join('?' for _ in cats))
+        params.extend(cats)
+    if reks:
+        excl.append('LOWER(TRIM(COALESCE("NAMA LEVELANSIR / REKANAN", \'\'))) IN (%s)'
+                    % ','.join('?' for _ in reks))
+        params.extend(reks)
+    where = (
+        '("TGL TERIMA" BETWEEN ? AND ? OR "TGL BAYAR DPP" BETWEEN ? AND ?)'
+        ' AND TRIM(COALESCE("NAMA LEVELANSIR / REKANAN", \'\')) <> \'\''
+    )
+    if excl:
+        where += ' AND NOT (%s)' % (' OR '.join(excl))
+    if project_id is not None and str(project_id) not in ('all', ''):
+        where += ' AND "project_id" = ?'
+        params.append(str(project_id))
+    with _conn() as conn:
+        cur = conn.execute(
+            'SELECT COUNT(DISTINCT TRIM("NAMA LEVELANSIR / REKANAN")) '
+            'FROM hutang WHERE %s' % where,
+            params,
+        )
+        return cur.fetchone()[0] or 0

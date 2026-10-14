@@ -96,29 +96,37 @@
         </div>
         <nav class="sidebar-nav">
           {% block sidebar_nav %}
+          <div class="sidebar-section">Ringkasan</div>
           <button class="nav-item" onclick="navigateTo('/dashboard')">
             <i class="bi bi-grid-1x2"></i> <span>Dashboard</span>
           </button>
-
-          <div class="sidebar-section">Project Management</div>
-          <button class="nav-item" onclick="navigateTo('/project/')">
-            <i class="bi bi-building"></i> <span>Daftar Proyek</span>
+          <button class="nav-item" onclick="navigateTo('/inv-minggu-ini')">
+            <i class="bi bi-calendar-week"></i> <span>Inv. Minggu Ini</span>
+            {% if period_week_vendors|default(0) > 0 %}
+            <span class="nav-badge nav-badge-neutral" title="{{ period_week_vendors }} levelansir aktif minggu ini">{{ period_week_vendors }}</span>
+            {% endif %}
+          </button>
+          <button class="nav-item" onclick="navigateTo('/inv-bulan-ini')">
+            <i class="bi bi-calendar3"></i> <span>Inv. Bulan Ini</span>
+            {% if period_month_vendors|default(0) > 0 %}
+            <span class="nav-badge nav-badge-neutral" title="{{ period_month_vendors }} levelansir aktif bulan ini">{{ period_month_vendors }}</span>
+            {% endif %}
+          </button>
+          <button class="nav-item" onclick="navigateTo('/levelansir-retensi')">
+            <i class="bi bi-person-lock"></i> <span>Retensi</span>
           </button>
 
-          <div class="sidebar-section">Procurement</div>
+          <div class="sidebar-section">Progress</div>
           <button class="nav-item" onclick="navigateTo('/kontrak/')">
-            <i class="bi bi-file-earmark-text"></i> <span>Kontrak Vendor</span>
+            <i class="bi bi-file-earmark-text"></i> <span>Progress Kontrak</span>
+          </button>
+          <button class="nav-item" onclick="navigateTo('/invoice-cicilan')">
+            <i class="bi bi-arrow-repeat"></i> <span>Progress Cicilan</span>
           </button>
 
           <div class="sidebar-section">Data Transaksi</div>
           <button class="nav-item" onclick="navigateTo('/data-hutang')">
             <i class="bi bi-table"></i> <span>Data Invoice</span>
-          </button>
-          <button class="nav-item" onclick="navigateTo('/invoice-cicilan')">
-            <i class="bi bi-arrow-repeat"></i> <span>Invoice Cicilan</span>
-          </button>
-          <button class="nav-item" onclick="navigateTo('/levelansir-retensi')">
-            <i class="bi bi-person-lock"></i> <span>Levelansir / Retensi</span>
           </button>
 
           <div class="sidebar-section">Kepatuhan</div>
@@ -144,27 +152,27 @@
             {% endif %}
           </button>
 
-          <div class="sidebar-section">Laporan Invoice</div>
+          <div class="sidebar-section">Rekap Invoice</div>
           <button class="nav-item" onclick="navigateTo('/laporan-bulanan')">
             <i class="bi bi-file-earmark-bar-graph"></i>
-            <span>Laporan DPP Bulanan</span>
+            <span>Rekap DPP Bulanan</span>
           </button>
           <button class="nav-item" onclick="navigateTo('/laporan-mingguan')">
             <i class="bi bi-calendar-week"></i>
-            <span>Laporan DPP Mingguan</span>
+            <span>Rekap DPP Mingguan</span>
           </button>
           <button class="nav-item" onclick="navigateTo('/laporan-jatuh-tempo')">
-            <i class="bi bi-calendar-x"></i> <span>Laporan Jatuh Tempo</span>
+            <i class="bi bi-calendar-x"></i> <span>Rekap Jatuh Tempo</span>
           </button>
 
-          <div class="sidebar-section">Laporan Pajak</div>
+          <div class="sidebar-section">Rekap Pajak</div>
           <button class="nav-item" onclick="navigateTo('/laporan-ppn')">
             <i class="bi bi-file-earmark-text"></i>
-            <span>Laporan PPN Bulanan</span>
+            <span>Rekap PPN Bulanan</span>
           </button>
           <button class="nav-item" onclick="navigateTo('/laporan-ppn-mingguan')">
             <i class="bi bi-calendar-week"></i>
-            <span>Laporan PPN Mingguan</span>
+            <span>Rekap PPN Mingguan</span>
           </button>
 
           <div class="sidebar-section">Import Data</div>
@@ -176,6 +184,9 @@
           </button>
 
           <div class="sidebar-section">Sistem</div>
+          <button class="nav-item" onclick="navigateTo('/project/')">
+            <i class="bi bi-building"></i> <span>Daftar Proyek</span>
+          </button>
           {% set _exc_n = exclude_cat_count|default(0) + exclude_rek_count|default(0) %}
           <button class="nav-item" onclick="navigateTo('/pengaturan')" id="navExclude">
             <i class="bi bi-slash-circle"></i> <span>Exclude Rekanan</span>
@@ -223,7 +234,7 @@
             </div>
             {% endblock %}
             <div class="topbar-badges">
-              <a class="topbar-badge" id="topbarExcludeBadge" style="background:#fdf6d8;color:#8a6d00;text-decoration:none;{% if (exclude_cat_count|default(0) + exclude_rek_count|default(0)) == 0 or request.path == '/pengaturan' %}display:none{% endif %}" href="/pengaturan" onclick="navigateTo('/pengaturan');return false;" title="{{ exclude_tip }} - tidak ikut dihitung di Dashboard & Laporan. Klik untuk ubah."><i class="bi bi-eye-slash"></i> Exclude: <span id="topbarExcludeDetail">{% if exclude_cat_count %}{{ exclude_cat_count }} kat{% endif %}{% if exclude_cat_count and exclude_rek_count %} • {% endif %}{% if exclude_rek_count %}{{ exclude_rek_count }} rekanan{% endif %} ({{ exclude_row_count }} baris)</span></a>
+              <a class="topbar-badge" id="topbarExcludeBadge" style="background:#fdf6d8;color:#8a6d00;text-decoration:none;{% if (exclude_cat_count|default(0) + exclude_rek_count|default(0)) == 0 or request.path == '/pengaturan' %}display:none{% endif %}" href="/pengaturan" onclick="navigateTo('/pengaturan');return false;" title="{{ exclude_tip }} - tidak ikut dihitung di Dashboard & Rekap. Klik untuk ubah."><i class="bi bi-eye-slash"></i> Exclude: <span id="topbarExcludeDetail">{% if exclude_cat_count %}{{ exclude_cat_count }} kat{% endif %}{% if exclude_cat_count and exclude_rek_count %} • {% endif %}{% if exclude_rek_count %}{{ exclude_rek_count }} rekanan{% endif %} ({{ exclude_row_count }} baris)</span></a>
               {% block topbar_badges %}{% endblock %}
             </div>
             <span class="topbar-divider" aria-hidden="true"></span>
@@ -604,8 +615,9 @@
       // Navigasi via HTMX: hanya #mainContent yang di-swap, sidebar tetap.
       // Hanya rute yang halaman-nya sudah "HTMX-ready" yang pakai swap; sisanya
       // fallback ke navigasi penuh (agar script halaman tetap berjalan normal).
-      const HTMX_READY_ROUTES = [
-          '/dashboard', '/data-hutang', '/levelansir-retensi', '/invoice-cicilan',
+          const HTMX_READY_ROUTES = [
+              '/dashboard', '/inv-minggu-ini', '/inv-bulan-ini',
+              '/data-hutang', '/levelansir-retensi', '/invoice-cicilan',
           '/kontrak/', '/kontrak/import', '/project/', '/verifikasi', '/audit', '/import',
           '/laporan-bulanan', '/laporan-mingguan', '/laporan-jatuh-tempo',
           '/laporan-ppn', '/laporan-ppn-mingguan', '/pengaturan',
@@ -653,30 +665,34 @@
           let activeText;
           if (path === '/dashboard') {
               activeText = 'Dashboard';
+          } else if (path === '/inv-minggu-ini') {
+              activeText = 'Inv. Minggu Ini';
+          } else if (path === '/inv-bulan-ini') {
+              activeText = 'Inv. Bulan Ini';
           } else if (path.startsWith('/project/')) {
               activeText = 'Daftar Proyek';
           } else if (path === '/kontrak/import') {
               activeText = 'Import Kontrak';
           } else if (path.startsWith('/kontrak')) {
-              activeText = 'Kontrak Vendor';
+              activeText = 'Progress Kontrak';
           } else if (path === '/data-hutang') {
               activeText = 'Data Invoice';
           } else if (path === '/invoice-cicilan') {
-              activeText = 'Invoice Cicilan';
+              activeText = 'Progress Cicilan';
           } else if (path === '/levelansir-retensi') {
-              activeText = 'Levelansir / Retensi';
+              activeText = 'Retensi';
           } else if (path === '/import') {
               activeText = 'Import Invoice';
           } else if (path === '/laporan-bulanan') {
-              activeText = 'Laporan DPP Bulanan';
+              activeText = 'Rekap DPP Bulanan';
           } else if (path === '/laporan-mingguan') {
-              activeText = 'Laporan DPP Mingguan';
+              activeText = 'Rekap DPP Mingguan';
           } else if (path === '/laporan-jatuh-tempo') {
-              activeText = 'Laporan Jatuh Tempo';
+              activeText = 'Rekap Jatuh Tempo';
           } else if (path === '/laporan-ppn') {
-              activeText = 'Laporan PPN Bulanan';
+              activeText = 'Rekap PPN Bulanan';
           } else if (path === '/laporan-ppn-mingguan') {
-              activeText = 'Laporan PPN Mingguan';
+              activeText = 'Rekap PPN Mingguan';
           } else if (path === '/verifikasi' || path === '/verifikasi/ignore') {
               activeText = 'Verifikasi Data';
           } else if (path === '/audit') {

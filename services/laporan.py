@@ -193,9 +193,13 @@ def _build_cum(rekan_keyfn, filter_fn=None, project_id=None, cutoff_date=None):
                 'lalu_bayar': lalu_b,
                 'saat_ini_bayar': si_bayar,
                 'sd_bayar': cb,
-                'lalu_ppn': lalu_ppn,
-                'saat_ini_ppn': h_rec['ppn'] if h_rec else 0,
-                'sd_ppn': cppn,
+            'lalu_ppn': lalu_ppn,
+            'saat_ini_ppn': h_rec['ppn'] if h_rec else 0,
+            # PPh & Retensi hanya dipakai sebagai info "masuk periode" (by TGL BERKAS);
+            # kumulatifnya (crett/cpph) tidak dipakai laporan mingguan/bulanan ini.
+            'saat_ini_pph': h_rec['pot_pph'] if h_rec else 0,
+            'saat_ini_retensi': h_rec['retensi'] if h_rec else 0,
+            'sd_ppn': cppn,
                 'lalu_bayar_ppn': lalu_bayar_ppn,
                 'saat_ini_bayar_ppn': si_bayar_ppn,
                 'sd_bayar_ppn': cbpn,
@@ -242,6 +246,10 @@ def build_laporan_data(project_id=None, cutoff_date=None):
         tot_lalu_bayar = tot_saat_ini_bayar = tot_sd_bayar = 0
         tot_sisa_dpp = 0
         tot_sisa_ppn = 0
+        tot_bayar_ppn = 0
+        tot_saat_ini_ppn = 0
+        tot_saat_ini_pph = 0
+        tot_saat_ini_retensi = 0
         month_total_count = 0
         month_total_pay_count = 0
 
@@ -262,6 +270,8 @@ def build_laporan_data(project_id=None, cutoff_date=None):
                     'sd_bayar': last['sd_bayar'],
                     'lalu_ppn': last['sd_ppn'],
                     'saat_ini_ppn': 0,
+                    'saat_ini_pph': 0,
+                    'saat_ini_retensi': 0,
                     'sd_ppn': last['sd_ppn'],
                     'lalu_bayar_ppn': last['sd_bayar_ppn'],
                     'saat_ini_bayar_ppn': 0,
@@ -287,6 +297,10 @@ def build_laporan_data(project_id=None, cutoff_date=None):
             tot_sd_bayar += rc['sd_bayar']
             tot_sisa_dpp += rc['sisa_dpp']
             tot_sisa_ppn += rc['sisa_ppn']
+            tot_saat_ini_ppn += rc['saat_ini_ppn']
+            tot_saat_ini_pph += rc['saat_ini_pph']
+            tot_saat_ini_retensi += rc['saat_ini_retensi']
+            tot_bayar_ppn += rc.get('saat_ini_bayar_ppn', 0)
 
             # Include EVERY vendor that has any history up to/in this month, even
             # those with no new hutang/bayar activity this period (Lalu-only rows).
@@ -300,15 +314,19 @@ def build_laporan_data(project_id=None, cutoff_date=None):
                 'saat_ini_hutang': rc['saat_ini_hutang'],
                 'sd_hutang': rc['sd_hutang'],
                 'lalu_bayar': rc['lalu_bayar'],
-                'saat_ini_bayar': rc['saat_ini_bayar'],
-                'sd_bayar': rc['sd_bayar'],
-                'sisa': sisa,
-                'sisa_dpp': sisa_dpp,
-                'sisa_ppn': sisa_ppn,
-                'invoices': rc['invoices'],
-                'count': rc['count'],
-                'pay_count': rc['pay_count'],
-            })
+            'saat_ini_bayar': rc['saat_ini_bayar'],
+            'saat_ini_ppn': rc['saat_ini_ppn'],
+            'saat_ini_bayar_ppn': rc.get('saat_ini_bayar_ppn', 0),
+            'saat_ini_pph': rc['saat_ini_pph'],
+            'saat_ini_retensi': rc['saat_ini_retensi'],
+            'sd_bayar': rc['sd_bayar'],
+            'sisa': sisa,
+            'sisa_dpp': sisa_dpp,
+            'sisa_ppn': sisa_ppn,
+            'invoices': rc['invoices'],
+            'count': rc['count'],
+            'pay_count': rc['pay_count'],
+        })
             month_total_count += rc['count']
             month_total_pay_count += rc['pay_count']
 
@@ -332,6 +350,10 @@ def build_laporan_data(project_id=None, cutoff_date=None):
                 'sisa': tot_sisa,
                 'sisa_dpp': tot_sisa_dpp,
                 'sisa_ppn': tot_sisa_ppn,
+                'saat_ini_ppn': tot_saat_ini_ppn,
+                'saat_ini_pph': tot_saat_ini_pph,
+                'saat_ini_retensi': tot_saat_ini_retensi,
+                'saat_ini_bayar_ppn': tot_bayar_ppn,
             },
         })
 
@@ -381,6 +403,22 @@ def _week_key(dt):
     return f'{iso_year}-W{iso_week:02d}'
 
 
+def current_week_key(now=None):
+    """Week key ('YYYY-Www') for the Sun–Sat week containing `now` (default: today).
+
+    Reuses `_week_key` so the definition stays identical to the weekly report.
+    """
+    now = now or datetime.now()
+    wd = (now.weekday() + 1) % 7      # Sun=0 … Sat=6
+    sunday = now - timedelta(days=wd)
+    return _week_key(sunday)
+
+
+def current_month_key(now=None):
+    """Month key ('YYYY-MM') for the month containing `now` (default: today)."""
+    return (now or datetime.now()).strftime('%Y-%m')
+
+
 def build_mingguan_data(project_id=None, cutoff_date=None):
     """Compute the weekly laporan dataset (period = Sunday..Saturday week).
 
@@ -424,6 +462,10 @@ def build_mingguan_data(project_id=None, cutoff_date=None):
         tot_lalu_bayar = tot_saat_ini_bayar = tot_sd_bayar = 0
         tot_sisa_dpp = 0
         tot_sisa_ppn = 0
+        tot_bayar_ppn = 0
+        tot_saat_ini_ppn = 0
+        tot_saat_ini_pph = 0
+        tot_saat_ini_retensi = 0
         month_total_count = 0
         month_total_pay_count = 0
 
@@ -463,6 +505,10 @@ def build_mingguan_data(project_id=None, cutoff_date=None):
             tot_sd_bayar += rc['sd_bayar']
             tot_sisa_dpp += rc['sisa_dpp']
             tot_sisa_ppn += rc['sisa_ppn']
+            tot_saat_ini_ppn += rc['saat_ini_ppn']
+            tot_saat_ini_pph += rc['saat_ini_pph']
+            tot_saat_ini_retensi += rc['saat_ini_retensi']
+            tot_bayar_ppn += rc.get('saat_ini_bayar_ppn', 0)
 
             # Include EVERY vendor with any history up to/in this week (Lalu-only rows),
             # so totals match the KPI cumulative values.
@@ -475,15 +521,19 @@ def build_mingguan_data(project_id=None, cutoff_date=None):
                 'saat_ini_hutang': rc['saat_ini_hutang'],
                 'sd_hutang': rc['sd_hutang'],
                 'lalu_bayar': rc['lalu_bayar'],
-                'saat_ini_bayar': rc['saat_ini_bayar'],
-                'sd_bayar': rc['sd_bayar'],
-                'sisa': sisa,
-                'sisa_dpp': sisa_dpp,
-                'sisa_ppn': sisa_ppn,
-                'invoices': rc['invoices'],
-                'count': rc['count'],
-                'pay_count': rc['pay_count'],
-            })
+            'saat_ini_bayar': rc['saat_ini_bayar'],
+            'saat_ini_ppn': rc['saat_ini_ppn'],
+            'saat_ini_bayar_ppn': rc.get('saat_ini_bayar_ppn', 0),
+            'saat_ini_pph': rc['saat_ini_pph'],
+            'saat_ini_retensi': rc['saat_ini_retensi'],
+            'sd_bayar': rc['sd_bayar'],
+            'sisa': sisa,
+            'sisa_dpp': sisa_dpp,
+            'sisa_ppn': sisa_ppn,
+            'invoices': rc['invoices'],
+            'count': rc['count'],
+            'pay_count': rc['pay_count'],
+        })
             month_total_count += rc['count']
             month_total_pay_count += rc['pay_count']
 
@@ -510,6 +560,10 @@ def build_mingguan_data(project_id=None, cutoff_date=None):
                 'sisa': tot_sisa,
                 'sisa_dpp': tot_sisa_dpp,
                 'sisa_ppn': tot_sisa_ppn,
+                'saat_ini_ppn': tot_saat_ini_ppn,
+                'saat_ini_pph': tot_saat_ini_pph,
+                'saat_ini_retensi': tot_saat_ini_retensi,
+                'saat_ini_bayar_ppn': tot_bayar_ppn,
             },
         })
 

@@ -259,12 +259,14 @@
         flex: 1;
         padding: 16px 12px;
         overflow-y: auto;
+        display: flex;
+        flex-direction: column;
       }
       .sidebar-nav .nav-item {
         display: flex;
         align-items: center;
         gap: 12px;
-        padding: 12px 14px;
+        padding: 11px 14px;
         border-radius: 10px;
         font-size: 0.82rem;
         font-weight: 500;
@@ -274,9 +276,12 @@
         width: 100%;
         text-align: left;
         color: rgba(255, 255, 255, 0.6);
-        margin-bottom: 4px;
+        margin-bottom: 2px;
         transition: all 0.2s;
         white-space: nowrap;
+      }
+      .sidebar-nav .nav-item:last-child {
+        margin-bottom: 0;
       }
       .sidebar-nav .nav-item:hover {
         background: rgba(255, 255, 255, 0.08);
@@ -347,13 +352,16 @@
         line-height: 18px;
       }
       .sidebar-section {
-        padding: 8px 14px 4px;
+        padding: 6px 14px 4px;
         font-size: 0.6rem;
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 1px;
         color: rgba(255, 255, 255, 0.25);
-        margin-top: 8px;
+        margin-top: 18px;
+      }
+      .sidebar-section:first-child {
+        margin-top: 4px;
       }
       .sidebar-footer {
         padding: 16px 20px;

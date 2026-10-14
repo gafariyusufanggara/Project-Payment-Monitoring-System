@@ -816,7 +816,6 @@ function buildDailyChart(data, month) {
     const hutangDPP = filtered.map(d => d[1].hutang_jt_dpp);
     const bayarDPP = filtered.map(d => d[1].bayar_jt_dpp);
     const sisaDPP = filtered.map(d => d[1].sisa_dpp);
-    const sisaPPN = filtered.map(d => d[1].sisa_ppn);
 
     // Rebuild table
     const tbody = document.getElementById('dailyTableBody');
@@ -826,10 +825,9 @@ function buildDailyChart(data, month) {
                 <td style="font-weight:600">${d[1].tgl}</td>
                 <td class="cell-money">${money(d[1].hutang_jt_dpp)}</td>
                 <td class="cell-money" style="color:#0f766e">${money(d[1].bayar_jt_dpp)}</td>
-                <td class="cell-money" style="color:#E5B800">${money(d[1].sisa_dpp)}</td>
-                <td class="cell-money" style="color:#16324f">${money(d[1].sisa_ppn)}</td>
+                <td class="cell-money" style="color:${d[1].sisa_dpp > 0 ? '#b42318' : '#0f766e'};font-weight:700">${money(d[1].sisa_dpp)}</td>
             </tr>
-        `).join('') : '<tr><td colspan="5" class="text-center text-muted small py-3">Tidak ada data</td></tr>';
+        `).join('') : '<tr><td colspan="4" class="text-center text-muted small py-3">Tidak ada data</td></tr>';
     }
 
     if (dailyChart) dailyChart.destroy();

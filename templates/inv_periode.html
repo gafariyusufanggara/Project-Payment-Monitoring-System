@@ -1,0 +1,407 @@
+{% extends "base.html" %}
+{% set is_minggu = (mode == 'minggu') %}
+{% set _ptitle = 'Inv. Minggu Ini' if is_minggu else 'Inv. Bulan Ini' %}
+{% set _picon = 'bi-calendar-week' if is_minggu else 'bi-calendar3' %}
+{% block title %}{{ _ptitle }} - Project Payment Monitoring System{% endblock %}
+{% block topbar_title %}{{ _ptitle }}{% endblock %}
+{% block topbar_icon %}{{ _picon }}{% endblock %}
+
+{% block content %}
+<!--
+  Inv. Minggu Ini / Inv. Bulan Ini — halaman RINGKAS.
+  Angka memakai definisi yang sama dengan Rekap DPP (kolom "Saat Ini"):
+    • Invoice masuk periode  = hutang yang TGL BERKAS-nya jatuh di periode berjalan
+    • Pembayaran DPP periode = pembayaran yang TGL BAYAR DPP-nya jatuh di periode berjalan
+  Minggu = Minggu–Sabtu (Sun–Sat), identik dengan Rekap DPP Mingguan.
+-->
+{% set k = (row.kpi if row else {}) or {} %}
+{% set masuk_hutang = k.get('saat_ini_hutang', 0) %}
+{% set masuk_bayar = k.get('saat_ini_bayar', 0) %}
+{% set masuk_ppn = k.get('saat_ini_ppn', 0) %}
+{% set masuk_pph = k.get('saat_ini_pph', 0) %}
+{% set masuk_retensi = k.get('saat_ini_retensi', 0) %}
+{% set masuk_bayar_ppn = k.get('saat_ini_bayar_ppn', 0) %}
+{% set sisa_dpp = k.get('sisa_dpp', 0) %}
+{% set sisa_ppn = k.get('sisa_ppn', 0) %}
+
+<style>
+  .rp-wrap { display: flex; flex-direction: column; gap: 16px; max-width: 1180px; margin: 0 auto; }
+  .rp-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  }
+  .rp-head__period {
+    font-size: .8rem; font-weight: 700; color: #244866; background: #eaf0f6;
+    padding: 5px 12px; border-radius: 999px; white-space: nowrap;
+  }
+  .rp-head__period i { margin-right: 4px; }
+  .rp-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .ds-kpi--compact { padding: 12px 14px; display: flex; align-items: center; gap: 12px; }
+  .ds-kpi--compact .ds-kpi__value { font-size: 1.05rem; }
+  .ds-kpi--compact .ds-kpi__hint { margin-top: 1px; }
+  .kpi-ico {
+    width: 38px; height: 38px; min-width: 38px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center; font-size: 1rem;
+  }
+  .kpi-ico--blue { background: #eaf0f6; color: #16324f; }
+  .kpi-ico--green { background: #e6f4f1; color: #115e59; }
+  .kpi-ico--rose { background: #fef0ee; color: #912018; }
+  .kpi-ico--amber { background: #fdf6d8; color: #8a6d00; }
+  .rp-card { background: #fff; border: 1px solid #e3e5e8; border-radius: 16px; box-shadow: 0 1px 3px rgba(51,51,51,.05); }
+  .rp-card__body { padding: 0; }
+  .rp-card__title {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    padding: 14px 20px; border-bottom: 1px solid #eef0f2;
+    font-size: .8rem; font-weight: 700; color: #16324f;
+  }
+  .rp-card__title .tag {
+    font-size: .68rem; font-weight: 700; padding: 2px 9px; border-radius: 999px;
+    background: #eef0f2; color: #4d5766;
+  }
+  .rp-scroll { max-height: 560px; overflow: auto; }
+  .rp-tbl { width: 100%; border-collapse: separate; border-spacing: 0; font-size: .78rem; }
+  /* Badge jumlah invoice/pembayaran di nama levelansir (warna dari laporan.css).
+     Ukuran di-set lokal karena .lp-tbl tbody td .inv-badge di laporan.css tidak
+     menjangkau tabel .rp-tbl. */
+  .rp-tbl tbody td .inv-badge {
+    font-family: "Inter", system-ui, sans-serif; font-size: .55rem; font-weight: 800;
+    padding: 1px 7px; border-radius: 5px; margin-left: 6px; vertical-align: middle;
+    display: inline-block;
+  }
+  /* Baris dapat diklik untuk membuka modal detail invoice (pola Dashboard). */
+  .rp-row { cursor: pointer; }
+  .rp-row:hover td { background: #eaf0f6 !important; }
+  .rp-row:focus-visible { outline: 2px solid #16324f; outline-offset: -2px; }
+  .rp-tbl thead th {
+    position: sticky; top: 0; z-index: 2;
+    background: linear-gradient(180deg, #244866 0%, #16324f 100%); color: #c9ccd1;
+    font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px;
+    padding: 9px 12px; white-space: nowrap; border: none; text-align: left;
+  }
+  .rp-tbl thead th.ar { text-align: right; }
+  .rp-tbl tbody td { padding: 8px 12px; vertical-align: middle; border-bottom: 1px solid #eef0f2; white-space: nowrap; }
+  .rp-tbl tbody tr:nth-child(even) td { background: #f7f8f9; }
+  .rp-tbl tbody tr:hover td { background: #eaf0f6; }
+  .rp-tbl .num { font-family: "JetBrains Mono", "SF Mono", monospace; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; font-size: .74rem; }
+  .rp-tbl .inv { font-weight: 500; color: #16324f; }
+  .rp-tbl .vend { font-weight: 600; color: #243447; }
+  .rp-tbl tfoot td {
+    padding: 9px 12px; font-weight: 700; font-size: .76rem;
+    background: #f0f4f8; border-top: 2px solid #dce3eb;
+  }
+  .rp-tbl tfoot td.num { text-align: right; }
+  .rp-empty { text-align: center; padding: 56px 20px; color: #667080; }
+  .rp-empty i { font-size: 2.4rem; color: #c9ccd1; }
+  .rp-empty p { margin: 10px 0 0; font-size: .84rem; }
+  @media (max-width: 900px) { .rp-kpis { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) { .rp-kpis { grid-template-columns: 1fr; } }
+</style>
+
+<div class="rp-wrap animate-in">
+  <div class="rp-head">
+    <div class="rp-head__period">
+      <i class="bi bi-{% if mode == 'minggu' %}calendar-week{% else %}calendar3{% endif %}"></i>
+      {% if mode == 'minggu' %}Periode Minggu Ini{% else %}Periode Bulan Ini{% endif %} · {{ period_label }}
+    </div>
+  </div>
+
+  <!-- ─── KPI RINGKAS ─── -->
+  <div class="rp-kpis">
+    <div class="ds-kpi ds-kpi--compact" tabindex="0">
+      <div class="kpi-ico kpi-ico--blue"><i class="bi bi-receipt"></i></div>
+      <div>
+        <div class="ds-kpi__label">Invoice Masuk</div>
+        <div class="ds-kpi__value">{{ (row.total_count if row else 0) }}</div>
+        <div class="ds-kpi__hint">DPP {{ masuk_hutang|money }}</div>
+      </div>
+    </div>
+    <div class="ds-kpi ds-kpi--compact ds-kpi--ok" tabindex="0">
+      <div class="kpi-ico kpi-ico--green"><i class="bi bi-cash-stack"></i></div>
+      <div>
+        <div class="ds-kpi__label">Pembayaran DPP</div>
+        <div class="ds-kpi__value">{{ masuk_bayar|money }}</div>
+        <div class="ds-kpi__hint">{{ (row.total_pay_count if row else 0) }} pembayaran</div>
+      </div>
+    </div>
+    <div class="ds-kpi ds-kpi--compact" tabindex="0">
+      <div class="kpi-ico kpi-ico--amber"><i class="bi bi-percent"></i></div>
+      <div>
+        <div class="ds-kpi__label">PPN Masuk</div>
+        <div class="ds-kpi__value">{{ masuk_ppn|money }}</div>
+        <div class="ds-kpi__hint">Terbayar {{ masuk_bayar_ppn|money }}</div>
+      </div>
+    </div>
+    <div class="ds-kpi ds-kpi--compact{% if sisa_dpp > 0 %} ds-kpi--warn{% endif %}" tabindex="0">
+      <div class="kpi-ico kpi-ico--rose"><i class="bi bi-wallet2"></i></div>
+      <div>
+        <div class="ds-kpi__label">Sisa DPP (s/d {{ 'minggu' if mode == 'minggu' else 'bulan' }} ini)</div>
+        <div class="ds-kpi__value">{{ sisa_dpp|money }}</div>
+        {% if mode == 'bulan' %}<div class="ds-kpi__hint">Sisa PPN {{ sisa_ppn|money }}</div>{% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── TABEL RINGKASAN LEVELANSIR PERIODE ─── -->
+  {% set plist = row.rekanan_list if row else [] %}
+  {% set visible = [] %}
+  {% for s in plist %}
+    {% if s.saat_ini_hutang or s.saat_ini_bayar or s.saat_ini_ppn or s.saat_ini_pph or s.saat_ini_retensi %}
+      {% set _ = visible.append(s) %}
+    {% endif %}
+  {% endfor %}
+  <div class="rp-card">
+    <div class="rp-card__body">
+      <div class="rp-card__title">
+        <i class="bi bi-file-earmark-bar-graph"></i>
+        Ringkasan Levelansir
+        <span class="tag">{{ visible|length }} levelansir</span>
+      </div>
+      {% if plist %}
+      <div class="rp-scroll">
+        <table class="rp-tbl">
+          <thead>
+            <tr>
+              <th style="width:44px">No.</th>
+              <th>Levelansir</th>
+              <th class="ar">Invoice Masuk (DPP)</th>
+              <th class="ar">Pot. PPH</th>
+              <th class="ar">PPN</th>
+              <th class="ar">Retensi</th>
+              <th class="ar">Pembayaran DPP</th>
+              <th class="ar">Pembayaran PPN</th>
+              <th class="ar">Sisa DPP</th>
+              <th class="ar">Sisa PPN</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% set ns = namespace(no=0) %}
+            {% for s in visible %}
+            {% set ns.no = ns.no + 1 %}
+            <tr class="rp-row" data-rekanan="{{ s.rekanan | e }}" tabindex="0" role="button"
+                aria-label="Buka detail invoice {{ s.rekanan | e }}"
+                onclick="showRekapDetail(this.dataset.rekanan)"
+                onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showRekapDetail(this.dataset.rekanan)}">
+              <td>{{ ns.no }}</td>
+              <td class="vend">
+                {{ s.rekanan }}{% if s.count > 0 %}<span class="inv-badge inv-badge-h" title="{{ s.count }} invoice masuk periode ini">{{ s.count }}</span>{% endif %}{% if s.pay_count > 0 %}<span class="inv-badge inv-badge-p" title="{{ s.pay_count }} pembayaran periode ini">{{ s.pay_count }}</span>{% endif %}
+              </td>
+              <td class="num">{{ s.saat_ini_hutang|money }}</td>
+              <td class="num">{{ s.saat_ini_pph|money }}</td>
+              <td class="num">{{ s.saat_ini_ppn|money }}</td>
+              <td class="num">{{ s.saat_ini_retensi|money }}</td>
+              <td class="num">{{ s.saat_ini_bayar|money }}</td>
+              <td class="num">{{ s.saat_ini_bayar_ppn|money }}</td>
+              <td class="num" style="color:{% if s.sisa_dpp > 0 %}#912018{% else %}#115e59{% endif %}">{{ s.sisa_dpp|money }}</td>
+              <td class="num" style="color:{% if s.sisa_ppn > 0 %}#912018{% else %}#115e59{% endif %}">{{ s.sisa_ppn|money }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td></td>
+              <td>TOTAL</td>
+              <td class="num">{{ masuk_hutang|money }}</td>
+              <td class="num">{{ masuk_pph|money }}</td>
+              <td class="num">{{ masuk_ppn|money }}</td>
+              <td class="num">{{ masuk_retensi|money }}</td>
+              <td class="num">{{ masuk_bayar|money }}</td>
+              <td class="num">{{ masuk_bayar_ppn|money }}</td>
+              <td class="num"></td>
+              <td class="num"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      {% else %}
+      <div class="rp-empty">
+        <i class="bi bi-inbox"></i>
+        <p>Belum ada data untuk periode ini.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- ═══ DETAIL MODAL — Rincian Invoice per Levelansir ═══
+     Memakai tampilan yang sama dengan modal Rekap DPP (kelas lp-modal / lp-mtbl
+     dari laporan.css, dimuat global di base.html). Data diambil via
+     /api/vendor-invoices seperti pola Dashboard. -->
+<div class="modal fade lp-modal" id="rpVendorModal" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="rpVendorLabel">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="rpVendorLabel">
+          <i class="bi bi-receipt"></i>
+          <span id="rpVendorName">Detail Invoice</span>
+          <span class="mm" id="rpVendorMeta"></span>
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+      </div>
+      <div class="modal-body">
+        <div class="lp-mtable-toolbar">
+          <div class="lp-mtable-controls">
+            <label for="rpInvoiceSearch">Cari invoice, PO, atau deskripsi</label>
+            <input type="search" id="rpInvoiceSearch" class="form-control form-control-sm" autocomplete="off" placeholder="Ketik untuk menyaring detail…" aria-controls="rpModalInvoices">
+            <span id="rpInvoiceCount" role="status" aria-live="polite"></span>
+          </div>
+          <section class="lp-current-totals" aria-label="Ringkasan">
+            <div><span>Hutang DPP</span><strong id="rpTotalHutang">Rp 0</strong></div>
+            <div><span>Bayar DPP</span><strong id="rpTotalBayar">Rp 0</strong></div>
+          </section>
+        </div>
+        <div class="lp-scrollbox" tabindex="0" role="region" aria-label="Rincian invoice, dapat digulir horizontal dan vertikal">
+          <table class="lp-mtbl">
+            <thead>
+              <tr>
+                <th scope="col" class="m-tgl">Tgl Berkas</th>
+                <th scope="col" class="m-tgl">Tgl Inv</th>
+                <th scope="col" class="m-inv">Invoice</th>
+                <th scope="col" class="m-po">PO / Kontrak</th>
+                <th scope="col" class="m-jt">Jth Tempo</th>
+                <th scope="col" class="m-desc">Deskripsi</th>
+                <th scope="col" class="ar m-hutang">Hutang DPP</th>
+                <th scope="col" class="ar m-ppn">PPN</th>
+                <th scope="col" class="ar m-ppn">PPH</th>
+                <th scope="col" class="ar m-ppn">Retensi</th>
+                <th scope="col" class="m-bayar-tgl">Tgl Bayar DPP</th>
+                <th scope="col" class="ar m-bayar">Bayar DPP</th>
+                <th scope="col" class="ar m-sisa">Sisa DPP</th>
+              </tr>
+            </thead>
+            <tbody id="rpModalInvoices">
+              <tr class="em">
+                <td colspan="13"><i class="bi bi-hourglass-split"></i>Memuat detail…</td>
+              </tr>
+            </tbody>
+            <tfoot id="rpModalTfoot" hidden>
+              <tr>
+                <td class="l" colspan="6">Total</td>
+                <td id="rpFtHutang"></td>
+                <td id="rpFtPpn"></td>
+                <td id="rpFtPph"></td>
+                <td id="rpFtRetensi"></td>
+                <td class="l"></td>
+                <td id="rpFtBayar" class="m-p"></td>
+                <td id="rpFtSisa" class="m-s"></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  function esc(s) {
+    return String(s == null ? '-' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+  function fmt(v) { return Math.round(Number(v || 0)).toLocaleString('id-ID'); }
+
+  function renderInvoices(rekanan, invoices) {
+    const body = document.getElementById('rpModalInvoices');
+    const tfoot = document.getElementById('rpModalTfoot');
+    const search = document.getElementById('rpInvoiceSearch');
+    if (!body) return;
+    search.value = '';
+    document.getElementById('rpVendorMeta').textContent = '· ' + invoices.length + ' invoice';
+
+    if (!invoices.length) {
+      body.innerHTML = '<tr class="em"><td colspan="13"><i class="bi bi-inbox"></i>Tidak ada data untuk ' + esc(rekanan) + '</td></tr>';
+      if (tfoot) tfoot.hidden = true;
+      document.getElementById('rpTotalHutang').textContent = 'Rp 0';
+      document.getElementById('rpTotalBayar').textContent = 'Rp 0';
+      document.getElementById('rpInvoiceCount').textContent = '0 invoice';
+      return;
+    }
+
+    let tH = 0, tPpn = 0, tPph = 0, tRet = 0, tB = 0, tS = 0;
+    const cx = (window.CellExpand && CellExpand.td)
+      ? CellExpand.td
+      : ((t, c) => '<td class="' + c + '">' + esc(t) + '</td>');
+    body.innerHTML = invoices.map(inv => {
+      const sisa = Math.max(0, (Number(inv.harga_excl) || 0) - (Number(inv.bayar_dpp) || 0));
+      tH += Number(inv.harga_excl) || 0;
+      tPpn += Number(inv.ppn) || 0;
+      tPph += Number(inv.pot_pph) || 0;
+      tRet += Number(inv.retensi) || 0;
+      tB += Number(inv.bayar_dpp) || 0;
+      tS += sisa;
+      const sisaClass = sisa > 0 ? 'sn' : 'sz';
+      return '<tr data-search="' + esc([inv.invoice, inv.po, inv.deskripsi].join(' ').toLowerCase()) + '">' +
+        '<td class="l">' + esc(inv.tgl_berkas) + '</td>' +
+        '<td class="l">' + esc(inv.tgl_inv) + '</td>' +
+        cx(inv.invoice, 'l iv', 40) +
+        cx(inv.po, 'l', 25) +
+        '<td class="l">' + esc(inv.jth_tempo) + '</td>' +
+        cx(inv.deskripsi, 'l', 40) +
+        '<td class="m-h">' + fmt(inv.harga_excl) + '</td>' +
+        '<td>' + fmt(inv.ppn) + '</td>' +
+        '<td>' + fmt(inv.pot_pph) + '</td>' +
+        '<td>' + fmt(inv.retensi) + '</td>' +
+        '<td class="l">' + esc(inv.tgl_bayar_dpp) + '</td>' +
+        '<td class="m-p">' + fmt(inv.bayar_dpp) + '</td>' +
+        '<td class="m-s ' + sisaClass + '">' + fmt(sisa) + '</td>' +
+      '</tr>';
+    }).join('');
+
+    if (tfoot) {
+      tfoot.hidden = false;
+      document.getElementById('rpFtHutang').textContent = fmt(tH);
+      document.getElementById('rpFtPpn').textContent = fmt(tPpn);
+      document.getElementById('rpFtPph').textContent = fmt(tPph);
+      document.getElementById('rpFtRetensi').textContent = fmt(tRet);
+      document.getElementById('rpFtBayar').textContent = fmt(tB);
+      const ftS = document.getElementById('rpFtSisa');
+      ftS.textContent = fmt(tS);
+      ftS.className = tS > 0 ? 't-s-pos' : 't-s-zero';
+    }
+    document.getElementById('rpTotalHutang').textContent = 'Rp ' + fmt(tH);
+    document.getElementById('rpTotalBayar').textContent = 'Rp ' + fmt(tB);
+
+    const filter = () => {
+      const q = search.value.trim().toLocaleLowerCase('id-ID');
+      let visible = 0;
+      body.querySelectorAll('tr[data-search]').forEach(row => {
+        row.hidden = q && !row.dataset.search.includes(q);
+        if (!row.hidden) visible++;
+      });
+      document.getElementById('rpInvoiceCount').textContent =
+        q ? (visible + ' dari ' + invoices.length + ' invoice') : (invoices.length + ' invoice');
+    };
+    search.oninput = filter;
+    filter();
+    if (window.CellExpand && CellExpand.refresh) CellExpand.refresh(body);
+  }
+
+  let _activeRow = null;
+  function showRekapDetail(rekanan, rowEl) {
+    if (_activeRow) _activeRow.classList.remove('selected');
+    if (rowEl) { rowEl.classList.add('selected'); _activeRow = rowEl; }
+    document.getElementById('rpVendorName').textContent = rekanan;
+    document.getElementById('rpVendorMeta').textContent = '';
+    document.getElementById('rpModalInvoices').innerHTML =
+      '<tr class="em"><td colspan="13"><i class="bi bi-hourglass-split"></i>Memuat detail…</td></tr>';
+    document.getElementById('rpModalTfoot').hidden = true;
+
+    const modalEl = document.getElementById('rpVendorModal');
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    modal.show();
+
+    fetch('/api/vendor-invoices?rekanan=' + encodeURIComponent(rekanan), {
+      headers: { 'Accept': 'application/json' },
+    })
+      .then(r => { if (!r.ok) throw new Error('gagal'); return r.json(); })
+      .then(data => renderInvoices(rekanan, data.invoices || []))
+      .catch(() => {
+        document.getElementById('rpModalInvoices').innerHTML =
+          '<tr class="em"><td colspan="13"><i class="bi bi-exclamation-triangle"></i>Gagal memuat detail. Coba lagi.</td></tr>';
+      });
+  }
+
+  window.showRekapDetail = showRekapDetail;
+})();
+</script>
+{% endblock %}

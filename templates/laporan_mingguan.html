@@ -1,4 +1,4 @@
-{% extends "base.html" %} {% block title %}Laporan DPP Mingguan - Project Payment Monitoring System{% endblock %} {% block topbar_title %}Laporan DPP Mingguan{% endblock %}
+{% extends "base.html" %} {% block title %}Laporan DPP Mingguan - Project Payment Monitoring System{% endblock %} {% block topbar_title %}Rekap DPP Mingguan{% endblock %}
 {% block topbar_icon %}bi-calendar-week{% endblock %} {# Compute total unique
 levelansir + weeks at top level so topbar_badges can use them #} {% set
 all_rekanan = [] %} {% for r in report_rows %} {% for s in r.rekanan_list %} {%

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Kontrak Vendor - Project Payment Monitoring System{% endblock %}
-{% block topbar_title %}Kontrak Vendor{% endblock %}
+{% block topbar_title %}Progress Kontrak{% endblock %}
 {% block topbar_icon %}bi-file-earmark-text-fill{% endblock %}
 {% block topbar_badges %}
 <span class="topbar-badge"><i class="bi bi-file-earmark-text"></i> {{ summary.total_kontrak }} Kontrak</span>
@@ -12,7 +12,7 @@
   Kontrak Vendor — registri kontrak procurement.
   Tabel memakai tema .dt-invoice yang sama dengan halaman Data Invoice
   (partials/_dt_theme.html) agar tampilan seragam; override kc-page hanya
-  mengatur lebar kolom sticky & min-width (11 kolom vs 19).
+  mengatur lebar kolom sticky & min-width (14 kolom vs 19).
 -->
 {% include "partials/_dt_theme.html" %}
 <style>
@@ -26,16 +26,19 @@
   .kpi-ico--rose { background: #fef0ee; color: #912018; }
   .kpi-ico--amber { background: #fdf6d8; color: #8a6d00; }
   .kc-page { --c1w: 300px; }
-  .kc-page #kcTable { min-width: 1280px; }
+  .kc-page #kcTable { min-width: 1420px; }
   .kc-page #kcTable thead th.col-sticky-left,
   .kc-page #kcTable tbody td.col-sticky-left { width: 48px; min-width: 48px; max-width: 48px; text-align: center; }
   .kc-page #kcTable thead th.col-sticky-left-2,
   .kc-page #kcTable tbody td.col-sticky-left-2 { width: var(--c1w); min-width: var(--c1w); max-width: var(--c1w); }
   .kc-vend { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
   .kc-vend-name { font-weight: 600; font-size: .8rem; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .kc-vend-name a { color: #244866; text-decoration: none; }
+  .kc-vend-name a:hover { text-decoration: underline; }
   .kc-no { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .kc-no a { color: #244866; text-decoration: none; font-weight: 500; font-size: .73rem; }
   .kc-no a:hover { text-decoration: underline; }
+  .kc-item { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #4d5766; font-size: .73rem; }
   .badge-status.badge-amber { background: #fdf6d8; color: #8a6d00; }
   .kc-page #kcTable thead th.col-sticky-right,
   .kc-page #kcTable tbody td.col-sticky-right { min-width: 96px; }
@@ -55,6 +58,9 @@
   .kc-bar > span.over { background: linear-gradient(90deg, #b42318, #f0705f); }
   .kc-bar > span.none { background: #e3e5e8; }
   .kc-empty-note { font-size: .72rem; color: #667080; }
+  /* Toolbar: tombol "Belum Terdaftar" sejajar kanan bersama filter tabel. */
+  .kc-page .filter-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; width: 100%; }
+  .kc-page .filter-group .ds-btn { margin-left: auto; }
   ::selection { background: #eaf0f6; }
   @media (max-width: 1024px) { .kc-kpis { grid-template-columns: repeat(2, 1fr); } }
   @media (max-width: 640px) { .ds-kpi--compact .ds-kpi__value { font-size: 1rem; } }
@@ -120,14 +126,6 @@
     {% if contracts %}
     <div class="table-wrapper">
       <div class="table-toolbar">
-        <div class="table-toolbar-actions">
-          <a href="{{ url_for('contract.unmatched') }}" class="ds-btn ds-btn--sm">
-            <i class="bi bi-question-circle"></i> Belum Terdaftar
-          </a>
-          <a href="{{ url_for('contract.import_page') }}" class="ds-btn ds-btn--sm ds-btn--primary">
-            <i class="bi bi-cloud-upload"></i> Import Kontrak
-          </a>
-        </div>
         <div class="table-toolbar-filters">
           <div class="filter-group">
             {% set vendors = contracts|map(attribute='vendor')|list|unique|sort %}
@@ -146,6 +144,9 @@
               <button class="search-clear" id="kcSearchClear" style="display:none">&times;</button>
               <span class="search-count" id="kcCount" aria-live="polite"></span>
             </div>
+            <a href="{{ url_for('contract.unmatched') }}" class="ds-btn ds-btn--sm">
+              <i class="bi bi-question-circle"></i> Belum Terdaftar
+            </a>
           </div>
         </div>
       </div>
@@ -156,6 +157,7 @@
             <tr>
               <th class="col-sticky-left text-center" style="width: 48px">No.</th>
               <th class="col-sticky-left-2">Vendor / Rekanan</th>
+              <th>Item Pekerjaan</th>
               <th class="text-end">DPP Kontrak</th>
               <th class="text-end">PPN Kontrak</th>
               <th class="text-end">Tagihan DPP</th>
@@ -171,7 +173,7 @@
           </thead>
           <tbody id="kcBody">
             {% for c in contracts %}
-            <tr data-search="{{ (c.no_kontrak ~ ' ' ~ c.vendor ~ ' ' ~ (project_labels.get(c.project_id|string) or ''))|lower }}"
+            <tr data-search="{{ (c.no_kontrak ~ ' ' ~ c.vendor ~ ' ' ~ (c.item_pekerjaan or '') ~ ' ' ~ (project_labels.get(c.project_id|string) or ''))|lower }}"
                 data-vendor="{{ c.vendor }}"
                 data-status="{{ 'Ada' if c.status_invoice == 'Ada Invoice' else 'Belum' }}">
               {% set is_ada = c.status_invoice == 'Ada Invoice' %}
@@ -180,10 +182,11 @@
               </td>
               <td class="col-sticky-left-2">
                 <div class="kc-vend">
-                  <div class="kc-vend-name" title="{{ c.vendor }}">{{ c.vendor if c.vendor else 'Vendor belum diisi' }}{% if not c.vendor %} <span class="ds-badge ds-badge-amber" style="font-size:.62rem;vertical-align:middle"><i class="bi bi-exclamation-triangle"></i> lengkapi</span>{% endif %}</div>
+                  <div class="kc-vend-name" title="{{ c.vendor }}">{% if c.vendor %}<a href="{{ url_for('contract.contract_detail', contract_id=c.id) }}">{{ c.vendor }}</a>{% else %}Vendor belum diisi <span class="ds-badge ds-badge-amber" style="font-size:.62rem;vertical-align:middle"><i class="bi bi-exclamation-triangle"></i> lengkapi</span>{% endif %}</div>
                   <div class="kc-no" title="{{ c.no_kontrak }}"><a href="{{ url_for('contract.contract_detail', contract_id=c.id) }}">{{ c.no_kontrak }}</a></div>
                 </div>
               </td>
+              <td class="kc-item" title="{{ c.item_pekerjaan or '' }}">{{ c.item_pekerjaan or '—' }}</td>
               <td class="cell-money">{{ (c.nilai_dpp or 0)|money }}</td>
               <td class="cell-money">{{ (c.nilai_ppn or 0)|money }}</td>
               <td class="cell-money">{{ c.tertagih|money }}</td>
@@ -222,7 +225,7 @@
       <i class="bi bi-file-earmark-text"></i>
       <h6>Belum Ada Kontrak</h6>
       <p class="text-muted">
-        Klik "Import Kontrak" untuk memuat daftar kontrak dari procurement.
+        Buka menu "Import Kontrak" untuk memuat daftar kontrak dari procurement.
       </p>
     </div>
     {% endif %}

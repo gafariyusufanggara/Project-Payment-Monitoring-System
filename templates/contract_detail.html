@@ -30,13 +30,11 @@
   .kd-group__title { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: #667080; margin: 0 0 10px; display: flex; align-items: center; gap: 8px; }
   .kd-group__title::after { content: ''; flex: 1; height: 1px; background: #e3e5e8; }
   .kd-card__head .kd-group__title::after { display: none; }
+  /* Grid seragam 3 kolom: 1 unit = span 4, full-width = span 12. */
   .kd-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 12px 14px; }
   .kd-grid > div { min-width: 0; }
-  .kd-s3 { grid-column: span 3; }
   .kd-s4 { grid-column: span 4; }
-  .kd-s5 { grid-column: span 5; }
   .kd-s6 { grid-column: span 6; }
-  .kd-s8 { grid-column: span 8; }
   .kd-s12 { grid-column: span 12; }
   .kd-label { display: block; font-size: .7rem; font-weight: 600; color: #4d5766; margin-bottom: 5px; letter-spacing: .2px; }
   /* Mode baca: kartu definisi rapi dengan pemisah antar-baris */
@@ -74,7 +72,8 @@
   .kd-hint { font-size: .74rem; color: #667080; margin: 0; }
   @media (max-width: 640px) {
     .kd-kpis { grid-template-columns: repeat(2, 1fr); }
-    .kd-s3, .kd-s4, .kd-s6, .kd-s8 { grid-column: span 12; }
+    .kd-grid .kd-s4, .kd-grid .kd-s6 { grid-column: span 12; }
+    .kd-def .kd-s4, .kd-def .kd-s6 { grid-column: span 12; }
     .kd-actions .ds-btn { flex: 1 1 100%; justify-content: center; }
   }
 </style>
@@ -134,9 +133,9 @@
     <div class="kd-card__body">
       <dl class="kd-def" id="kdRead">
         <div class="kd-def__sec">Umum</div>
-        <div class="kd-s6"><dt>No. Kontrak</dt><dd>{{ contract.no_kontrak }}</dd></div>
-        <div class="kd-s6"><dt>Proyek</dt><dd>{{ (project_list|selectattr('0', 'equalto', contract.project_id|string)|map(attribute='1')|first) or '—' }}</dd></div>
+        <div class="kd-s12"><dt>No. Kontrak</dt><dd>{{ contract.no_kontrak }}</dd></div>
         <div class="kd-s12"><dt>Vendor / Rekanan</dt><dd title="{{ contract.vendor }}">{% if contract.vendor %}{{ contract.vendor }}{% else %}<span class="ds-badge ds-badge-amber"><i class="bi bi-exclamation-triangle"></i> Vendor belum diisi — klik Ubah untuk melengkapi</span>{% endif %}</dd></div>
+        <div class="kd-s12"><dt>Proyek</dt><dd>{{ (project_list|selectattr('0', 'equalto', contract.project_id|string)|map(attribute='1')|first) or '—' }}</dd></div>
         <div class="kd-s4"><dt>Tipe Kontrak</dt><dd>{{ contract.tipe_kontrak or '—' }}</dd></div>
         <div class="kd-s4"><dt>Metode Pembayaran</dt><dd>{{ contract.metode_pembayaran or '—' }}</dd></div>
         <div class="kd-s4"><dt>PPN</dt><dd>{% if contract.ppn_rate %}{{ '%g'|format(contract.ppn_rate) }}%{% else %}—{% endif %}</dd></div>
@@ -147,11 +146,11 @@
         <div class="kd-s4"><dt>Belum Ditagih (DPP)</dt><dd class="kd-money">{{ contract.sisa_kontrak|money }}</dd></div>
 
         <div class="kd-def__sec">Pekerjaan &amp; Jadwal</div>
-        <div class="kd-s6"><dt>Tipe Pekerjaan</dt><dd>{{ contract.tipe_pekerjaan or '—' }}</dd></div>
-        <div class="kd-s6"><dt>Item Pekerjaan</dt><dd>{{ contract.item_pekerjaan or '—' }}</dd></div>
+        <div class="kd-s4"><dt>Tipe Pekerjaan</dt><dd>{{ contract.tipe_pekerjaan or '—' }}</dd></div>
+        <div class="kd-s4"><dt>Item Pekerjaan</dt><dd>{{ contract.item_pekerjaan or '—' }}</dd></div>
+        <div class="kd-s4"><dt>Durasi Termin</dt><dd>{% if contract.durasi_termin %}{{ '%g'|format(contract.durasi_termin) }} hari{% else %}—{% endif %}</dd></div>
         <div class="kd-s4"><dt>Tgl Kontrak</dt><dd>{{ contract.tgl_kontrak|tgl }}</dd></div>
         <div class="kd-s4"><dt>Tgl Selesai</dt><dd>{{ contract.tgl_selesai|tgl }}</dd></div>
-        <div class="kd-s4"><dt>Durasi Termin</dt><dd>{% if contract.durasi_termin %}{{ '%g'|format(contract.durasi_termin) }} hari{% else %}—{% endif %}</dd></div>
         {% if contract.keterangan %}<div class="kd-s12" style="border-bottom:none"><dt>Keterangan</dt><dd style="white-space:pre-wrap;overflow:visible">{{ contract.keterangan }}</dd></div>{% endif %}
       </dl>
       </div>
@@ -161,12 +160,17 @@
         <div class="kd-group">
           <h2 class="kd-group__title">Umum</h2>
           <div class="kd-grid">
-            <div class="kd-s6">
+            <div class="kd-s12">
               <label class="kd-label" for="no_kontrak">No. Kontrak *</label>
               <input class="kd-input" id="no_kontrak" name="no_kontrak" required
                      value="{{ contract.no_kontrak if contract else '' }}" placeholder="SPK-001" />
             </div>
-            <div class="kd-s6">
+            <div class="kd-s12">
+              <label class="kd-label" for="vendor">Vendor / Rekanan *</label>
+              <input class="kd-input" id="vendor" name="vendor" required
+                     value="{{ contract.vendor if contract else '' }}" placeholder="PT. Nama Vendor" />
+            </div>
+            <div class="kd-s12">
               <label class="kd-label" for="project_id">Proyek</label>
               <select class="kd-select" id="project_id" name="project_id">
                 <option value="">— Tanpa Proyek —</option>
@@ -174,11 +178,6 @@
                 <option value="{{ pid }}" {% if contract and contract.project_id|string == pid|string %}selected{% endif %}>{{ label }}</option>
                 {% endfor %}
               </select>
-            </div>
-            <div class="kd-s12">
-              <label class="kd-label" for="vendor">Vendor / Rekanan *</label>
-              <input class="kd-input" id="vendor" name="vendor" required
-                     value="{{ contract.vendor if contract else '' }}" placeholder="PT. Nama Vendor" />
             </div>
             <div class="kd-s4">
               <label class="kd-label" for="tipe_kontrak">Tipe Kontrak</label>
@@ -205,7 +204,7 @@
         <div class="kd-group">
           <h2 class="kd-group__title">Nilai</h2>
           <div class="kd-grid">
-            <div class="kd-s6">
+            <div class="kd-s4">
               <label class="kd-label" for="nilai_kontrak">Nilai Kontrak (Rp)</label>
               <input class="kd-input kd-money" id="nilai_kontrak" name="nilai_kontrak" type="number" min="0" step="1"
                      value="{{ contract.nilai_kontrak|int if contract and contract.nilai_kontrak else '' }}" placeholder="0" />
@@ -216,12 +215,12 @@
         <div class="kd-group">
           <h2 class="kd-group__title">Pekerjaan &amp; Jadwal</h2>
           <div class="kd-grid">
-            <div class="kd-s6">
+            <div class="kd-s4">
               <label class="kd-label" for="tipe_pekerjaan">Tipe Pekerjaan</label>
               <input class="kd-input" id="tipe_pekerjaan" name="tipe_pekerjaan"
                      value="{{ contract.tipe_pekerjaan if contract else '' }}" placeholder="Mech / Inst / Sipil" />
             </div>
-            <div class="kd-s6">
+            <div class="kd-s4">
               <label class="kd-label" for="item_pekerjaan">Item Pekerjaan</label>
               <input class="kd-input" id="item_pekerjaan" name="item_pekerjaan"
                      value="{{ contract.item_pekerjaan if contract else '' }}" placeholder="Water Injection Pump" />
