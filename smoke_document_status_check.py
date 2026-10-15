@@ -135,7 +135,9 @@ assert re.search(r'class="ds-desc"[^>]*data-full=', tpl), \
     "Deskripsi (ds-desc) tak punya data-full — tooltip tidak akan muncul"
 # Font tabel harus konsisten dengan tabel Data Invoice (.dt-table):
 # body 0.74rem, header 0.72rem uppercase navy #c9ccd1, zebra even.
-assert '.ds-table { width: 100%; min-width: 1180px; border-collapse: separate; border-spacing: 0; font-size: .74rem; }' in tpl, \
+assert re.search(
+    r'\.ds-table \{ width: 100%; min-width: \d+px; border-collapse: separate; border-spacing: 0; font-size: \.74rem; \}',
+    tpl), \
     "font-size/layout tabel Status Dokumen tak sesuai tabel lain (.74rem, tanpa table-layout:fixed)"
 assert re.search(r'\.ds-table thead th \{[^}]*font-size: \.7rem', tpl, re.S), \
     "font-size header tabel Status Dokumen tak sesuai tabel lain (.7rem)"
@@ -151,6 +153,12 @@ if rows:
         "HTML tak memuat nominal per baris (5 kolom uang)"
     assert html.count('class="ds-desc" data-full=') >= len(rows), \
         "HTML tak memuat data-full pada Deskripsi tiap baris"
+# Kolom "Tgl Berkas" (TGL TERIMA BERKAS) diletakkan TEPAT SEBELUM "Tgl Berkas Lengkap".
+assert '>Tgl Berkas</th>' in tpl, "template tak memuat kolom 'Tgl Berkas'"
+assert re.search(r'>Tgl Berkas</th>\s*<th[^>]*>Tgl Berkas Lengkap</th>', tpl), \
+    "kolom 'Tgl Berkas' harus tepat SEBELUM kolom 'Tgl Berkas Lengkap'"
+assert re.search(r'\{\{ row\.tgl_berkas or \'-\' \}\}', tpl), \
+    "sel 'Tgl Berkas' harus merender row.tgl_berkas dgn fallback '-'"
 print("[5] template memuat KPI + kolom nominal (DPP/PPN/PPh/Retensi/Total) OK")
 
 # --- 5b. Judul header halaman jelas & besar ---

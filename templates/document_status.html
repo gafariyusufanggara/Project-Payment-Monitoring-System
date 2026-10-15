@@ -72,7 +72,7 @@
   .ds-toolbar-info { margin-left: auto; font-size: .72rem; font-weight: 600; color: #4d5766; }
 
   .ds-table-card { overflow-x: auto; }
-  .ds-table { width: 100%; min-width: 1180px; border-collapse: separate; border-spacing: 0; font-size: .74rem; }
+  .ds-table { width: 100%; min-width: 1290px; border-collapse: separate; border-spacing: 0; font-size: .74rem; }
   /* Lebar kolom tetap (px) — hindari table-layout:fixed dgn % yg bisa meledak > wrapper. */
   .ds-table .ds-col-no { width: 52px; }
   .ds-table .ds-col-rekanan { width: 260px; min-width: 200px; }
@@ -188,6 +188,7 @@
         <col class="ds-col-po" />
         <col class="ds-col-date" />
         <col class="ds-col-berkas" />
+        <col class="ds-col-berkas" />
         <col class="ds-col-money" />
         <col class="ds-col-money" />
         <col class="ds-col-money" />
@@ -201,6 +202,7 @@
           <th scope="col" class="ds-col-invoice">No. Invoice</th>
           <th scope="col" class="ds-col-po">No. PO / Kontrak</th>
           <th scope="col" class="ds-col-date">Tgl Invoice</th>
+          <th scope="col" class="ds-col-berkas">Tgl Berkas</th>
           <th scope="col" class="ds-col-berkas">Tgl Berkas Lengkap</th>
           <th scope="col" class="ds-th-num ds-col-money">Nilai DPP</th>
           <th scope="col" class="ds-th-num ds-col-money">Nilai PPN</th>
@@ -222,6 +224,7 @@
           <td class="ds-mono">{{ row.no_invoice or (row.no_invoice_internal or '-') }}</td>
           <td class="ds-mono">{{ row.no_po or '-' }}</td>
           <td class="ds-mono">{{ row.tgl_invoice or '-' }}</td>
+          <td class="ds-mono">{{ row.tgl_berkas or '-' }}</td>
           <td><span class="ds-field-missing"><i class="bi bi-exclamation-circle"></i> Belum diisi</span></td>
           <td class="ds-td-num ds-money" data-val="{{ row.dpp }}">{{ row.dpp|money }}</td>
           <td class="ds-td-num ds-money" data-val="{{ row.ppn }}">{{ row.ppn|money }}</td>

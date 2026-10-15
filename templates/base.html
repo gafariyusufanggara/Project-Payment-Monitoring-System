@@ -852,7 +852,8 @@
                   'TGL TERIMA': 'TGL TERIMA BERKAS LENGKAP',
                   'TGL INV': 'TGL INVOICE',
                   'JTH TEMPO': 'TGL JATUH TEMPO',
-                  'TGL FAKTUR PAJAK': 'TGL FAKTUR PAJAK MASUKAN',
+                  'TGL FAKTUR PAJAK': 'TGL FAKTUR PAJAK',
+                  'NO INVOICE INTERNAL': 'NO INVOICE CICILAN',
                   'HARGA (EXLD)': 'Harga (DPP)',
               };
               const labelOf = k => fieldLabel[k] || k;
@@ -877,19 +878,19 @@
               }
 
               const docFields = ['NO PO / KONTRAK','NO SERI FAKTUR PAJAK','TGL FAKTUR PAJAK',
-                  'NO INVOICE INTERNAL','TGL INV','TGL TERIMA BERKAS','TGL TERIMA','JTH TEMPO',
+                  'TGL INV','TGL TERIMA BERKAS','TGL TERIMA','JTH TEMPO',
                   'STATUS TERHADAP DPP','STATUS TERHADAP PPN','KETERANGAN PPN'];
               const finFields = ['HARGA SATUAN','VOLUME PROGRESS','HARGA (EXLD)',
                   'POT. RETENSI','POT. PPH','PPN',
                   'SISA HUTANG DPP','SISA HUTANG PPN','NILAI YG DITERIMA VENDOR'];
               const payFields = ['PEMBAYARAN DPP VIA DIVISI','NO BUKTI BAYAR DPP',
                   'PEMBAYARAN PPN VIA','NO BUKTI BAYAR PPN'];
-              const detailFields = ['KETERANGAN','KODE BIAYA','KODE BIAYA2','TGL MASUK DIVISI'];
+              const detailFields = ['NO INVOICE INTERNAL','KETERANGAN','KODE BIAYA','KODE BIAYA2','TGL MASUK DIVISI'];
 
               let bodyHtml = '';
               bodyHtml += renderSection('01', 'Dokumen & Status', docFields, 'plain');
               bodyHtml += renderSection('02', 'Keuangan', finFields, 'money');
-              bodyHtml += renderSection('03', 'Pembayaran', payFields, 'plain');
+              bodyHtml += renderSection('03', 'Informasi Pembayaran', payFields, 'plain');
               bodyHtml += renderSection('04', 'Detail', detailFields, 'plain');
 
               const hideFields = new Set(['BLM JATUH TEMPO','1-30 HARI','31-60 HARI','61-90 HARI','LEBIH 90 HARI','project_id']);
