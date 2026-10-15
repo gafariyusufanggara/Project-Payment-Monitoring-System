@@ -22,12 +22,18 @@
             <kbd class="ft-search-kbd" aria-hidden="true">/</kbd>
           </div>
           <span class="ft-count" id="searchCount" aria-live="polite"></span>
+          <button type="button" class="filter-toggle" id="filterToggle" aria-expanded="false" aria-controls="filterGroups" title="Tampilkan / sembunyikan filter">
+            <i class="bi bi-funnel"></i>
+            <span class="ft-toggle-text">Filter</span>
+            <span class="ft-toggle-count" id="filterToggleCount" hidden>0</span>
+            <i class="bi bi-chevron-down ft-toggle-caret"></i>
+          </button>
           <button type="button" class="filter-reset" id="filterReset" title="Reset semua filter">
             <i class="bi bi-arrow-counterclockwise"></i> Reset
           </button>
         </div>
 
-        <div class="ft-groups">
+        <div class="ft-groups ft-collapsed" id="filterGroups">
 
           <div class="ft-cluster">
             <span class="ft-cluster-label"><i class="bi bi-shield-check"></i> Status</span>
@@ -153,12 +159,13 @@
     </div>
 
     <div class="table-scroll">
-      <table class="table dt-table" id="dataTable" data-enhance>
+      <table class="table dt-table" id="dataTable" data-enhance
+        data-te-default-hidden="NO. INV CICILAN|TGL INVOICE|TGL TERIMA BERKAS|NO. SERI FAKTUR|STATUS DPP|STATUS PPN|TOTAL (INCLD)">
         <thead>
           <tr>
-            <th class="col-sticky-left" style="width: 40px">#</th>
+            <th class="col-sticky-left te-col-locked" style="width: 40px">#</th>
             <th
-              class="col-sticky-left-2 th-sort"
+              class="col-sticky-left-2 th-sort te-col-locked"
               data-col="1"
               style="min-width: 130px"
             >
@@ -205,16 +212,22 @@
             <th class="th-sort text-end" data-col="16" style="width: 105px">
               BAYAR DPP <span class="sort-arrow">▲</span>
             </th>
-            <th class="th-sort text-end" data-col="17" style="width: 105px">
+            <th class="th-sort" data-col="17" style="width: 95px">
+              TGL BAYAR DPP <span class="sort-arrow">▲</span>
+            </th>
+            <th class="th-sort text-end" data-col="18" style="width: 105px">
               BAYAR PPN <span class="sort-arrow">▲</span>
             </th>
-            <th class="th-sort text-end" data-col="18" style="width: 115px">
+            <th class="th-sort" data-col="19" style="width: 95px">
+              TGL BAYAR PPN <span class="sort-arrow">▲</span>
+            </th>
+            <th class="th-sort text-end" data-col="20" style="width: 115px">
               SISA HUTANG DPP <span class="sort-arrow">▲</span>
             </th>
-            <th class="th-sort text-end" data-col="19" style="width: 115px">
+            <th class="th-sort text-end" data-col="21" style="width: 115px">
               SISA HUTANG PPN <span class="sort-arrow">▲</span>
             </th>
-            <th class="col-sticky-right text-center" style="width: 70px">
+            <th class="col-sticky-right text-center te-col-locked" style="width: 70px">
               AKSI
             </th>
           </tr>
@@ -222,7 +235,7 @@
         <tbody>
           {% for row in data %}
           <tr
-            class="{% if row._row in overdue_rows %}overdue-row {% endif %}row-clickable"
+            class="{% set _lv = verif_row_levels.get(row._row) if verif_row_levels else None %}{% if _lv %}verif-row verif-row--{{ _lv }} {% endif %}row-clickable"
             data-search="{{ (row['NAMA LEVELANSIR / REKANAN'] or '') + ' ' + (row['NO INVOICE INTERNAL'] or '') + ' ' + (row['NO INVOICE'] or '') + ' ' + (row['NO PO / KONTRAK'] or '') + ' ' + (row['KATEGORI'] or '') + ' ' + (row['DESKRIPSI'] or '') }}"
             data-status-dpp="{{ row['STATUS TERHADAP DPP'] }}"
             data-status-ppn="{{ row['STATUS TERHADAP PPN'] }}"
@@ -248,25 +261,30 @@
                 title="Kategori/rekanan di-exclude dari perhitungan (Pengaturan)"
                 ><i class="bi bi-eye-slash"></i></span
               >{% endif %}
+              {% set _lv = verif_row_levels.get(row._row) if verif_row_levels else None %}
+              {% if _lv %}<span
+                class="issue-flag issue-flag--{{ _lv }}"
+                title="{{ _lv|lower }}: issue terdeteksi"
+                ><i class="bi bi-exclamation-triangle"></i></span
+              >{% endif %}
             </td>
             <td class="col-sticky-left-2" data-type="text" data-v="{{ row['NAMA LEVELANSIR / REKANAN'] }}">
-              <div class="cell-rekanan">
+              <div class="cell-rekanan" data-full="{{ row['NAMA LEVELANSIR / REKANAN'] or '' }}">
                 {{ row['NAMA LEVELANSIR / REKANAN'] }}
               </div>
-              <div class="cell-desc">
-                {{ (row['DESKRIPSI'] or '')[:60] }}{% if (row['DESKRIPSI'] or
-                '')|length > 60 %}...{% endif %}
+              <div class="cell-desc" data-full="{{ row['DESKRIPSI'] or '' }}">
+                {{ row['DESKRIPSI'] or '' }}
               </div>
             </td>
             <td class="cell-date" data-type="date" data-v="{{ row['TGL TERIMA BERKAS'] }}">{{ row['TGL TERIMA BERKAS'] }}</td>
-            <td class="cell-inv-internal" data-type="text" data-v="{{ row['NO INVOICE INTERNAL'] or '' }}">
+            <td class="cell-inv-internal" data-type="text" data-v="{{ row['NO INVOICE INTERNAL'] or '' }}" data-full="{{ row['NO INVOICE INTERNAL'] or '' }}">
               {{ row['NO INVOICE INTERNAL'] or '-' }}
             </td>
-            <td class="cell-invoice" data-type="text" data-v="{{ row['NO INVOICE'] or '' }}">{{ row['NO INVOICE'] or '-' }}</td>
-            <td class="cell-po" data-type="text" data-v="{{ row['NO PO / KONTRAK'] or '' }}">{{ row['NO PO / KONTRAK'] or '-' }}</td>
+            <td class="cell-invoice" data-type="text" data-v="{{ row['NO INVOICE'] or '' }}" data-full="{{ row['NO INVOICE'] or '' }}">{{ row['NO INVOICE'] or '-' }}</td>
+            <td class="cell-po" data-type="text" data-v="{{ row['NO PO / KONTRAK'] or '' }}" data-full="{{ row['NO PO / KONTRAK'] or '' }}">{{ row['NO PO / KONTRAK'] or '-' }}</td>
             <td class="cell-date" data-type="date" data-v="{{ row['TGL INV'] or '' }}">{{ row['TGL INV'] or '-' }}</td>
             <td class="cell-date" data-type="date" data-v="{{ row['TGL TERIMA'] or '' }}">{{ row['TGL TERIMA'] or '-' }}</td>
-            <td class="cell-faktur" data-type="text" data-v="{{ row['NO SERI FAKTUR PAJAK'] if (row['NO SERI FAKTUR PAJAK'] or '').strip() not in ('', '0') else '' }}">
+            <td class="cell-faktur" data-type="text" data-v="{{ row['NO SERI FAKTUR PAJAK'] if (row['NO SERI FAKTUR PAJAK'] or '').strip() not in ('', '0') else '' }}" data-full="{{ row['NO SERI FAKTUR PAJAK'] if (row['NO SERI FAKTUR PAJAK'] or '').strip() not in ('', '0') else '' }}">
               {{ row['NO SERI FAKTUR PAJAK'] if (row['NO SERI FAKTUR PAJAK'] or '').strip() not in ('', '0') else '-' }}
             </td>
             <td class="text-center" data-type="text" data-v="{{ row['STATUS TERHADAP DPP'] or '' }}">
@@ -315,9 +333,11 @@
             <td class="cell-money" data-type="num" data-v="{{ row['PEMBAYARAN DPP']|default(0,true)|float }}">
               {{ (row['PEMBAYARAN DPP']|default(0,true)|float)|money0 }}
             </td>
+            <td class="cell-date" data-type="date" data-v="{{ row['TGL BAYAR DPP'] or '' }}">{{ row['TGL BAYAR DPP'] or '-' }}</td>
             <td class="cell-money" data-type="num" data-v="{{ row['PEMBAYARAN PPN']|default(0,true)|float }}">
               {{ (row['PEMBAYARAN PPN']|default(0,true)|float)|money0 }}
             </td>
+            <td class="cell-date" data-type="date" data-v="{{ row['TGL BAYAR PPN'] or '' }}">{{ row['TGL BAYAR PPN'] or '-' }}</td>
             <td
               class="cell-money {% if (row['SISA HUTANG DPP']|default(0,true)|float) > 0 %}text-danger{% else %}text-success{% endif %}"
               style="font-weight: 700"

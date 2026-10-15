@@ -28,10 +28,6 @@
   /* #667080 is 4.76:1 on white but only 4.34:1 on the #eef0f2 hover/zebra
      surface — below AA. #4d5766 clears it everywhere (6.9:1 on #eef0f2). */
   --te-muted: #526579;
-  --te-danger: #b42318;
-  --te-danger-soft: #fef0ee;
-  --te-danger-alt: #fef0ee;
-  --te-danger-hover: #fbd8d3;
   --te-accent: #0f766e;
   --te-accent-soft: #e6f4f1;
 
@@ -125,23 +121,6 @@ table[data-enhance] tbody tr:hover td {
   background: var(--te-hover) !important;
 }
 
-/* ---------- overdue state ---------- */
-
-#dataTable tbody tr.overdue-row td,
-table[data-enhance] tbody tr.overdue-row td {
-  background: var(--te-danger-soft);
-}
-
-#dataTable tbody tr.overdue-row:nth-child(even) td,
-table[data-enhance] tbody tr.overdue-row:nth-child(even) td {
-  background: var(--te-danger-alt);
-}
-
-#dataTable tbody tr.overdue-row:hover td,
-table[data-enhance] tbody tr.overdue-row:hover td {
-  background: var(--te-danger-hover) !important;
-}
-
 /* ---------- frozen columns ----------
    Left offset driven by --frozen-1, measured at runtime.
    Opaque background is mandatory: sticky cells sit above scrolling content. */
@@ -194,26 +173,61 @@ table[data-enhance] tbody tr:hover td.col-sticky-left-2 {
   background: var(--te-hover) !important;
 }
 
-/* Frozen cells must inherit the overdue tint, or the row reads as two halves. */
-#dataTable tbody tr.overdue-row td.col-sticky-left,
-#dataTable tbody tr.overdue-row td.col-sticky-left-2,
-table[data-enhance] tbody tr.overdue-row td.col-sticky-left,
-table[data-enhance] tbody tr.overdue-row td.col-sticky-left-2 {
-  background: var(--te-danger-soft);
+/* Frozen cells must inherit the row tint, or the row reads as two halves. */
+#dataTable tbody tr.verif-row--CRITICAL td.col-sticky-left,
+#dataTable tbody tr.verif-row--CRITICAL td.col-sticky-left-2,
+table[data-enhance] tbody tr.verif-row--CRITICAL td.col-sticky-left,
+table[data-enhance] tbody tr.verif-row--CRITICAL td.col-sticky-left-2 {
+  background: #fef0ee;
 }
 
-#dataTable tbody tr.overdue-row:nth-child(even) td.col-sticky-left,
-#dataTable tbody tr.overdue-row:nth-child(even) td.col-sticky-left-2,
-table[data-enhance] tbody tr.overdue-row:nth-child(even) td.col-sticky-left,
-table[data-enhance] tbody tr.overdue-row:nth-child(even) td.col-sticky-left-2 {
-  background: var(--te-danger-alt);
+#dataTable tbody tr.verif-row--CRITICAL:nth-child(even) td.col-sticky-left,
+#dataTable tbody tr.verif-row--CRITICAL:nth-child(even) td.col-sticky-left-2,
+table[data-enhance] tbody tr.verif-row--CRITICAL:nth-child(even) td.col-sticky-left,
+table[data-enhance] tbody tr.verif-row--CRITICAL:nth-child(even) td.col-sticky-left-2 {
+  background: #fef0ee;
 }
 
-#dataTable tbody tr.overdue-row:hover td.col-sticky-left,
-#dataTable tbody tr.overdue-row:hover td.col-sticky-left-2,
-table[data-enhance] tbody tr.overdue-row:hover td.col-sticky-left,
-table[data-enhance] tbody tr.overdue-row:hover td.col-sticky-left-2 {
-  background: var(--te-danger-hover) !important;
+#dataTable tbody tr.verif-row--WARNING td.col-sticky-left,
+#dataTable tbody tr.verif-row--WARNING td.col-sticky-left-2,
+table[data-enhance] tbody tr.verif-row--WARNING td.col-sticky-left,
+table[data-enhance] tbody tr.verif-row--WARNING td.col-sticky-left-2 {
+  background: #fdf6d8;
+}
+
+#dataTable tbody tr.verif-row--WARNING:nth-child(even) td.col-sticky-left,
+#dataTable tbody tr.verif-row--WARNING:nth-child(even) td.col-sticky-left-2,
+table[data-enhance] tbody tr.verif-row--WARNING:nth-child(even) td.col-sticky-left,
+table[data-enhance] tbody tr.verif-row--WARNING:nth-child(even) td.col-sticky-left-2 {
+  background: #fdf6d8;
+}
+
+#dataTable tbody tr.verif-row--COMPLETION td.col-sticky-left,
+#dataTable tbody tr.verif-row--COMPLETION td.col-sticky-left-2,
+table[data-enhance] tbody tr.verif-row--COMPLETION td.col-sticky-left,
+table[data-enhance] tbody tr.verif-row--COMPLETION td.col-sticky-left-2 {
+  background: #eaf0f6;
+}
+
+#dataTable tbody tr.verif-row--COMPLETION:nth-child(even) td.col-sticky-left,
+#dataTable tbody tr.verif-row--COMPLETION:nth-child(even) td.col-sticky-left-2,
+table[data-enhance] tbody tr.verif-row--COMPLETION:nth-child(even) td.col-sticky-left,
+table[data-enhance] tbody tr.verif-row--COMPLETION:nth-child(even) td.col-sticky-left-2 {
+  background: #eaf0f6;
+}
+
+#dataTable tbody tr.verif-row--DUPLICATE td.col-sticky-left,
+#dataTable tbody tr.verif-row--DUPLICATE td.col-sticky-left-2,
+table[data-enhance] tbody tr.verif-row--DUPLICATE td.col-sticky-left,
+table[data-enhance] tbody tr.verif-row--DUPLICATE td.col-sticky-left-2 {
+  background: #ece4f7;
+}
+
+#dataTable tbody tr.verif-row--DUPLICATE:nth-child(even) td.col-sticky-left,
+#dataTable tbody tr.verif-row--DUPLICATE:nth-child(even) td.col-sticky-left-2,
+table[data-enhance] tbody tr.verif-row--DUPLICATE:nth-child(even) td.col-sticky-left,
+table[data-enhance] tbody tr.verif-row--DUPLICATE:nth-child(even) td.col-sticky-left-2 {
+  background: #ece4f7;
 }
 
 /* ---------- sort affordance ---------- */

@@ -123,7 +123,12 @@
         bottom: 0;
         z-index: 100;
         transition: width 0.25s ease;
-        background: linear-gradient(180deg, #16324f 0%, #244866 100%);
+        /* Tema selaras panel brand halaman login (navy -> teal):
+           gradient 3-stop + glow teal halus, tanpa grid agar menu tetap tenang. */
+        background:
+          radial-gradient(circle at 88% 8%, rgba(42, 151, 140, 0.22), transparent 46%),
+          linear-gradient(160deg, #16324f 0%, #1b4a63 52%, #14524c 100%);
+        background-attachment: fixed;
         color: #fff;
         display: flex;
         flex-direction: column;
@@ -133,7 +138,40 @@
       .sidebar.collapsed {
         width: var(--sidebar-collapsed-w);
       }
-      .sidebar.collapsed .brand-title,
+      /* Tooltip label menu (elemen fixed di <body>, diisi JS saat collapsed).
+         Ditaruh di luar sidebar agar tidak terpotong area scroll .sidebar-nav. */
+      .sidebar-tip {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 300;
+        max-width: 240px;
+        padding: 6px 11px;
+        border-radius: 8px;
+        background: #0f2436;
+        color: #fff;
+        font-size: 0.76rem;
+        font-weight: 600;
+        line-height: 1.2;
+        white-space: nowrap;
+        box-shadow: 0 8px 22px rgba(9, 22, 34, 0.32);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        pointer-events: none;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(2px);
+        transition: opacity 0.14s ease, transform 0.14s ease, visibility 0.14s ease;
+      }
+      .sidebar-tip.is-visible {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+      }
+      /* Catatan: saat collapsed, .sidebar-nav TETAP scrollable (overflow-y:auto).
+         Tooltip label menu tidak lagi memakai pseudo-element di dalam nav
+         (akan terpotong oleh area scroll); digantikan tooltip `position:fixed`
+         yang dirender oleh JS (lihat initSidebarTooltips di base.html). */
+            .sidebar.collapsed .brand-title,
       .sidebar.collapsed .sidebar-brand small,
       .sidebar.collapsed .sidebar-nav .nav-item span,
       .sidebar.collapsed .sidebar-section,
@@ -207,15 +245,19 @@
         border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         position: relative;
       }
+      /* Ikon brand diselaraskan dengan panel login (.auth-hero__brand):
+         kotak kaca (glass) + border tipis + ikon teal terang. */
       .sidebar-brand .brand-icon {
-        width: 40px;
-        height: 40px;
-        border-radius: 10px;
-        background: var(--accent);
+        width: 46px;
+        height: 46px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.18);
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.2rem;
+        font-size: 1.4rem;
+        color: #6ee7d6;
         margin-bottom: 10px;
         flex-shrink: 0;
       }
@@ -290,7 +332,7 @@
       .sidebar-nav .nav-item.active {
         background: rgba(255, 255, 255, 0.14);
         color: #fff;
-        box-shadow: inset 3px 0 0 var(--accent);
+        box-shadow: inset 3px 0 0 var(--accent-light);
       }
       .sidebar-nav .nav-item.active i {
         color: var(--accent-light);
@@ -310,6 +352,19 @@
         min-width: 22px;
         text-align: center;
         color: #fff;
+      }
+      /* Badge ikon-saja (tanpa angka): bulat, ikon tanda seru di tengah. */
+      .sidebar-nav .nav-item .nav-badge-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 18px;
+        height: 18px;
+        min-width: 0;
+        padding: 0;
+        border-radius: 50%;
+        font-size: 0.62rem;
+        line-height: 1;
       }
       .sidebar-nav .nav-item .nav-badge-critical {
         background: #e74c3c;
@@ -922,12 +977,33 @@
       #dataTable tbody tr:hover td {
         background: transparent !important;
       }
-      #dataTable tbody tr.overdue-row {
-        background: var(--danger-soft) !important;
-        border-left: 3px solid var(--danger);
+      #dataTable tbody tr.verif-row--CRITICAL {
+        background: #fef0ee !important;
+        border-left: 3px solid #b42318;
       }
-      #dataTable tbody tr.overdue-row:hover {
-        background: #fbdbd7 !important;
+      #dataTable tbody tr.verif-row--CRITICAL:hover {
+        background: #fbd8d3 !important;
+      }
+      #dataTable tbody tr.verif-row--WARNING {
+        background: #fdf6d8 !important;
+        border-left: 3px solid #8a6d00;
+      }
+      #dataTable tbody tr.verif-row--WARNING:hover {
+        background: #f9edb8 !important;
+      }
+      #dataTable tbody tr.verif-row--COMPLETION {
+        background: #eaf0f6 !important;
+        border-left: 3px solid #16324f;
+      }
+      #dataTable tbody tr.verif-row--COMPLETION:hover {
+        background: #dbe7f1 !important;
+      }
+      #dataTable tbody tr.verif-row--DUPLICATE {
+        background: #ece4f7 !important;
+        border-left: 3px solid #6a4fa3;
+      }
+      #dataTable tbody tr.verif-row--DUPLICATE:hover {
+        background: #ded0f0 !important;
       }
 
       .cell-money {
@@ -1346,8 +1422,31 @@
         .app-layout {
           min-height: 100dvh;
           height: 100dvh;
-          overflow: hidden;
-        }
+        overflow: hidden;
+      }
+      /* Grid halus selaras panel brand halaman login. Di sidebar grid ditaruh
+         di pseudo-element ::before (z-index di bawah konten) karena sidebar
+         berisi elemen anak langsung dan overflow:hidden. */
+      .sidebar::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 0;
+        pointer-events: none;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.14) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.14) 1px, transparent 1px);
+        background-size: 46px 46px;
+        -webkit-mask-image: radial-gradient(ellipse at 30% 26%, #000 24%, transparent 92%);
+        mask-image: radial-gradient(ellipse at 30% 26%, #000 24%, transparent 92%);
+      }
+      .sidebar > * {
+        position: relative;
+        z-index: 1;
+      }
         .sidebar {
           width: min(300px, calc(100vw - 56px));
           transform: translateX(-100%);

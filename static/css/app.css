@@ -794,10 +794,9 @@
 }
 
 /* ══════════════════════════════════════════════════════════
-   TOPBAR — pemisah + tombol Keluar (aksi tegas, bukan badge)
-   Sebelumnya .topbar-logout memakai gaya .topbar-badge (pil status),
-   sehingga terbaca sebagai label, bukan tombol. Kini tombol sungguhan
-   dengan border merah halus yang terisi saat hover.
+   TOPBAR — pemisah + tombol Keluar (ikon saja, aksi tegas).
+   Tombol kini berbentuk kotak ikon 36×36 agar sejajar tinggi dengan
+   badge/pil topbar; keterangan "Keluar" dipindah ke tooltip + aria-label.
    ══════════════════════════════════════════════════════════ */
 .topbar-divider {
   width: 1px;
@@ -810,19 +809,21 @@
 .topbar-logout {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 7px 14px;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
   border: 1px solid #f3c9c4;
   border-radius: 9px;
   background: #fff;
   color: #912018;
   font-family: inherit;
-  font-size: 0.78rem;
-  font-weight: 600;
+  font-size: 1rem;
   line-height: 1;
   cursor: pointer;
   white-space: nowrap;
   text-decoration: none;
+  flex: none;
   transition: var(--transition-smooth);
 }
 

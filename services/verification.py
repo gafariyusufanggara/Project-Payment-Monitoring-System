@@ -488,3 +488,18 @@ def get_counts(project_id=None):
 def get_verification_data(project_id=None):
     """Return (rows, counts, duplicates) in one pass — for the /verifikasi page."""
     return _analyze(project_id)
+
+
+def get_row_levels(project_id=None):
+    """Return {_row: level} for every row that has a verification issue.
+
+    Only rows with level != 'OK' appear. Ignored rows are excluded, so any
+    caller colouring table rows stays consistent with the /verifikasi page
+    and the sidebar badge counts. One db.read_data() pass, same rules as
+    _analyze().
+
+    Used by the Data Invoice table to tint each row by its highest issue
+    level (CRITICAL / COMPLETION / DUPLICATE / WARNING).
+    """
+    rows, _counts, _duplicates = _analyze(project_id)
+    return {r['row_idx']: r['level'] for r in rows}

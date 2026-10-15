@@ -27,79 +27,330 @@
       rel="stylesheet"
     />
     <style>
-      .auth-wrap {
-        background: radial-gradient(ellipse at 50% 0%, rgba(15, 118, 110, .09), transparent 52%), var(--bg);
+      /* ─────────────────────────────────────────────────────────
+         LOGIN — split screen: panel brand (navy→teal) + panel form
+         ───────────────────────────────────────────────────────── */
+      .auth-split {
+        min-height: 100vh;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        background: var(--card);
+      }
+
+      /* ── Panel kiri: branding ── */
+      .auth-hero {
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: clamp(32px, 5vw, 64px);
+        color: #fff;
+        background:
+          linear-gradient(160deg, #16324f 0%, #1b4a63 52%, #14524c 100%);
+      }
+      .auth-hero::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image:
+          radial-gradient(circle at 82% 12%, rgba(42, 151, 140, .34), transparent 42%),
+          radial-gradient(circle at 8% 92%, rgba(255, 255, 255, .08), transparent 46%);
+        pointer-events: none;
+      }
+      .auth-hero::after {
+        /* garis kisi halus — kesan "sistem / data" tanpa ramai */
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, .045) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, .045) 1px, transparent 1px);
+        background-size: 46px 46px;
+        mask-image: radial-gradient(ellipse at 30% 40%, #000 12%, transparent 72%);
+        -webkit-mask-image: radial-gradient(ellipse at 30% 40%, #000 12%, transparent 72%);
+        pointer-events: none;
+      }
+      .auth-hero > * { position: relative; z-index: 1; }
+
+      .auth-hero__top {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .auth-hero__brand {
+        width: 46px;
+        height: 46px;
+        flex: 0 0 auto;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, .12);
+        border: 1px solid rgba(255, 255, 255, .18);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.4rem;
+        color: #6ee7d6;
+      }
+      .auth-hero__org {
+        line-height: 1.15;
+      }
+      .auth-hero__org strong {
+        display: block;
+        font-size: .82rem;
+        font-weight: 700;
+        letter-spacing: .04em;
+      }
+      .auth-hero__org span {
+        font-size: .68rem;
+        letter-spacing: .16em;
+        color: rgba(255, 255, 255, .62);
+      }
+
+      .auth-hero__body { max-width: 30rem; }
+      .auth-hero__kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        font-size: .66rem;
+        font-weight: 700;
+        letter-spacing: .16em;
+        text-transform: uppercase;
+        color: #7fe6d5;
+        margin-bottom: 20px;
+      }
+      .auth-hero__kicker::before {
+        content: "";
+        width: 22px;
+        height: 2px;
+        border-radius: 2px;
+        background: #2a978c;
+      }
+      .auth-hero__title {
+        font-size: clamp(1.6rem, 2.6vw, 2.15rem);
+        font-weight: 800;
+        letter-spacing: -.02em;
+        line-height: 1.22;
+        margin: 0 0 16px;
+      }
+      .auth-hero__title em {
+        font-style: normal;
+        color: #7fe6d5;
+      }
+      .auth-hero__lead {
+        font-size: .92rem;
+        line-height: 1.6;
+        color: rgba(255, 255, 255, .74);
+        margin: 0;
+      }
+
+      .auth-hero__list {
+        list-style: none;
+        margin: 28px 0 0;
+        padding: 0;
+        display: grid;
+        gap: 12px;
+      }
+      .auth-hero__list li {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        font-size: .82rem;
+        line-height: 1.45;
+        color: rgba(255, 255, 255, .86);
+      }
+      .auth-hero__list i {
+        color: #7fe6d5;
+        font-size: .95rem;
+        margin-top: 1px;
+      }
+
+      .auth-hero__foot {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: .72rem;
+        color: rgba(255, 255, 255, .58);
+      }
+
+      /* ── Panel kanan: form ── */
+      .auth-panel {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: clamp(28px, 5vw, 64px);
+        background: var(--card);
       }
       .auth-card {
-        max-width: 410px;
-        padding: 36px 32px 28px;
-        border-color: rgba(22, 50, 79, .12);
-        box-shadow: 0 20px 60px rgba(22, 50, 79, .11), 0 2px 8px rgba(22, 50, 79, .04);
+        width: 100%;
+        max-width: 388px;
+        text-align: left;
+        border: 0;
+        box-shadow: none;
+        padding: 0;
+        background: transparent;
       }
-      .auth-brand {
-        width: 58px;
-        height: 58px;
-        margin-bottom: 18px;
-        box-shadow: 0 8px 18px rgba(22, 50, 79, .18);
+      .auth-panel__brand {
+        display: none;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 22px;
       }
-      .auth-kicker { letter-spacing: 1.2px; }
-      .auth-title { font-size: 1.25rem; letter-spacing: -.02em; }
-      .auth-sub { margin-bottom: 24px; }
+      .auth-head__kicker {
+        font-size: .68rem;
+        font-weight: 700;
+        letter-spacing: .14em;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin: 0 0 6px;
+      }
+      .auth-head__title {
+        font-size: 1.5rem;
+        font-weight: 800;
+        letter-spacing: -.02em;
+        margin: 0 0 6px;
+        color: var(--text);
+      }
+      .auth-head__sub {
+        font-size: .84rem;
+        color: var(--ds-text-soft);
+        margin: 0 0 26px;
+      }
+
+      .auth-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin: calc(var(--ds-sp-3) * -1 + 2px) 0 var(--ds-sp-3);
+      }
+
       .auth-field .auth-input { height: 48px; }
-      .auth-toggle { width: 44px; height: 44px; }
-      .auth-btn { min-height: 48px; margin-top: 4px; }
-      .auth-btn:not(:disabled) { transition: transform .16s ease, box-shadow .16s ease; }
-      .auth-btn:not(:disabled):hover { transform: translateY(-1px); box-shadow: 0 5px 14px rgba(15, 118, 110, .2); }
-      .auth-hint { margin-top: 20px; }
+      .auth-toggle { width: 42px; height: 42px; right: 3px; }
+      .auth-btn {
+        min-height: 48px;
+        margin-top: 6px;
+        font-weight: 700;
+        letter-spacing: .01em;
+        border-radius: 10px;
+        transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
+      }
+      .auth-btn:not(:disabled):hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 22px -8px rgba(15, 118, 110, .55);
+        filter: saturate(1.05);
+      }
+      .auth-hint {
+        justify-content: flex-start;
+        margin-top: 22px;
+        padding-top: 18px;
+        border-top: 1px solid var(--border);
+      }
+
+      /* ── Responsif: tumpuk, hero jadi header ringkas ── */
+      @media (max-width: 900px) {
+        .auth-split { grid-template-columns: 1fr; }
+        .auth-hero {
+          padding: 30px clamp(20px, 6vw, 40px) 34px;
+        }
+        .auth-hero__body { max-width: none; }
+        .auth-hero__list { display: none; }
+        .auth-hero__foot { display: none; }
+        .auth-hero__title { font-size: 1.5rem; }
+        .auth-hero__lead { max-width: 44ch; }
+        .auth-panel { padding: 34px clamp(20px, 6vw, 40px) 44px; }
+        .auth-card {
+          max-width: 420px;
+          margin: 0 auto;
+        }
+      }
       @media (max-width: 480px) {
-        .auth-wrap { align-items: flex-start; padding: max(24px, 8vh) 16px 20px; }
-        .auth-card { padding: 30px 22px 24px; }
+        .auth-hero { padding: 26px 20px 30px; }
+        .auth-hero__kicker { margin-bottom: 12px; }
+        .auth-hero__title { font-size: 1.32rem; }
+        .auth-hero__lead { font-size: .84rem; }
+        .auth-panel { padding: 28px 20px 40px; }
       }
       @media (prefers-reduced-motion: reduce) {
-        .auth-btn:not(:disabled) { transition: none; }
         .auth-btn:not(:disabled):hover { transform: none; }
       }
     </style>
   </head>
   <body>
-    <div class="auth-wrap">
-      <form class="auth-card" method="post" action="{{ url_for('auth.login', next=request.args.get('next', '')) }}" id="loginForm" novalidate>
-        <div class="auth-brand" aria-hidden="true">
-          <i class="bi bi-file-earmark-spreadsheet-fill"></i>
+    <main class="auth-split">
+      <!-- ── Panel kiri: identitas sistem ── -->
+      <section class="auth-hero" aria-label="Tentang sistem">
+        <div class="auth-hero__top">
+          <div class="auth-hero__brand" aria-hidden="true">
+            <i class="bi bi-file-earmark-spreadsheet-fill"></i>
+          </div>
+          <div class="auth-hero__org">
+            <strong>Project Payment</strong>
+            <span>MONITORING SYSTEM</span>
+          </div>
         </div>
-        <p class="auth-kicker">PROJECT PAYMENT</p>
-        <h1 class="auth-title">Monitoring System</h1>
-        <p class="auth-sub">Masuk untuk monitoring invoice.</p>
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-        {% for cat, msg in messages %}
-        <div class="auth-alert" role="alert"><i class="bi bi-exclamation-circle-fill"></i><span>{{ msg }}</span></div>
-        {% endfor %}
-        {% endif %}
-        {% endwith %}
-        <label class="auth-label" for="password">KATA SANDI</label>
-        <div class="auth-field">
-          <i class="bi bi-lock-fill auth-field-icon"></i>
-          <input
-            class="form-control auth-input"
-            type="password"
-            id="password"
-            name="password"
-            placeholder="Masukkan password"
-            autocomplete="current-password"
-            autofocus
-            required
-          />
-          <button class="auth-toggle" type="button" id="togglePw" aria-label="Tampilkan password" title="Tampilkan password">
-            <i class="bi bi-eye"></i>
+
+        <div class="auth-hero__body">
+          <p class="auth-hero__kicker">Project Payment Monitoring System</p>
+          <h1 class="auth-hero__title">
+            Pantau <em>invoice</em> &amp; progress hutang vendor
+          </h1>
+          <p class="auth-hero__lead">
+            Progress pembayaran &amp; sisa hutang vendor dalam satu dashboard yang rapi.
+          </p>
+          <ul class="auth-hero__list">
+            <li><i class="bi bi-file-earmark-check"></i><span>Pantau kelengkapan berkas &amp; status verifikasi invoice.</span></li>
+            <li><i class="bi bi-cash-stack"></i><span>Rekap pembayaran DPP/PPN, retensi, dan sisa hutang.</span></li>
+            <li><i class="bi bi-diagram-3"></i><span>Cocokkan No. PO &amp; kontrak lintas vendor secara otomatis.</span></li>
+          </ul>
+        </div>
+
+        <div class="auth-hero__foot">
+          <i class="bi bi-shield-lock-fill"></i>
+          <span>Data bersifat rahasia &mdash; hanya untuk pengguna berwenang.</span>
+        </div>
+      </section>
+
+      <!-- ── Panel kanan: formulir masuk ── -->
+      <section class="auth-panel">
+        <form class="auth-card" method="post" action="{{ url_for('auth.login', next=request.args.get('next', '')) }}" id="loginForm" novalidate>
+          <p class="auth-head__kicker">Selamat datang kembali</p>
+          <h2 class="auth-head__title">Masuk ke Dashboard</h2>
+          <p class="auth-head__sub">Gunakan kata sandi akun Anda untuk melanjutkan.</p>
+
+          {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+          {% for cat, msg in messages %}
+          <div class="auth-alert" role="alert"><i class="bi bi-exclamation-circle-fill"></i><span>{{ msg }}</span></div>
+          {% endfor %}
+          {% endif %}
+          {% endwith %}
+
+          <label class="auth-label" for="password">KATA SANDI</label>
+          <div class="auth-field">
+            <i class="bi bi-lock-fill auth-field-icon"></i>
+            <input
+              class="form-control auth-input"
+              type="password"
+              id="password"
+              name="password"
+              placeholder="Masukkan kata sandi"
+              autocomplete="current-password"
+              autofocus
+              required
+            />
+            <button class="auth-toggle" type="button" id="togglePw" aria-label="Tampilkan kata sandi" title="Tampilkan kata sandi">
+              <i class="bi bi-eye"></i>
+            </button>
+          </div>
+
+          <button class="ds-btn ds-btn--primary auth-btn" type="submit" id="loginBtn">
+            <i class="bi bi-box-arrow-in-right"></i><span>Masuk</span>
           </button>
-        </div>
-        <button class="ds-btn ds-btn--primary auth-btn" type="submit" id="loginBtn">
-          <i class="bi bi-box-arrow-in-right"></i><span>Masuk</span>
-        </button>
-        <p class="auth-hint"><i class="bi bi-shield-lock"></i> Akses Internal</p>
-      </form>
-    </div>
+
+          <p class="auth-hint"><i class="bi bi-shield-lock"></i> Akses Internal &middot; Sesi terlindungi</p>
+        </form>
+      </section>
+    </main>
+
     <script>
       (function () {
         var toggle = document.getElementById('togglePw');
@@ -108,7 +359,8 @@
           var show = pw.type === 'password';
           pw.type = show ? 'text' : 'password';
           toggle.innerHTML = show ? '<i class="bi bi-eye-slash"></i>' : '<i class="bi bi-eye"></i>';
-          toggle.setAttribute('aria-label', show ? 'Sembunyikan password' : 'Tampilkan password');
+          toggle.setAttribute('aria-label', show ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi');
+          toggle.setAttribute('title', show ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi');
           pw.focus();
         });
         document.getElementById('loginForm').addEventListener('submit', function () {

@@ -160,6 +160,86 @@
     align-items: stretch;
     gap: 8px 10px;
   }
+  /* Collapsible filter panel: max-height tween keeps the reveal smooth;
+     visibility+pointer-events gate prevents focus/click on hidden controls. */
+  .dt-invoice .ft-groups {
+    overflow: hidden;
+    max-height: 1000px;
+    opacity: 1;
+    visibility: visible;
+    transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+      opacity 0.22s ease, visibility 0s linear 0s, margin 0.3s ease;
+  }
+  .dt-invoice .ft-groups.ft-collapsed {
+    max-height: 0;
+    opacity: 0;
+    visibility: hidden;
+    margin-top: -10px;
+    margin-bottom: -10px;
+    pointer-events: none;
+    transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+      opacity 0.18s ease, visibility 0s linear 0.3s, margin 0.3s ease;
+  }
+
+  /* ─── Filter panel toggle button ─── */
+  .dt-invoice .filter-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border: 1px solid var(--dt-border);
+    border-radius: 10px;
+    background: #fff;
+    color: #33414f;
+    font-size: 0.76rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: var(--dt-transition);
+  }
+  .dt-invoice .filter-toggle:hover {
+    border-color: var(--dt-accent);
+    color: var(--dt-accent);
+    background: var(--dt-accent-soft);
+  }
+  .dt-invoice .filter-toggle:focus-visible {
+    outline: 2px solid var(--dt-accent);
+    outline-offset: 1px;
+  }
+  .dt-invoice .filter-toggle .ft-toggle-caret {
+    font-size: 0.68rem;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .dt-invoice .filter-toggle[aria-expanded="true"] {
+    border-color: var(--dt-accent);
+    color: var(--dt-accent);
+    background: var(--dt-accent-soft);
+  }
+  .dt-invoice .filter-toggle[aria-expanded="true"] .ft-toggle-caret {
+    transform: rotate(180deg);
+  }
+  .dt-invoice .ft-toggle-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background: var(--dt-accent);
+    color: #fff;
+    font-size: 0.66rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+  /* Nudge the Reset button flush right now that the toggle sits beside it. */
+  .dt-invoice .ft-top .filter-toggle {
+    margin-left: auto;
+  }
+  .dt-invoice .ft-top .filter-toggle + .filter-reset {
+    margin-left: 0;
+  }
+
   .dt-invoice .ft-cluster {
     display: flex;
     align-items: center;
@@ -593,37 +673,78 @@
     background: #eaf0f6 !important;
   }
 
-  /* ─── Overdue row: only # and NAMA got red tint ─── */
-  .dt-invoice .dt-table tbody tr.overdue-row td {
+  /* ─── Verification-tinted rows ───
+     Baris Data Invoice diwarnai sesuai tingkat masalah Verifikasi Data
+     (CRITICAL=merah, COMPLETION=biru, DUPLICATE=violet, WARNING=amber).
+     Menggantikan tint "jatuh tempo" merah lama. Hanya baris yang punya
+     issue (dan belum diabaikan) yang mendapat warna; sel lain dibiarkan
+     transparan agar gradasi zebra tetap terbaca lewat sticky cells. */
+  .dt-invoice .dt-table tbody tr.verif-row td {
     background: transparent !important;
     box-shadow: none;
   }
-  .dt-invoice .dt-table tbody tr.overdue-row:nth-child(even) td {
+  .dt-invoice .dt-table tbody tr.verif-row:nth-child(even) td {
     background: transparent !important;
   }
-  .dt-invoice .dt-table tbody tr.overdue-row:hover td {
+  .dt-invoice .dt-table tbody tr.verif-row:hover td {
     background: transparent !important;
   }
 
-  .dt-invoice .dt-table tbody tr.overdue-row td.col-sticky-left,
-  .dt-invoice .dt-table tbody tr.overdue-row td.col-sticky-left-2 {
+  /* Warna per tingkat — frozen kolom (kiri & kanan) ikut diwarnai. */
+  .dt-invoice .dt-table tbody tr.verif-row--CRITICAL td.col-sticky-left,
+  .dt-invoice .dt-table tbody tr.verif-row--CRITICAL td.col-sticky-left-2,
+  .dt-invoice .dt-table tbody tr.verif-row--CRITICAL td.col-sticky-right,
+  .dt-invoice .dt-table tbody tr.verif-row--CRITICAL:nth-child(even) td.col-sticky-left,
+  .dt-invoice .dt-table tbody tr.verif-row--CRITICAL:nth-child(even) td.col-sticky-left-2,
+  .dt-invoice .dt-table tbody tr.verif-row--CRITICAL:nth-child(even) td.col-sticky-right {
     background: #fef0ee !important;
   }
-  .dt-invoice
-    .dt-table
-    tbody
-    tr.overdue-row:nth-child(even)
-    td.col-sticky-left,
-  .dt-invoice
-    .dt-table
-    tbody
-    tr.overdue-row:nth-child(even)
-    td.col-sticky-left-2 {
-    background: #fef0ee !important;
-  }
-  .dt-invoice .dt-table tbody tr.overdue-row:hover td.col-sticky-left,
-  .dt-invoice .dt-table tbody tr.overdue-row:hover td.col-sticky-left-2 {
+  .dt-invoice .dt-table tbody tr.verif-row--CRITICAL:hover td.col-sticky-left,
+  .dt-invoice .dt-table tbody tr.verif-row--CRITICAL:hover td.col-sticky-left-2,
+  .dt-invoice .dt-table tbody tr.verif-row--CRITICAL:hover td.col-sticky-right {
     background: #f8cfc9 !important;
+  }
+
+  .dt-invoice .dt-table tbody tr.verif-row--WARNING td.col-sticky-left,
+  .dt-invoice .dt-table tbody tr.verif-row--WARNING td.col-sticky-left-2,
+  .dt-invoice .dt-table tbody tr.verif-row--WARNING td.col-sticky-right,
+  .dt-invoice .dt-table tbody tr.verif-row--WARNING:nth-child(even) td.col-sticky-left,
+  .dt-invoice .dt-table tbody tr.verif-row--WARNING:nth-child(even) td.col-sticky-left-2,
+  .dt-invoice .dt-table tbody tr.verif-row--WARNING:nth-child(even) td.col-sticky-right {
+    background: #fdf6d8 !important;
+  }
+  .dt-invoice .dt-table tbody tr.verif-row--WARNING:hover td.col-sticky-left,
+  .dt-invoice .dt-table tbody tr.verif-row--WARNING:hover td.col-sticky-left-2,
+  .dt-invoice .dt-table tbody tr.verif-row--WARNING:hover td.col-sticky-right {
+    background: #f7e9a8 !important;
+  }
+
+  .dt-invoice .dt-table tbody tr.verif-row--COMPLETION td.col-sticky-left,
+  .dt-invoice .dt-table tbody tr.verif-row--COMPLETION td.col-sticky-left-2,
+  .dt-invoice .dt-table tbody tr.verif-row--COMPLETION td.col-sticky-right,
+  .dt-invoice .dt-table tbody tr.verif-row--COMPLETION:nth-child(even) td.col-sticky-left,
+  .dt-invoice .dt-table tbody tr.verif-row--COMPLETION:nth-child(even) td.col-sticky-left-2,
+  .dt-invoice .dt-table tbody tr.verif-row--COMPLETION:nth-child(even) td.col-sticky-right {
+    background: #eaf0f6 !important;
+  }
+  .dt-invoice .dt-table tbody tr.verif-row--COMPLETION:hover td.col-sticky-left,
+  .dt-invoice .dt-table tbody tr.verif-row--COMPLETION:hover td.col-sticky-left-2,
+  .dt-invoice .dt-table tbody tr.verif-row--COMPLETION:hover td.col-sticky-right {
+    background: #dbe7f1 !important;
+  }
+
+  .dt-invoice .dt-table tbody tr.verif-row--DUPLICATE td.col-sticky-left,
+  .dt-invoice .dt-table tbody tr.verif-row--DUPLICATE td.col-sticky-left-2,
+  .dt-invoice .dt-table tbody tr.verif-row--DUPLICATE td.col-sticky-right,
+  .dt-invoice .dt-table tbody tr.verif-row--DUPLICATE:nth-child(even) td.col-sticky-left,
+  .dt-invoice .dt-table tbody tr.verif-row--DUPLICATE:nth-child(even) td.col-sticky-left-2,
+  .dt-invoice .dt-table tbody tr.verif-row--DUPLICATE:nth-child(even) td.col-sticky-right {
+    background: #ece4f7 !important;
+  }
+  .dt-invoice .dt-table tbody tr.verif-row--DUPLICATE:hover td.col-sticky-left,
+  .dt-invoice .dt-table tbody tr.verif-row--DUPLICATE:hover td.col-sticky-left-2,
+  .dt-invoice .dt-table tbody tr.verif-row--DUPLICATE:hover td.col-sticky-right {
+    background: #ded0f0 !important;
   }
 
   .dt-invoice .dt-table tbody tr.row-clickable {
@@ -662,17 +783,33 @@
   .dt-invoice .dt-table tbody td.col-sticky-left-2 .cell-rekanan {
     transition: color 0.15s;
   }
-  .dt-invoice .dt-table tbody tr.overdue-row td.col-sticky-left .row-num {
+  .dt-invoice .dt-table tbody tr.verif-row--CRITICAL td.col-sticky-left .row-num {
     background: #f8cfc9;
     color: #912018;
   }
-  .dt-invoice
-    .dt-table
-    tbody
-    tr.overdue-row
-    td.col-sticky-left-2
-    .cell-rekanan {
+  .dt-invoice .dt-table tbody tr.verif-row--CRITICAL td.col-sticky-left-2 .cell-rekanan {
     color: #912018;
+  }
+  .dt-invoice .dt-table tbody tr.verif-row--WARNING td.col-sticky-left .row-num {
+    background: #f7e9a8;
+    color: #8a6d00;
+  }
+  .dt-invoice .dt-table tbody tr.verif-row--WARNING td.col-sticky-left-2 .cell-rekanan {
+    color: #8a6d00;
+  }
+  .dt-invoice .dt-table tbody tr.verif-row--COMPLETION td.col-sticky-left .row-num {
+    background: #dbe7f1;
+    color: #16324f;
+  }
+  .dt-invoice .dt-table tbody tr.verif-row--COMPLETION td.col-sticky-left-2 .cell-rekanan {
+    color: #16324f;
+  }
+  .dt-invoice .dt-table tbody tr.verif-row--DUPLICATE td.col-sticky-left .row-num {
+    background: #ded0f0;
+    color: #6a4fa3;
+  }
+  .dt-invoice .dt-table tbody tr.verif-row--DUPLICATE td.col-sticky-left-2 .cell-rekanan {
+    color: #6a4fa3;
   }
 
   .dt-invoice .dt-table tbody td.col-sticky-right {
@@ -687,9 +824,6 @@
   }
   .dt-invoice .dt-table tbody tr:hover td.col-sticky-right {
     background: #eaf0f6 !important;
-  }
-  .dt-invoice .dt-table tbody tr.overdue-row td.col-sticky-right {
-    background: #fef0ee !important;
   }
 
   /* ─── Cell Styles ─── */
@@ -749,6 +883,24 @@
     color: #4d5766;
   }
 
+  /* ─── Click-to-expand affordance (cell-expand.js) ───
+     Elemen ber-data-full yang teksnya terpotong diberi .cx-on oleh JS.
+     Popup kotak (.lp-cellpop) sudah global; di sini hanya disediakan
+     isyarat klik + penanda terbuka untuk tabel Data Invoice. */
+  .dt-invoice .dt-table [data-full].cx-on {
+    cursor: pointer;
+  }
+  .dt-invoice .dt-table [data-full].cx-on:hover {
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-underline-offset: 2px;
+  }
+  .dt-invoice .dt-table [data-full].is-open {
+    text-decoration: none;
+    box-shadow: inset 0 0 0 2px var(--dt-accent, #16324f);
+    border-radius: 4px;
+  }
+
   /* ─── Row Number ─── */
   .dt-invoice .row-num {
     display: inline-flex;
@@ -763,7 +915,7 @@
     color: var(--dt-muted);
     font-family: "JetBrains Mono", monospace;
   }
-  .dt-invoice tr.overdue-row .row-num {
+  .dt-invoice tr.verif-row--CRITICAL .row-num {
     background: #f8cfc9;
     color: #912018;
   }
@@ -799,6 +951,25 @@
     vertical-align: middle;
     box-shadow: 0 0 0 2px rgba(253, 246, 216, 0.6);
   }
+
+  /* ─── Issue Flag (verifikasi level) ─── */
+  .dt-invoice .issue-flag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 4px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    color: #fff;
+    font-size: 0.66rem;
+    vertical-align: middle;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.8);
+  }
+  .dt-invoice .issue-flag--CRITICAL    { background: #912018; }
+  .dt-invoice .issue-flag--WARNING     { background: #8a6d00; }
+  .dt-invoice .issue-flag--COMPLETION  { background: #1d4ed8; }
+  .dt-invoice .issue-flag--DUPLICATE   { background: #6b21a8; }
 
   /* ─── Badges ─── */
   .dt-invoice .badge-status {
@@ -882,6 +1053,9 @@
       max-width: none;
     }
     .dt-invoice .ft-top .filter-reset {
+      margin-left: 0;
+    }
+    .dt-invoice .ft-top .filter-toggle {
       margin-left: 0;
     }
     .dt-invoice .ft-cluster {

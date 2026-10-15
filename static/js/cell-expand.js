@@ -1,22 +1,26 @@
-/* cell-expand.js — reveal the full value of a truncated table cell on click.
+/* cell-expand.js — reveal the full value of a truncated cell on click.
  *
  * Report modals (laporan DPP / PPN / jatuh tempo) rebuild their <tbody> from
- * JS. Any <td data-full="…"> inside such a table becomes clickable and opens a
- * small floating box holding the FULL value, so nothing is lost to the
- * ellipsis and the table layout never shifts. This mirrors the behaviour the
- * No. Invoice column has always had, extended to PO / Kontrak and Deskripsi.
+ * JS. Any element with data-full="…" becomes clickable and opens a small
+ * floating box holding the FULL value, so nothing is lost to the ellipsis and
+ * the table layout never shifts. This mirrors the behaviour the No. Invoice
+ * column has always had, extended to PO / Kontrak and Deskripsi.
+ *
+ * data-full may sit on a <td> OR on an inner element (e.g. the .cell-rekanan
+ * / .cell-desc <div>s of the Data Invoice table, which clip their own text via
+ * max-width). The overflow test runs on whichever element carries data-full.
  *
  * A cell only gets the pointer affordance (`cx-on`) when it actually
- * overflows — either it was truncated in JS (text ends with …) or the rendered
- * text is wider than the cell (scrollWidth > clientWidth). Short values stay
- * inert. The box is position:fixed, so the modal's own scroll cannot drag it.
+ * overflows — either its text ends with … or the rendered text is wider than
+ * the element (scrollWidth > clientWidth). Short values stay inert. The box is
+ * position:fixed, so the modal's own scroll cannot drag it.
  */
 (function () {
   'use strict';
   if (window.CellExpand) return;
 
   var pop = null;       // singleton floating box
-  var openCell = null;  // the cell currently expanded
+  var openCell = null;  // the element currently expanded
 
   function esc(s) {
     return String(s == null ? '-' : s)
@@ -39,24 +43,27 @@
            esc(shown) + '</td>';
   }
 
-  function overflowing(cell) {
-    if (cell.scrollWidth > cell.clientWidth + 1) return true;
-    return /…\s*$/.test(cell.textContent || '');
+  function overflowing(el) {
+    if (el.scrollWidth > el.clientWidth + 1) return true;
+    // Vertical clip (e.g. -webkit-line-clamp: 2) hides text without a
+    // horizontal scroll, so a tall scrollHeight also means "truncated".
+    if (el.scrollHeight > el.clientHeight + 1) return true;
+    return /…\s*$/.test(el.textContent || '');
   }
 
   function refresh(root) {
-    var cells = (root || document).querySelectorAll('td[data-full]');
-    for (var i = 0; i < cells.length; i++) {
-      var c = cells[i];
-      if (overflowing(c)) {
-        c.classList.add('cx-on');
-        if (c.getAttribute('tabindex') === null) {
-          c.setAttribute('tabindex', '0');
-          c.setAttribute('role', 'button');
-          c.setAttribute('aria-label', 'Lihat teks lengkap');
+    var els = (root || document).querySelectorAll('[data-full]');
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i];
+      if (overflowing(el)) {
+        el.classList.add('cx-on');
+        if (el.getAttribute('tabindex') === null) {
+          el.setAttribute('tabindex', '0');
+          el.setAttribute('role', 'button');
+          el.setAttribute('aria-label', 'Lihat teks lengkap');
         }
       } else {
-        c.classList.remove('cx-on');
+        el.classList.remove('cx-on');
       }
     }
   }
@@ -114,8 +121,8 @@
     var t = e.target;
     if (!t || !t.closest) return;
     if (t.closest('.lp-cellpop')) return;
-    var cell = t.closest('td[data-full]');
-    if (cell && cell.classList.contains('cx-on')) {
+    var cell = t.closest('[data-full].cx-on');
+    if (cell) {
       e.preventDefault(); e.stopPropagation(); open(cell); return;
     }
     close();
@@ -124,8 +131,8 @@
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') { close(); return; }
     if ((e.key === 'Enter' || e.key === ' ') && e.target && e.target.closest) {
-      var cell = e.target.closest('td[data-full]');
-      if (cell && cell.classList.contains('cx-on')) { e.preventDefault(); open(cell); }
+      var cell = e.target.closest('[data-full].cx-on');
+      if (cell) { e.preventDefault(); open(cell); }
     }
   });
 

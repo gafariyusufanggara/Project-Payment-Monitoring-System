@@ -105,4 +105,72 @@ assert 'Sisa Tagih (DPP)' in html and 'Sisa Tagih (PPN)' in html, \
 assert 'Belum Ditagih (DPP)' not in html, "label lama 'Belum Ditagih' masih ada"
 print('[4] label kolom OK (Sisa Tagih, bukan Belum Ditagih)')
 
+
+# --- 5. Badge ikon (tanda seru) di menu sidebar "Progress Kontrak" ---
+# Harus muncul di halaman mana pun (sidebar global), TANPA angka.
+from services import auth as authmod  # noqa: E402
+
+with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                       'templates', 'base.html'), encoding='utf-8') as f:
+    base_src = f.read()
+assert 'id="navProgressKontrak"' in base_src, "menu Progress Kontrak tak punya id"
+assert 'nav-badge-icon' in base_src, "badge ikon Progress Kontrak tak ada di base.html"
+assert 'bi-exclamation' in base_src, \
+    "ikon tanda seru (bi-exclamation) tak ada di menu Progress Kontrak"
+# Badge ikon tak boleh menampilkan angka sebagai TEKS tampil: hanya ikon di
+# dalam span badge. (po_review_count boleh muncul di atribut title tooltip.)
+import re as _re  # noqa: E402
+_badge = _re.search(r'<span class="nav-badge[^"]*nav-badge-icon"[^>]*>(.*?)</span>',
+                    base_src, _re.S)
+assert _badge, "span badge ikon Progress Kontrak tak ditemukan di base.html"
+_inner = _badge.group(1)
+assert 'bi-exclamation' in _inner, "badge harus berisi ikon tanda seru"
+assert '{{ po_review_count }}' not in _inner, \
+    "isi badge Progress Kontrak harus IKON saja (tanpa angka tampil)"
+# CSS .nav-badge-icon tersedia.
+with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                       'static', 'css', 'base.css'), encoding='utf-8') as f:
+    base_css = f.read()
+assert '.nav-badge-icon' in base_css, "CSS .nav-badge-icon tak ada di base.css"
+
+# Render nyata: badge harus ikut muncul di halaman non-kontrak (sidebar global).
+client = app.test_client()
+with client.session_transaction() as s:
+    s[authmod.SESSION_KEY] = True
+page = client.get('/dashboard').get_data(as_text=True)
+assert 'id="navProgressKontrak"' in page, "menu Progress Kontrak tak render di /dashboard"
+from services.contract_match import count_cached  # noqa: E402
+_count = count_cached(None)
+if _count > 0:
+    assert 'nav-badge-icon' in page, \
+        f"po_review_count={_count}>0 tapi badge ikon tak muncul di sidebar"
+    _rb = re.search(r'<span class="nav-badge[^"]*nav-badge-icon"[^>]*>(.*?)</span>', page, re.S)
+    assert _rb and 'bi-exclamation' in _rb.group(1), \
+        "badge ikon harus berisi ikon tanda seru (bukan angka)"
+    print(f'[5] badge ikon Progress Kontrak OK (po_review_count={_count}, tanpa angka)')
+else:
+    print(f'[5] badge ikon Progress Kontrak OK (po_review_count=0 -> badge tersembunyi)')
+
+
+# --- 6. Keterangan "kandidat typo" di halaman Progress Kontrak ---
+# Banner harus muncul saat ada temuan (po_review_count>0) dan menjelaskan
+# "Mirip & vendor sama — kandidat typo", serupa halaman Pemeriksaan No PO.
+_kc_page = client.get('/kontrak/').get_data(as_text=True)
+assert '.kc-typo-banner' in base_src or '.kc-typo-banner' in _kc_page, \
+    "CSS .kc-typo-banner tak ada (keterangan kandidat typo)"
+if _count > 0:
+    _banner = re.search(r'<div class="kc-typo-banner">.*?</div>', _kc_page, re.S)
+    assert _banner, "banner keterangan kandidat typo tak render saat ada temuan"
+    _btext = _banner.group(0)
+    assert 'kandidat typo' in _btext, "banner harus memuat frasa 'kandidat typo'"
+    assert 'mirip' in _btext and 'vendor sama' in _btext, \
+        "banner harus menjelaskan 'Mirip & vendor sama'"
+    assert 'Pemeriksaan No PO' in _btext, \
+        "banner sebaiknya memuat tautan ke Pemeriksaan No PO"
+    print(f'[6] keterangan kandidat typo OK ({_count} invoice, banner tampil)')
+else:
+    # Tanpa temuan: banner boleh tidak tampil, tapi CSS tetap harus tersedia.
+    assert '.kc-typo-banner' in _kc_page, "CSS .kc-typo-banner tak tersedia di halaman"
+    print('[6] keterangan kandidat typo OK (po_review_count=0 -> banner tersembunyi)')
+
 print('ALL CHECKS PASSED')

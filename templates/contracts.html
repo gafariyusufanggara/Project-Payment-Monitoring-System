@@ -3,8 +3,8 @@
 {% block topbar_title %}Progress Kontrak{% endblock %}
 {% block topbar_icon %}bi-file-earmark-text-fill{% endblock %}
 {% block topbar_badges %}
-<span class="topbar-badge"><i class="bi bi-file-earmark-text"></i> {{ summary.total_kontrak }} Kontrak</span>
-<span class="topbar-badge"><i class="bi bi-exclamation-triangle"></i> {{ summary.belum_invoice }} Belum Ada Invoice</span>
+<span class="topbar-badge tb-total"><i class="bi bi-file-earmark-text"></i> {{ summary.total_kontrak }} Kontrak</span>
+<span class="topbar-badge tb-nominal"><i class="bi bi-exclamation-triangle"></i> {{ summary.belum_invoice }} Belum Ada Invoice</span>
 {% endblock %}
 
 {% block content %}
@@ -16,6 +16,10 @@
 -->
 {% include "partials/_dt_theme.html" %}
 <style>
+  /* topbar badge: tint konsisten dgn page lain (pola document_status.html / verifikasi.html). */
+  .tb-total { background: #eaf0f6; color: #16324f; }
+  .tb-nominal { background: #fdf6d8; color: #8a6d00; }
+
   .kc-wrap { display: flex; flex-direction: column; gap: 16px; max-width: 1280px; margin: 0 auto; }
   .kc-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
   .ds-kpi--compact { padding: 12px 14px; display: flex; align-items: center; gap: 12px; }
@@ -43,6 +47,13 @@
   .kc-review-badge { display: inline-block; min-width: 18px; padding: 0 5px; margin-left: 4px; border-radius: 20px; background: #fdf6d8; color: #8a6d00; font-size: .66rem; font-weight: 700; line-height: 1.5; text-align: center; }
   .kc-unmatched-banner { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; padding: 10px 14px; border-radius: 12px; border: 1px solid #f0dca0; background: #fdf6d8; color: #6b5500; font-size: .78rem; }
 .kc-unmatched-banner i { font-size: 1rem; }
+  /* Banner keterangan kandidat typo — struktur sama dgn .kc-unmatched-banner,
+     tetapi bernuansa merah (tanda bahaya). */
+  .kc-typo-banner { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; padding: 10px 14px; border-radius: 12px; border: 1px solid #f0c9c4; background: #fef0ee; color: #6b3a34; font-size: .78rem; }
+  .kc-typo-banner > i { font-size: 1rem; color: #b42318; }
+  .kc-typo-banner strong { color: #912018; }
+  .kc-typo-banner a { color: #244866; font-weight: 700; text-decoration: none; white-space: nowrap; }
+  .kc-typo-banner a:hover { text-decoration: underline; }
 
   .kc-page #kcTable thead th.col-sticky-right,
   .kc-page #kcTable tbody td.col-sticky-right { min-width: 96px; }
@@ -128,6 +139,16 @@
   </div>
 
   <div class="dt-invoice kc-page">
+    {% if po_review_count %}
+    <div class="kc-typo-banner">
+      <i class="bi bi-exclamation-triangle"></i>
+      <span>
+        <strong>{{ po_review_count }} invoice</strong> — No PO <strong>mirip &amp; vendor sama</strong>
+        (kandidat typo).
+        <a href="{{ url_for('contract.po_review') }}">Periksa di Pemeriksaan No PO <i class="bi bi-arrow-right"></i></a>
+      </span>
+    </div>
+    {% endif %}
     {% if po_unmatched_count %}
     <div class="kc-unmatched-banner">
       <i class="bi bi-exclamation-triangle"></i>

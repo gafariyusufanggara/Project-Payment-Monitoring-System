@@ -70,7 +70,6 @@ def build_dashboard_context(project_id=None, for_table=False):
             'total_count': len(calc),
             'lunas_count': sum(1 for r in calc if r.get('STATUS TERHADAP DPP') == 'Lunas'),
             'belum_count': sum(1 for r in calc if r.get('STATUS TERHADAP DPP') == 'Belum Lunas'),
-            'overdue_rows': _overdue_set(calc, today),
             'excluded_rows': sorted(excluded_rows),
             'excluded_row_count': excluded_row_count,
             'excluded_rekanan_count': excluded_rekanan_count,
@@ -171,7 +170,6 @@ def build_dashboard_context(project_id=None, for_table=False):
         'rekanan_detail_sorted': _rekanan_breakdown(calc),
         'aging': _aging(calc, today),
         'overdue_list': _overdue(calc, today),
-        'overdue_rows': _overdue_set(calc, today),
         'monthly_data': _monthly_data(calc),
         'daily_data': _daily_data(calc),
         'excluded_rows': sorted(excluded_rows),
@@ -264,19 +262,6 @@ def _overdue(data, today):
             pass
     overdue_list.sort(key=lambda x: x['days'], reverse=True)
     return overdue_list[:10]
-
-
-def _overdue_set(data, today):
-    out = set()
-    for row in data:
-        if row.get('STATUS TERHADAP DPP') != 'Belum Lunas' or not row.get('JTH TEMPO'):
-            continue
-        try:
-            if (today - datetime.strptime(str(row['JTH TEMPO']), '%Y-%m-%d').date()).days > 0:
-                out.add(row.get('_row'))
-        except (ValueError, TypeError):
-            pass
-    return sorted(out)
 
 
 def _monthly_data(data):

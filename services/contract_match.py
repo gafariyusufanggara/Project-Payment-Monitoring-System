@@ -20,6 +20,7 @@ yang perlu ditinjau MANUSIA:
 
 Tidak ada dependensi Flask — murni komputasi, agar mudah diuji.
 """
+import time
 from difflib import SequenceMatcher
 
 import db
@@ -179,3 +180,34 @@ def count_findings(project_id=None):
     """Jumlah ringkas temuan untuk badge di halaman daftar kontrak."""
     res = find_po_similarity(project_id)
     return res['count']
+
+
+# ── Cache in-process untuk badge sidebar ────────────────────────────
+# Sidebar dirender di SETIAP halaman, tapi pemindaian kemiripan No PO cukup
+# berat (invoice x kontrak). Cache TTL pendek agar tidak dihitung ulang tiap
+# request, tapi tetap segar setelah import/edit. Key = project_id (bisa None).
+_CACHE_TTL = 30.0  # detik
+_cache = {}  # { project_id: (timestamp, count) }
+
+
+def count_cached(project_id=None):
+    """Seperti count_findings(), tetapi dengan cache TTL pendek.
+
+    Dipakai khusus untuk badge sidebar agar tiap request tidak memicu
+    pemindaian ulang penuh.
+    """
+    now = time.time()
+    hit = _cache.get(project_id)
+    if hit and (now - hit[0]) < _CACHE_TTL:
+        return hit[1]
+    try:
+        count = find_po_similarity(project_id)['count']
+    except Exception:
+        count = 0
+    _cache[project_id] = (now, count)
+    return count
+
+
+def invalidate_cache():
+    """Kosongkan cache (dipanggil setelah import/ubah kontrak bila perlu)."""
+    _cache.clear()

@@ -53,10 +53,15 @@ def data_hutang():
     audited_rows = sorted(db_audit.get_audited_rows())
     # Only show the Retensi column when at least one row actually has a value.
     has_retensi = any((r.get('POT. RETENSI') or '').strip() not in ('', '0', '0.0') for r in rows)
+    # Verification issue level per row (honours the ignore-list) — drives the
+    # row tint in the Data Invoice table. Replaces the old overdue (red) tint.
+    from services.verification import get_row_levels
+    verif_row_levels = get_row_levels(pid)
     ctx.update(
         tab='tabData',
         categories=all_cats,
         audited_rows=audited_rows,
+        verif_row_levels=verif_row_levels,
         status_dpp=STATUS_DPP,
         status_ppn=STATUS_PPN,
         form_fields=FORM_FIELDS,
@@ -66,6 +71,28 @@ def data_hutang():
         has_retensi=has_retensi,
     )
     return render_template('index.html', **ctx)
+
+
+# ── Status Dokumen (revisi dokumen) ────────────────────
+
+@bp.route('/status-dokumen')
+def status_dokumen():
+    """Halaman Status Dokumen — daftar baris yang masih revisi dokumen.
+
+    Kriteria revisi: TANGGAL BERKAS LENGKAP (field 'TGL TERIMA') masih kosong,
+    sama dengan penanda "Kelengkapan" pada halaman Verifikasi Data.
+    Menampilkan nominal DPP/PPN/PPh/Retensi/Total per baris + akumulasi.
+    """
+    from services.project_context import get_read_filter
+    from services.document_status import get_document_status
+    pid = get_read_filter()
+    rows, summary = get_document_status(project_id=pid)
+    return render_template(
+        'document_status.html',
+        rows=rows,
+        summary=summary,
+        categories=CATEGORIES,
+    )
 
 
 # ── CRUD ───────────────────────────────────────────────

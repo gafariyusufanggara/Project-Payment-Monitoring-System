@@ -111,6 +111,19 @@ def inject_notif_counts():
     from services.project_context import get_active_project_id, get_read_filter
     _rf = get_read_filter()
     counts = get_counts(_rf)
+    # Jumlah dokumen yang masih revisi (Tgl Berkas Lengkap kosong) — badge sidebar
+    # "Status Dokumen". Ringan: satu db.read_data() + filter, hormati ignore-list.
+    from services.document_status import count_document_revisi
+    document_revisi_count = count_document_revisi(_rf)
+    # Jumlah temuan "No PO mirip" (kandidat typo) — badge ikon tanda seru di
+    # menu sidebar "Progress Kontrak". Sama dengan angka badge tombol
+    # "Pemeriksaan No PO" di halaman kontrak. Di-cache TTL pendek agar tidak
+    # memicu pemindaian ulang tiap request (sidebar dirender di semua halaman).
+    try:
+        from services.contract_match import count_cached as _po_count
+        po_review_count = _po_count(_rf)
+    except Exception:
+        po_review_count = 0
     import db_audit
     audit_total = db_audit.get_audit_count()
     # Active project scope (session) — 'all' = consolidated view across projects.
@@ -191,6 +204,8 @@ def inject_notif_counts():
         'verification_critical': counts['critical_count'],
         'verification_completion': counts['completion_count'],
         'verification_warning': counts['warning_count'],
+        'document_revisi_count': document_revisi_count,
+        'po_review_count': po_review_count,
         'audit_total': audit_total,
         'period_week_vendors': period_week_vendors,
         'period_month_vendors': period_month_vendors,

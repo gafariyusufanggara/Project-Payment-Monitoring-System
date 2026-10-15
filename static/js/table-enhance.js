@@ -170,10 +170,38 @@
     /* ---- persisted state ---- */
     var pageSize = parseInt(readStore(id + ':pageSize', DEFAULTS.pageSize), 10) || DEFAULTS.pageSize;
 
-    var hidden = {};
-    if (!_isLaporan) (readStore(id + ':hidden', '') || '').split(',').forEach(function (i) {
-      if (i !== '') hidden[parseInt(i, 10)] = true;
+    // Column-visibility defaults: a table may opt in via
+    // data-te-default-hidden="NO. INV CICILAN|TGL INVOICE|..." (pipe-separated
+    // header LABELS, matched case-insensitively against headerLabel()). Labels
+    // are used instead of indices so the default survives optional columns
+    // (e.g. RETENSI) shifting every later column's position. Honoured until the
+    // user makes a choice — once localStorage holds a ':hidden' key, that
+    // decision wins. The panel's "Reset" restores THIS default (it re-writes
+    // the default key set), so it never means "show everything".
+    var defaultHiddenLabels = (table.getAttribute('data-te-default-hidden') || '')
+      .split('|')
+      .map(function (s) { return s.trim().toLowerCase(); })
+      .filter(function (s) { return s !== ''; });
+    var labelToIndex = {};
+    headers.forEach(function (th, i) {
+      labelToIndex[headerLabel(th).toLowerCase()] = i;
     });
+
+    var hidden = {};
+    if (!_isLaporan) {
+      var storedHidden = readStore(id + ':hidden', null);
+      var activeHidden;
+      if (storedHidden === null) {
+        activeHidden = defaultHiddenLabels
+          .map(function (lbl) { return labelToIndex[lbl]; })
+          .filter(function (i) { return typeof i === 'number'; });
+      } else {
+        activeHidden = storedHidden.split(',');
+      }
+      activeHidden.forEach(function (i) {
+        if (i !== '') hidden[parseInt(i, 10)] = true;
+      });
+    }
 
     var page = 1;
 
@@ -219,10 +247,16 @@
       colPanel.node.appendChild(colList);
 
       resetCols.addEventListener('click', function () {
+        // Reset → kembali ke DEFAULT kolom tabel ini (bukan "semua tampil").
+        // Kalau tabel tak punya data-te-default-hidden, default = semua tampil.
         hidden = {};
-        writeStore(id + ':hidden', '');
-        colList.querySelectorAll('input').forEach(function (cb) {
-          cb.checked = true;
+        defaultHiddenLabels
+          .map(function (lbl) { return labelToIndex[lbl]; })
+          .filter(function (i) { return typeof i === 'number'; })
+          .forEach(function (i) { hidden[i] = true; });
+        writeStore(id + ':hidden', Object.keys(hidden).join(','));
+        colList.querySelectorAll('input').forEach(function (cb, i) {
+          cb.checked = !hidden[i];
         });
         applyColumns();
       });

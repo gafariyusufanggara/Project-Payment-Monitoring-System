@@ -97,36 +97,45 @@
         <nav class="sidebar-nav">
           {% block sidebar_nav %}
           <div class="sidebar-section">Ringkasan</div>
-          <button class="nav-item" onclick="navigateTo('/dashboard')">
+          <button class="nav-item" onclick="navigateTo('/dashboard')" data-label="Dashboard">
             <i class="bi bi-grid-1x2"></i> <span>Dashboard</span>
           </button>
-          <button class="nav-item" onclick="navigateTo('/inv-minggu-ini')">
+          <button class="nav-item" onclick="navigateTo('/status-dokumen')" id="navStatusDokumen" data-label="Status Dokumen">
+            <i class="bi bi-file-earmark-check"></i> <span>Status Dokumen</span>
+            {% if document_revisi_count|default(0) > 0 %}
+            <span class="nav-badge nav-badge-warning">{{ document_revisi_count }}</span>
+            {% endif %}
+          </button>
+          <button class="nav-item" onclick="navigateTo('/inv-minggu-ini')" data-label="Inv. Minggu Ini">
             <i class="bi bi-calendar-week"></i> <span>Inv. Minggu Ini</span>
             {% if period_week_vendors|default(0) > 0 %}
             <span class="nav-badge nav-badge-neutral" title="{{ period_week_vendors }} levelansir aktif minggu ini">{{ period_week_vendors }}</span>
             {% endif %}
           </button>
-          <button class="nav-item" onclick="navigateTo('/inv-bulan-ini')">
+          <button class="nav-item" onclick="navigateTo('/inv-bulan-ini')" data-label="Inv. Bulan Ini">
             <i class="bi bi-calendar3"></i> <span>Inv. Bulan Ini</span>
             {% if period_month_vendors|default(0) > 0 %}
             <span class="nav-badge nav-badge-neutral" title="{{ period_month_vendors }} levelansir aktif bulan ini">{{ period_month_vendors }}</span>
             {% endif %}
           </button>
-          <button class="nav-item" onclick="navigateTo('/levelansir-retensi')">
+          <button class="nav-item" onclick="navigateTo('/levelansir-retensi')" data-label="Retensi">
             <i class="bi bi-person-lock"></i> <span>Retensi</span>
           </button>
 
-          <div class="sidebar-section">Progress</div>
-          <button class="nav-item" onclick="navigateTo('/kontrak/')">
-            <i class="bi bi-file-earmark-text"></i> <span>Progress Kontrak</span>
-          </button>
-          <button class="nav-item" onclick="navigateTo('/invoice-cicilan')">
-            <i class="bi bi-arrow-repeat"></i> <span>Progress Cicilan</span>
+          <div class="sidebar-section">Data Transaksi</div>
+          <button class="nav-item" onclick="navigateTo('/data-hutang')" data-label="Daftar Invoice">
+            <i class="bi bi-table"></i> <span>Daftar Invoice</span>
           </button>
 
-          <div class="sidebar-section">Data Transaksi</div>
-          <button class="nav-item" onclick="navigateTo('/data-hutang')">
-            <i class="bi bi-table"></i> <span>Data Invoice</span>
+          <div class="sidebar-section">Progress Invoice</div>
+          <button class="nav-item" onclick="navigateTo('/kontrak/')" id="navProgressKontrak" data-label="Progress Kontrak">
+            <i class="bi bi-file-earmark-text"></i> <span>Progress Kontrak</span>
+            {% if po_review_count|default(0) > 0 %}
+            <span class="nav-badge nav-badge-warning nav-badge-icon" title="{{ po_review_count }} No PO perlu ditinjau (kandidat typo)"><i class="bi bi-exclamation"></i></span>
+            {% endif %}
+          </button>
+          <button class="nav-item" onclick="navigateTo('/invoice-cicilan')" data-label="Progress Cicilan">
+            <i class="bi bi-arrow-repeat"></i> <span>Progress Cicilan</span>
           </button>
 
           <div class="sidebar-section">Kepatuhan</div>
@@ -145,7 +154,7 @@
             </span>
             {% endif %}
           </button>
-          <button class="nav-item" onclick="navigateTo('/audit')" id="navAudit">
+          <button class="nav-item" onclick="navigateTo('/audit')" id="navAudit" data-label="Catatan Audit">
             <i class="bi bi-clock-history"></i> <span>Catatan Audit</span>
             {% if audit_total > 0 %}
             <span class="nav-badge nav-badge-info">{{ audit_total }}</span>
@@ -153,42 +162,42 @@
           </button>
 
           <div class="sidebar-section">Rekap Invoice</div>
-          <button class="nav-item" onclick="navigateTo('/laporan-bulanan')">
+          <button class="nav-item" onclick="navigateTo('/laporan-bulanan')" data-label="Rekap DPP Bulanan">
             <i class="bi bi-file-earmark-bar-graph"></i>
             <span>Rekap DPP Bulanan</span>
           </button>
-          <button class="nav-item" onclick="navigateTo('/laporan-mingguan')">
+          <button class="nav-item" onclick="navigateTo('/laporan-mingguan')" data-label="Rekap DPP Mingguan">
             <i class="bi bi-calendar-week"></i>
             <span>Rekap DPP Mingguan</span>
           </button>
-          <button class="nav-item" onclick="navigateTo('/laporan-jatuh-tempo')">
+          <button class="nav-item" onclick="navigateTo('/laporan-jatuh-tempo')" data-label="Rekap Jatuh Tempo">
             <i class="bi bi-calendar-x"></i> <span>Rekap Jatuh Tempo</span>
           </button>
 
           <div class="sidebar-section">Rekap Pajak</div>
-          <button class="nav-item" onclick="navigateTo('/laporan-ppn')">
+          <button class="nav-item" onclick="navigateTo('/laporan-ppn')" data-label="Rekap PPN Bulanan">
             <i class="bi bi-file-earmark-text"></i>
             <span>Rekap PPN Bulanan</span>
           </button>
-          <button class="nav-item" onclick="navigateTo('/laporan-ppn-mingguan')">
+          <button class="nav-item" onclick="navigateTo('/laporan-ppn-mingguan')" data-label="Rekap PPN Mingguan">
             <i class="bi bi-calendar-week"></i>
             <span>Rekap PPN Mingguan</span>
           </button>
 
           <div class="sidebar-section">Import Data</div>
-          <button class="nav-item" onclick="navigateTo('/import')">
+          <button class="nav-item" onclick="navigateTo('/import')" data-label="Import Invoice">
             <i class="bi bi-receipt"></i> <span>Import Invoice</span>
           </button>
-          <button class="nav-item" onclick="navigateTo('/kontrak/import')">
+          <button class="nav-item" onclick="navigateTo('/kontrak/import')" data-label="Import Kontrak">
             <i class="bi bi-file-earmark-arrow-up"></i> <span>Import Kontrak</span>
           </button>
 
           <div class="sidebar-section">Sistem</div>
-          <button class="nav-item" onclick="navigateTo('/project/')">
+          <button class="nav-item" onclick="navigateTo('/project/')" data-label="Daftar Proyek">
             <i class="bi bi-building"></i> <span>Daftar Proyek</span>
           </button>
           {% set _exc_n = exclude_cat_count|default(0) + exclude_rek_count|default(0) %}
-          <button class="nav-item" onclick="navigateTo('/pengaturan')" id="navExclude">
+          <button class="nav-item" onclick="navigateTo('/pengaturan')" id="navExclude" data-label="Exclude Rekanan">
             <i class="bi bi-slash-circle"></i> <span>Exclude Rekanan</span>
             <span
               class="nav-badge nav-badge-neutral"
@@ -238,8 +247,8 @@
               {% block topbar_badges %}{% endblock %}
             </div>
             <span class="topbar-divider" aria-hidden="true"></span>
-            <button type="button" class="topbar-logout" id="logoutBtn" onclick="openLogoutModal()" title="Keluar dari aplikasi">
-              <i class="bi bi-box-arrow-right"></i><span class="logout-label">Keluar</span>
+            <button type="button" class="topbar-logout" id="logoutBtn" onclick="openLogoutModal()" title="Keluar dari aplikasi" aria-label="Keluar dari aplikasi">
+              <i class="bi bi-box-arrow-right"></i>
             </button>
           </div>
         </div>
@@ -444,10 +453,11 @@
 
       // Saat back/forward browser memulihkan snapshot dari cache HTMX,
       // pastikan menu aktif & handler halaman ikut disinkronkan.
-      document.addEventListener('htmx:historyRestore', function () {
+      document.addEventListener('      htmx:historyRestore', function () {
           hideNavLoader();
           updateActiveNav();
           runPageReady();
+          syncSidebarState();
       });
 
       let _tableEnhancePromise = null;
@@ -554,6 +564,9 @@
               runPageReady();
               initProjectScope();
               ensureTableEnhance(evt.target);
+              // #mainContent diganti server tanpa class sidebar-collapsed —
+              // terapkan ulang state collapse agar offset konten tetap sinkron.
+              syncSidebarState();
               // Scroll area konten ke atas untuk halaman baru.
               const ca = document.querySelector('.content-area');
               if (ca) ca.scrollTop = 0;
@@ -561,33 +574,80 @@
       });
 
       // ═══ Sidebar collapse toggle ═══
-      function toggleSidebar() {
+      // Satu sumber kebenaran: localStorage['sidebarCollapsed'].
+      // applySidebarState() men-SET class (bukan toggle) agar tidak pernah desync,
+      // terutama saat #mainContent diganti HTMX (class sidebar-collapsed ikut hilang).
+      function applySidebarState(isCollapsed) {
           const sidebar = document.querySelector('.sidebar');
           const main = document.querySelector('.main-content');
           const btn = document.querySelector('.sidebar-toggle-btn');
-          sidebar.classList.toggle('collapsed');
-          main.classList.toggle('sidebar-collapsed');
-          const isCollapsed = sidebar.classList.contains('collapsed');
-          localStorage.setItem('sidebarCollapsed', isCollapsed ? '1' : '0');
-          // Sync sb-collapsed on <html> so next page load renders collapsed before paint
+          if (sidebar) sidebar.classList.toggle('collapsed', isCollapsed);
+          if (main) main.classList.toggle('sidebar-collapsed', isCollapsed);
           document.documentElement.classList.toggle('sb-collapsed', isCollapsed);
           if (btn) {
               btn.title = isCollapsed ? 'Perluas sidebar' : 'Sembunyikan sidebar';
-              btn.innerHTML = isCollapsed ? '<i class="bi bi-chevron-right"></i>' : '<i class="bi bi-chevron-left"></i>';
+              btn.innerHTML = isCollapsed
+                  ? '<i class="bi bi-chevron-right"></i>'
+                  : '<i class="bi bi-chevron-left"></i>';
           }
       }
+      // Terapkan ulang state tersimpan ke DOM saat ini (dipanggil setelah HTMX swap).
+      function syncSidebarState() {
+          applySidebarState(localStorage.getItem('sidebarCollapsed') === '1');
+      }
+      function toggleSidebar() {
+          const isCollapsed = !document.querySelector('.sidebar').classList.contains('collapsed');
+          localStorage.setItem('sidebarCollapsed', isCollapsed ? '1' : '0');
+          applySidebarState(isCollapsed);
+      }
       (function initSidebar() {
-          const sidebar = document.querySelector('.sidebar');
-          const main = document.querySelector('.main-content');
-          const btn = document.querySelector('.sidebar-toggle-btn');
-          if (localStorage.getItem('sidebarCollapsed') === '1' && sidebar) {
-              sidebar.classList.add('collapsed');
-              if (main) main.classList.add('sidebar-collapsed');
-              if (btn) {
-                  btn.title = 'Perluas sidebar';
-                  btn.innerHTML = '<i class="bi bi-chevron-right"></i>';
-              }
+          applySidebarState(localStorage.getItem('sidebarCollapsed') === '1');
+      })();
+
+      /* Tooltip label menu ketika sidebar collapsed (icon-only).
+         Memakai elemen fixed di <body> supaya tidak terpotong oleh area
+         scroll .sidebar-nav — sekaligus menjaga scroll sidebar tetap jalan. */
+      (function initSidebarTooltips() {
+          var sidebar = document.querySelector('.sidebar');
+          if (!sidebar) return;
+          var tip = document.createElement('div');
+          tip.className = 'sidebar-tip';
+          tip.setAttribute('role', 'tooltip');
+          document.body.appendChild(tip);
+
+          function isCollapsed() {
+              return sidebar.classList.contains('collapsed')
+                  || document.documentElement.classList.contains('sb-collapsed');
           }
+          function show(el) {
+              if (!isCollapsed()) return;
+              var label = el.getAttribute('data-label');
+              if (!label) return;
+              var r = el.getBoundingClientRect();
+              tip.textContent = label;
+              tip.classList.add('is-visible');
+              var th = tip.offsetHeight;
+              tip.style.top = (r.top + r.height / 2 - th / 2) + 'px';
+              tip.style.left = (r.right + 12) + 'px';
+          }
+          function hide() { tip.classList.remove('is-visible'); }
+
+          sidebar.addEventListener('mouseover', function (e) {
+              var item = e.target.closest && e.target.closest('.nav-item');
+              if (item) show(item);
+          });
+          sidebar.addEventListener('mouseout', function (e) {
+              var item = e.target.closest && e.target.closest('.nav-item');
+              if (item && !item.contains(e.relatedTarget)) hide();
+          });
+          sidebar.addEventListener('focusin', function (e) {
+              var item = e.target.closest && e.target.closest('.nav-item');
+              if (item) show(item);
+          });
+          sidebar.addEventListener('focusout', hide);
+          sidebar.addEventListener('scroll', hide, true);
+          window.addEventListener('resize', hide);
+          document.addEventListener('scroll', hide, true);
       })();
 
       function toggleMobileNavigation(forceOpen) {
@@ -617,7 +677,7 @@
       // fallback ke navigasi penuh (agar script halaman tetap berjalan normal).
           const HTMX_READY_ROUTES = [
               '/dashboard', '/inv-minggu-ini', '/inv-bulan-ini',
-              '/data-hutang', '/levelansir-retensi', '/invoice-cicilan',
+              '/data-hutang', '/status-dokumen', '/levelansir-retensi', '/invoice-cicilan',
           '/kontrak/', '/kontrak/import', '/project/', '/verifikasi', '/audit', '/import',
           '/laporan-bulanan', '/laporan-mingguan', '/laporan-jatuh-tempo',
           '/laporan-ppn', '/laporan-ppn-mingguan', '/pengaturan',
@@ -665,6 +725,8 @@
           let activeText;
           if (path === '/dashboard') {
               activeText = 'Dashboard';
+          } else if (path === '/status-dokumen') {
+              activeText = 'Status Dokumen';
           } else if (path === '/inv-minggu-ini') {
               activeText = 'Inv. Minggu Ini';
           } else if (path === '/inv-bulan-ini') {
@@ -676,7 +738,7 @@
           } else if (path.startsWith('/kontrak')) {
               activeText = 'Progress Kontrak';
           } else if (path === '/data-hutang') {
-              activeText = 'Data Invoice';
+              activeText = 'Daftar Invoice';
           } else if (path === '/invoice-cicilan') {
               activeText = 'Progress Cicilan';
           } else if (path === '/levelansir-retensi') {

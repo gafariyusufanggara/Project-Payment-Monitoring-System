@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 
-{% block title %}{% if tab == 'tabDashboard' %}Dashboard - {{ super() }}{% else %}Data Invoice - {{ super() }}{% endif %}{% endblock %}
+{% block title %}{% if tab == 'tabDashboard' %}Dashboard - {{ super() }}{% else %}Daftar Invoice - {{ super() }}{% endif %}{% endblock %}
 
-{% block topbar_title %}{% if tab == 'tabDashboard' %}Dashboard{% else %}Data Invoice{% endif %}{% endblock %}
+{% block topbar_title %}{% if tab == 'tabDashboard' %}Dashboard{% else %}Daftar Invoice{% endif %}{% endblock %}
 {% block topbar_icon %}bi-table{% endblock %}
 
 
@@ -17,7 +17,7 @@
 <!-- TAB PILLS (hidden — sidebar handles navigation) -->
 <ul class="nav nav-pills mb-4 d-none" id="mainTab">
     <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tabDashboard">Dashboard</button></li>
-    <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tabData">Data Invoice</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tabData">Daftar Invoice</button></li>
 </ul>
 
 <div class="tab-content animate-in">
@@ -419,6 +419,57 @@ function updateFilterChips() {
     // Reflect whether any filter is active on the Reset button.
     const btn = document.getElementById('filterReset');
     if (btn) btn.classList.toggle('is-active', chips.length > 0);
+
+    // Keep the toggle badge in sync (count of active filter controls).
+    const countEl = document.getElementById('filterToggleCount');
+    const toggleBtn = document.getElementById('filterToggle');
+    if (countEl) {
+        const active = countActiveFilters();
+        countEl.textContent = String(active);
+        countEl.hidden = active === 0;
+        toggleBtn?.classList.toggle('is-active', active > 0);
+    }
+
+    // Auto-open the filter panel the moment a filter becomes active, so a user
+    // who collapsed it still sees which controls are applied.
+    if (chips.length > 0) setFilterPanel(true, false);
+}
+
+// ── Collapsible filter panel ──
+// The cluster panel (#filterGroups) folds away to reclaim vertical space,
+// leaving search + count + toggle + reset + active chips visible. State is
+// remembered in localStorage; presence of any active filter force-opens it.
+const FILTER_PANEL_KEY = 'dt:filterOpen';
+
+function countActiveFilters() {
+    let n = 0;
+    FILTER_DEFS.forEach(def => {
+        const el = document.getElementById(def.id);
+        if (el && el.value) n++;
+    });
+    ['berkasFrom', 'berkasTo', 'bayarFrom', 'bayarTo', 'sisaMin', 'sisaMax'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el && el.value !== '' && el.value != null) n++;
+    });
+    return n;
+}
+
+function setFilterPanel(open, persist = true) {
+    const panel = document.getElementById('filterGroups');
+    const toggle = document.getElementById('filterToggle');
+    if (!panel) return;
+    panel.classList.toggle('ft-collapsed', !open);
+    if (toggle) toggle.setAttribute('aria-expanded', String(!!open));
+    if (persist) {
+        try { localStorage.setItem(FILTER_PANEL_KEY, open ? '1' : '0'); } catch (e) {}
+    }
+    const countEl = document.getElementById('filterToggleCount');
+    const active = countActiveFilters();
+    if (countEl) {
+        countEl.textContent = String(active);
+        countEl.hidden = active === 0;
+    }
+    if (toggle) toggle.classList.toggle('is-active', active > 0);
 }
 
 function escChip(s) {
@@ -575,6 +626,31 @@ document.addEventListener('click', e => {
         }
     });
 });
+
+// ── Filter panel toggle wiring + initial state ──
+(function initFilterPanel() {
+    const toggle = document.getElementById('filterToggle');
+    const panel = document.getElementById('filterGroups');
+    if (!toggle || !panel) return;
+
+    toggle.addEventListener('click', () => {
+        const isOpen = !panel.classList.contains('ft-collapsed');
+        setFilterPanel(!isOpen, true);
+    });
+
+    // Initial: active filters always win; otherwise honour the saved preference;
+    // otherwise fall back to collapsed (the tidy default).
+    const active = countActiveFilters();
+    let open;
+    if (active > 0) {
+        open = true;
+    } else {
+        let saved = null;
+        try { saved = localStorage.getItem(FILTER_PANEL_KEY); } catch (e) {}
+        open = saved === '1';
+    }
+    setFilterPanel(open, false);
+})();
 
 // === SORT ===
 let sortCol = -1, sortAsc = true;

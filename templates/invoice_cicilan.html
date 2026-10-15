@@ -3,9 +3,9 @@
 {% block topbar_title %}Progress Cicilan{% endblock %}
 {% block topbar_icon %}bi-arrow-repeat{% endblock %}
 {% block topbar_badges %}
-<span class="topbar-badge"><i class="bi bi-people"></i> {{ total_rekanan }} Levelansir</span>
-<span class="topbar-badge"><i class="bi bi-file-earmark"></i> {{ total_invoices }} Invoice</span>
-<span class="topbar-badge"><i class="bi bi-layers"></i> {{ total_rows }} Baris</span>
+<span class="topbar-badge tb-rekanan"><i class="bi bi-people"></i> {{ total_rekanan }} Levelansir</span>
+<span class="topbar-badge tb-total"><i class="bi bi-file-earmark"></i> {{ total_invoices }} Invoice</span>
+<span class="topbar-badge tb-row"><i class="bi bi-layers"></i> {{ total_rows }} Baris</span>
 {% endblock %}
 
 {% block content %}
@@ -19,6 +19,11 @@
   FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
 -->
 <style>
+  /* topbar badge: tint konsisten dgn page lain (pola document_status.html / verifikasi.html). */
+  .tb-rekanan { background: #eaf0f6; color: #16324f; }
+  .tb-total { background: #eaf0f6; color: #16324f; }
+  .tb-row { background: #fdf6d8; color: #8a6d00; }
+
   .cic-wrap { display: flex; flex-direction: column; gap: 16px; max-width: 1200px; margin: 0 auto; }
   .cic-sub { margin: 2px 0 0; font-size: .78rem; color: #667080; }
   .cic-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }

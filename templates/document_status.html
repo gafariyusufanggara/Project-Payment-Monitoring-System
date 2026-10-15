@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+
+{% block title %}Status Dokumen - Project Payment Monitoring System{% endblock %}
+{% block topbar_title %}Status Dokumen{% endblock %}
+{% block topbar_icon %}bi-file-earmark-check{% endblock %}
+{% block topbar_badges %}
+<span class="topbar-badge tb-revisi"><i class="bi bi-file-earmark-x"></i> {{ summary.revisi_count }} Revisi</span>
+<span class="topbar-badge tb-rekanan"><i class="bi bi-people"></i> {{ summary.rekanan_count }} Levelansir</span>
+{% endblock %}
+{% block content %}
+<!--
+  Status Dokumen — Ledger Desk world (DESIGN.md).
+  THESIS: daftar dokumen yang masih revisi (Tgl Berkas Lengkap kosong), nilai nominalnya terlihat.
+  OWN-WORLD: navy/paper, satu aksen biru, serif hanya angka KPI, mono sel uang.
+  STORY: staf finance melihat berapa dokumen yang belum lengkap + nilai total yang tertahan.
+  FIRST VIEWPORT: header + KPI nominal + awal tabel dokumen revisi.
+  FORM: refinement Operate, mirror tokens verifikasi.html/invoice_cicilan.html.
+-->
+<style>
+  /* topbar badge: tint severity/neutral, pola dgn verifikasi.html */
+  .tb-revisi { background: #fdf6d8; color: #8a6d00; }
+  .tb-rekanan { background: #eaf0f6; color: #16324f; }
+
+  .ds-wrap { display: flex; flex-direction: column; gap: 16px; max-width: 1360px; margin: 0 auto; }
+  .ds-head {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .ds-head-ico {
+    width: 34px; height: 34px; min-width: 34px; border-radius: 9px;
+    background: #fdf6d8; color: #8a6d00;
+    display: flex; align-items: center; justify-content: center; font-size: 1.05rem;
+  }
+  .ds-head-body { min-width: 0; }
+  .ds-head-title { margin: 0; font-size: 1.35rem; font-weight: 700; color: #16324f; letter-spacing: -.01em; }
+  /* Card keterangan — struktur & palet sama dgn .kc-unmatched-banner
+     di halaman Progress Kontrak (kuning lembut, radius 12px). */
+  .ds-note {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    margin: 0; padding: 10px 14px;
+    border-radius: 12px; border: 1px solid #f0dca0;
+    background: #fdf6d8; color: #6b5500;
+    font-size: .78rem; line-height: 1.4;
+  }
+  .ds-note i { font-size: 1rem; flex-shrink: 0; }
+  .ds-note strong { color: #6b5500; }
+  .ds-kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+  .ds-kpi--compact { padding: 12px 14px; display: flex; align-items: center; gap: 12px; }
+  .ds-kpi--compact .ds-kpi__value { font-size: 1rem; }
+  .ds-kpi .ds-kpi__value.ds-val-money { white-space: nowrap; }
+  .ds-kpi .ds-kpi__value.dsm-val-sm { font-size: .85rem; }
+  .ds-kpi .ds-kpi__value.dsm-val-xs { font-size: .72rem; }
+  .kpi-ico {
+    width: 38px; height: 38px; min-width: 38px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; font-size: 1rem;
+  }
+  .kpi-ico--amber { background: #fdf6d8; color: #8a6d00; }
+  .kpi-ico--blue { background: #eaf0f6; color: #16324f; }
+  .kpi-ico--violet { background: #ece4f7; color: #6a4fa3; }
+  .kpi-ico--slate { background: #eef0f2; color: #4d5766; }
+  .kpi-ico--green { background: #e6f4f1; color: #115e59; }
+
+  .ds-card {
+    background: #fff; border: 1px solid #e3e5e8; border-radius: 16px;
+    box-shadow: 0 1px 3px rgba(51, 51, 51,.05); overflow: hidden;
+  }
+  .ds-toolbar {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    padding: 12px 18px; background: #f7f8f9; border-bottom: 1px solid #e3e5e8;
+  }
+  .ds-toolbar .ds-search { flex: 1 1 280px; max-width: 420px; }
+  .ds-toolbar-info { margin-left: auto; font-size: .72rem; font-weight: 600; color: #4d5766; }
+
+  .ds-table-card { overflow-x: auto; }
+  .ds-table { width: 100%; min-width: 1180px; border-collapse: separate; border-spacing: 0; font-size: .74rem; }
+  /* Lebar kolom tetap (px) — hindari table-layout:fixed dgn % yg bisa meledak > wrapper. */
+  .ds-table .ds-col-no { width: 52px; }
+  .ds-table .ds-col-rekanan { width: 260px; min-width: 200px; }
+  .ds-table .ds-col-invoice { width: 150px; }
+  .ds-table .ds-col-po { width: 150px; }
+  .ds-table .ds-col-date { width: 110px; }
+  .ds-table .ds-col-berkas { width: 130px; }
+  .ds-table .ds-col-money { width: 115px; }
+  .ds-table td, .ds-table th { white-space: nowrap; }
+  .ds-table td:nth-child(2),
+  .ds-table td .ds-desc { overflow-wrap: anywhere; white-space: normal; }
+  .ds-table th:nth-child(2) { white-space: normal; line-height: 1.3; }
+  .ds-table thead th {
+    background: linear-gradient(180deg, #244866 0%, #16324f 100%);
+    color: #eaf2f8; font-size: .7rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .6px; padding: 10px 12px;
+    border-bottom: 2px solid #0f766e; text-align: left; white-space: nowrap;
+  }
+  .ds-table thead th.ds-th-num { text-align: right; }
+  .ds-table tbody td { padding: 7px 10px; border-bottom: 1px solid #eef0f2; vertical-align: middle; color: #333333; }
+  .ds-table tbody tr:last-child td { border-bottom: none; }
+  .ds-table tbody tr:nth-child(even) td { background: #f7f8f9; }
+  .ds-table tbody tr:hover td { background: #eaf0f6; }
+  .ds-table td.ds-td-num {
+    text-align: right; white-space: nowrap;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-variant-numeric: tabular-nums; font-size: .72rem;
+  }
+  .ds-rnum {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 30px; height: 22px; padding: 0 6px; border-radius: 6px; background: #eef0f2;
+    font-weight: 700; font-size: .68rem; color: #4d5766;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+  }
+  .ds-rekanan { font-weight: 600; font-size: .74rem; display: block; min-width: 0; overflow-wrap: break-word; }
+  .ds-desc { font-size: .7rem; line-height: 1.3; color: #667080; margin-top: 2px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: break-word; }
+  .ds-mono { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: .72rem; overflow-wrap: anywhere; }
+  .ds-field-missing { color: #8a6d00; font-weight: 700; }
+
+  .ds-empty {
+    text-align: center; padding: 46px 22px; color: #4d5766;
+  }
+  .ds-empty i { font-size: 3.4rem; color: #0f766e; }
+  .ds-empty h6 { font-weight: 700; color: #16324f; margin-top: 14px; font-size: 1rem; }
+  .ds-empty p { color: #667080; font-size: .84rem; margin-top: 4px; }
+
+  @media (max-width: 1100px) { .ds-kpis { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 640px) {
+    .ds-kpis { grid-template-columns: repeat(2, 1fr); }
+    .ds-kpi .ds-kpi__value.ds-val-money { font-size: .85rem; }
+    .ds-kpi .ds-kpi__value.dsm-val-sm { font-size: .78rem; }
+    .ds-kpi .ds-kpi__value.dsm-val-xs { font-size: .68rem; }
+  }
+  @media (prefers-reduced-motion: reduce) { .ds-kpi { transition: none; } }
+</style>
+
+<div class="ds-wrap animate-in">
+  <h1 class="visually-hidden">Status Dokumen</h1>
+
+  <header class="ds-head">
+    <div class="ds-head-ico"><i class="bi bi-file-earmark-x"></i></div>
+    <div class="ds-head-body">
+      <h2 class="ds-head-title">Daftar Revisi Dokumen</h2>
+    </div>
+  </header>
+
+  <div class="ds-kpis">
+    <div class="ds-kpi ds-kpi--compact ds-kpi--warn">
+      <div class="kpi-ico kpi-ico--amber"><i class="bi bi-file-earmark-x"></i></div>
+      <div><div class="ds-kpi__label">Dokumen Revisi</div><div class="ds-kpi__value">{{ summary.revisi_count }}</div><div class="ds-kpi__hint">{{ summary.rekanan_count }} Levelansir</div></div>
+    </div>
+    <div class="ds-kpi ds-kpi--compact">
+      <div class="kpi-ico kpi-ico--blue"><i class="bi bi-cash-stack"></i></div>
+      <div><div class="ds-kpi__label">Nilai DPP</div><div class="ds-kpi__value ds-val-money ds-money {{ 'dsm-val-xs' if summary.dpp|money|length > 17 else ('dsm-val-sm' if summary.dpp|money|length > 12 else '') }}" data-val="{{ summary.dpp }}">{{ summary.dpp|money }}</div></div>
+    </div>
+    <div class="ds-kpi ds-kpi--compact">
+      <div class="kpi-ico kpi-ico--violet"><i class="bi bi-percent"></i></div>
+      <div><div class="ds-kpi__label">Nilai PPN</div><div class="ds-kpi__value ds-val-money ds-money {{ 'dsm-val-xs' if summary.ppn|money|length > 17 else ('dsm-val-sm' if summary.ppn|money|length > 12 else '') }}" data-val="{{ summary.ppn }}">{{ summary.ppn|money }}</div></div>
+    </div>
+    <div class="ds-kpi ds-kpi--compact">
+      <div class="kpi-ico kpi-ico--slate"><i class="bi bi-scissors"></i></div>
+      <div><div class="ds-kpi__label">Pot. PPh</div><div class="ds-kpi__value ds-val-money ds-money {{ 'dsm-val-xs' if summary.pph|money|length > 17 else ('dsm-val-sm' if summary.pph|money|length > 12 else '') }}" data-val="{{ summary.pph }}">{{ summary.pph|money }}</div></div>
+    </div>
+    <div class="ds-kpi ds-kpi--compact">
+      <div class="kpi-ico kpi-ico--green"><i class="bi bi-cash-coin"></i></div>
+      <div><div class="ds-kpi__label">Nilai Retensi</div><div class="ds-kpi__value ds-val-money ds-money {{ 'dsm-val-xs' if summary.retensi|money|length > 17 else ('dsm-val-sm' if summary.retensi|money|length > 12 else '') }}" data-val="{{ summary.retensi }}">{{ summary.retensi|money }}</div></div>
+    </div>
+  </div>
+
+  <div class="ds-note"><i class="bi bi-info-circle"></i> <span>Invoice dengan berkas belum lengkap nilainya <strong>tidak masuk hitung</strong> di Rekap DPP/PPN &amp; KPI Dashboard.</span></div>
+
+  <div class="ds-card">
+    <div class="ds-toolbar">
+      <div class="ds-search">
+        <i class="bi bi-search"></i>
+        <input type="text" id="dsSearch" placeholder="Cari rekanan, invoice, PO, deskripsi..." autocomplete="off" aria-label="Cari dokumen revisi" />
+      </div>
+      <span class="ds-toolbar-info" id="dsCount"></span>
+    </div>
+
+    {% if rows %}
+    <div class="ds-table-card">
+    <table class="ds-table" id="dsTable">
+      <caption class="visually-hidden">Daftar dokumen yang masih revisi beserta nilai nominalnya</caption>
+      <colgroup>
+        <col class="ds-col-no" />
+        <col class="ds-col-rekanan" />
+        <col class="ds-col-invoice" />
+        <col class="ds-col-po" />
+        <col class="ds-col-date" />
+        <col class="ds-col-berkas" />
+        <col class="ds-col-money" />
+        <col class="ds-col-money" />
+        <col class="ds-col-money" />
+        <col class="ds-col-money" />
+        <col class="ds-col-money" />
+      </colgroup>
+      <thead>
+        <tr>
+          <th scope="col" class="ds-col-no">No.</th>
+          <th scope="col" class="ds-col-rekanan">Rekanan</th>
+          <th scope="col" class="ds-col-invoice">No. Invoice</th>
+          <th scope="col" class="ds-col-po">No. PO / Kontrak</th>
+          <th scope="col" class="ds-col-date">Tgl Invoice</th>
+          <th scope="col" class="ds-col-berkas">Tgl Berkas Lengkap</th>
+          <th scope="col" class="ds-th-num ds-col-money">Nilai DPP</th>
+          <th scope="col" class="ds-th-num ds-col-money">Nilai PPN</th>
+          <th scope="col" class="ds-th-num ds-col-money">Pot. PPh</th>
+          <th scope="col" class="ds-th-num ds-col-money">Retensi</th>
+          <th scope="col" class="ds-th-num ds-col-money">Total (Incl. PPN)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr
+          data-search="{{ (row.rekanan or '') + ' ' + (row.no_invoice or '') + ' ' + (row.no_po or '') + ' ' + (row.deskripsi or '') }}"
+        >
+          <td><span class="ds-rnum">{{ row.r }}</span></td>
+          <td>
+            <span class="ds-rekanan">{{ row.rekanan or '-' }}</span>
+            {% if row.deskripsi %}<div class="ds-desc" data-full="{{ row.deskripsi }}" title="{{ row.deskripsi }}">{{ row.deskripsi }}</div>{% endif %}
+          </td>
+          <td class="ds-mono">{{ row.no_invoice or (row.no_invoice_internal or '-') }}</td>
+          <td class="ds-mono">{{ row.no_po or '-' }}</td>
+          <td class="ds-mono">{{ row.tgl_invoice or '-' }}</td>
+          <td><span class="ds-field-missing"><i class="bi bi-exclamation-circle"></i> Belum diisi</span></td>
+          <td class="ds-td-num ds-money" data-val="{{ row.dpp }}">{{ row.dpp|money }}</td>
+          <td class="ds-td-num ds-money" data-val="{{ row.ppn }}">{{ row.ppn|money }}</td>
+          <td class="ds-td-num ds-money" data-val="{{ row.pph }}">{{ row.pph|money }}</td>
+          <td class="ds-td-num ds-money" data-val="{{ row.retensi }}">{{ row.retensi|money }}</td>
+          <td class="ds-td-num ds-money" data-val="{{ row.total }}">{{ row.total|money }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% else %}
+    <div class="ds-empty">
+      <i class="bi bi-file-earmark-check-fill"></i>
+      <h6>Tidak Ada Dokumen Revisi</h6>
+      <p>Semua dokumen sudah memiliki Tanggal Berkas Lengkap. Tidak ada yang tertahan revisi.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // Format semua nominal (data-val) ke angka id-ID tanpa prefix — konsisten
+  // dengan KPI nominal di halaman lain (filter |money: titik ribuan, tanpa "Rp").
+  function fmt(v) {
+    var n = Math.round(Number(v || 0));
+    return n.toLocaleString('id-ID');
+  }
+  document.querySelectorAll('.ds-money').forEach(function (el) {
+    el.textContent = fmt(el.dataset.val);
+  });
+
+  // ── Pencarian baris ──
+  var searchEl = document.getElementById('dsSearch');
+  var table = document.getElementById('dsTable');
+  var countEl = document.getElementById('dsCount');
+  if (searchEl && table) {
+    var rows = Array.prototype.slice.call(table.querySelectorAll('tbody tr'));
+    var total = rows.length;
+    function applyFilter() {
+      var q = (searchEl.value || '').toLowerCase().trim();
+      var visible = 0;
+      rows.forEach(function (tr) {
+        var hay = (tr.dataset.search || '').toLowerCase();
+        var match = !q || hay.indexOf(q) !== -1;
+        tr.style.display = match ? '' : 'none';
+        if (match) visible++;
+      });
+      if (countEl) countEl.textContent = q ? (visible + ' dari ' + total + ' dokumen') : (total + ' dokumen');
+    }
+    searchEl.addEventListener('input', applyFilter);
+    applyFilter();
+  }
+})();
+</script>
+{% endblock %}
