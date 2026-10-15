@@ -407,5 +407,12 @@
     form.hidden = true; read.hidden = false; btn.hidden = false;
   });
 })();
+// Setelah update/hapus kontrak (redirect balik ke sini), sinkronkan badge
+// sidebar Progress Kontrak tanpa perlu reload penuh.
+(function () {
+  function sync() { if (window.refreshPoBadge) window.refreshPoBadge(); }
+  if (window.onPageReady) onPageReady(sync);
+  else document.addEventListener('DOMContentLoaded', sync);
+})();
 </script>
 {% endblock %}

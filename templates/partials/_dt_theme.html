@@ -36,7 +36,10 @@
   .dt-invoice .table-wrapper {
     border-radius: 16px;
     box-shadow: var(--dt-shadow-sm);
-    overflow: hidden;
+    /* TIDAK boleh `overflow: hidden`: panel dropdown filter (.dd-panel) di
+       dalam toolbar terpotong sehingga tidak muncul saat diklik. Sudut
+       membulat tetap aman karena .table-scroll punya overflow-nya sendiri. */
+    overflow: visible;
     border: 1px solid var(--dt-border);
     transition: var(--dt-transition);
   }
@@ -83,38 +86,64 @@
   }
   .dt-invoice .ft-top .search-box.ft-search {
     flex: 1 1 320px;
-    max-width: 520px;
+    max-width: 400px;
+    /* Position the absolutely-positioned clear + "/" hint against this box. */
+    position: relative;
+    display: inline-flex;
+    align-items: center;
   }
+  /* Single source of truth for the search input geometry (overrides the
+     conflicting .search-box / .ds-search rules inherited from base.css +
+     app.css). Right padding (30px) reserves room for the plain "x" so typed
+     text sits close to it instead of floating 56px away. */
   .dt-invoice .ft-top .search-box.ft-search input {
     width: 100%;
-    padding-right: 56px;
+    min-width: 0;
+    height: 34px;
+    padding: 0 30px 0 34px;
+    font-size: 0.75rem;
+    line-height: normal;
   }
   .dt-invoice .ft-top .search-box.ft-search input:focus {
     width: 100%;
   }
   .dt-invoice .ft-search-clear {
     position: absolute;
+    top: 50%;
     right: 10px;
+    transform: translateY(-50%);
     display: inline-flex;
     align-items: center;
     justify-content: center;
     width: 20px;
     height: 20px;
+    padding: 0;
     border: none;
-    border-radius: 50%;
-    background: #eef0f2;
-    color: #667080;
-    font-size: 0.6rem;
+    background: none;
+    color: #94a3b8;
+    font-size: 0.72rem;
     cursor: pointer;
     transition: var(--dt-transition);
+    /* The `hidden` attribute must win over display:inline-flex above. */
+  }
+  /* Plain "x" (no circle). Render the icon as a block flex item with
+     line-height:1 so the glyph is centred without the font's leading offset
+     (Bootstrap Icons are text glyphs). */
+  .dt-invoice .ft-search-clear > i {
+    display: block;
+    line-height: 1;
+  }
+  .dt-invoice .ft-search-clear[hidden] {
+    display: none;
   }
   .dt-invoice .ft-search-clear:hover {
-    background: #fef0ee;
     color: #912018;
   }
   .dt-invoice .ft-search-kbd {
     position: absolute;
+    top: 50%;
     right: 34px;
+    transform: translateY(-50%);
     padding: 1px 6px;
     border: 1px solid var(--dt-border);
     border-radius: 5px;
@@ -124,8 +153,12 @@
     font-family: "JetBrains Mono", monospace;
     pointer-events: none;
   }
+  /* Hide the "/" hint whenever the box is focused OR has text. The sibling
+     combinator (input ~ kbd) avoids relying on :has(), which older browsers
+     lack — that gap used to let the hint overlap typed text. The clear button
+     sits between them in the DOM but that is fine for a general sibling. */
   .dt-invoice .ft-search:focus-within .ft-search-kbd,
-  .dt-invoice .ft-search:has(input:not(:placeholder-shown)) .ft-search-kbd {
+  .dt-invoice .ft-search input:not(:placeholder-shown) ~ .ft-search-kbd {
     display: none;
   }
   .dt-invoice .ft-count {
@@ -158,19 +191,25 @@
     display: flex;
     flex-wrap: wrap;
     align-items: stretch;
-    gap: 8px 10px;
+    gap: 10px;
   }
   /* Collapsible filter panel: max-height tween keeps the reveal smooth;
-     visibility+pointer-events gate prevents focus/click on hidden controls. */
+     visibility+pointer-events gate prevents focus/click on hidden controls.
+     overflow hanya di-clip saat collapsed — saat terbuka harus `visible`
+     agar panel dropdown (.dd-panel, position:absolute) terlihat menonjol
+     keluar toolbar dan tidak terpotong. */
   .dt-invoice .ft-groups {
-    overflow: hidden;
     max-height: 1000px;
     opacity: 1;
     visibility: visible;
     transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
       opacity 0.22s ease, visibility 0s linear 0s, margin 0.3s ease;
   }
+  .dt-invoice .ft-groups:not(.ft-collapsed) {
+    overflow: visible;
+  }
   .dt-invoice .ft-groups.ft-collapsed {
+    overflow: hidden;
     max-height: 0;
     opacity: 0;
     visibility: hidden;
@@ -185,8 +224,10 @@
   .dt-invoice .filter-toggle {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
-    padding: 6px 12px;
+    height: 34px;
+    padding: 0 12px;
     border: 1px solid var(--dt-border);
     border-radius: 10px;
     background: #fff;
@@ -245,7 +286,7 @@
     align-items: center;
     flex-wrap: wrap;
     gap: 6px;
-    padding: 6px 10px 6px 8px;
+    padding: 6px 10px;
     border: 1px solid var(--dt-border);
     border-radius: 12px;
     background: rgba(255, 255, 255, 0.6);
@@ -255,7 +296,7 @@
     align-items: center;
     gap: 5px;
     padding-right: 8px;
-    margin-right: 2px;
+    margin-right: 0;
     border-right: 1px solid var(--dt-border);
     font-size: 0.66rem;
     font-weight: 700;
@@ -279,7 +320,7 @@
     flex-wrap: wrap;
     align-items: center;
     gap: 6px;
-    padding-top: 2px;
+    padding-top: 4px;
   }
   .dt-invoice .ft-chip {
     display: inline-flex;
@@ -330,7 +371,8 @@
   }
 
   .dt-invoice .filter-select {
-    padding: 6px 28px 6px 12px;
+    height: 34px;
+    padding: 0 28px 0 12px;
     border-radius: 10px;
     border: 1px solid var(--dt-border);
     font-size: 0.73rem;
@@ -362,8 +404,10 @@
   .dt-invoice .filter-reset {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 4px;
-    padding: 6px 12px;
+    height: 34px;
+    padding: 0 12px;
     border-radius: 10px;
     border: 1px solid var(--dt-border);
     background: #fff;
@@ -395,7 +439,8 @@
     gap: 5px;
     cursor: pointer;
     user-select: none;
-    padding: 6px 12px;
+    height: 34px;
+    padding: 0 12px;
     border-radius: 10px;
     border: 1px solid var(--dt-border);
     font-size: 0.73rem;
@@ -1073,8 +1118,9 @@
     .dt-invoice .ft-cluster .filter-select,
     .dt-invoice .ft-cluster .dd-toggle {
       flex: 1 1 auto;
+      height: 34px;
       font-size: 0.72rem;
-      padding: 5px 22px 5px 10px;
+      padding: 0 26px 0 10px;
     }
   }
 </style>

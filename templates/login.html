@@ -239,7 +239,7 @@
         filter: saturate(1.05);
       }
       .auth-hint {
-        justify-content: flex-start;
+        justify-content: center;
         margin-top: 22px;
         padding-top: 18px;
         border-top: 1px solid var(--border);
@@ -314,7 +314,7 @@
         <form class="auth-card" method="post" action="{{ url_for('auth.login', next=request.args.get('next', '')) }}" id="loginForm" novalidate>
           <p class="auth-head__kicker">Selamat datang kembali</p>
           <h2 class="auth-head__title">Masuk ke Dashboard</h2>
-          <p class="auth-head__sub">Gunakan kata sandi akun Anda untuk melanjutkan.</p>
+          <p class="auth-head__sub">Gunakan kata sandi untuk melanjutkan.</p>
 
           {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}

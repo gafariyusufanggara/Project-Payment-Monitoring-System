@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% set is_minggu = (mode == 'minggu') %}
-{% set _ptitle = 'Inv. Minggu Ini' if is_minggu else 'Inv. Bulan Ini' %}
+{% set _ptitle = 'Invoice Minggu Ini' if is_minggu else 'Invoice Bulan Ini' %}
 {% set _picon = 'bi-calendar-week' if is_minggu else 'bi-calendar3' %}
 {% block title %}{{ _ptitle }} - Project Payment Monitoring System{% endblock %}
 {% block topbar_title %}{{ _ptitle }}{% endblock %}

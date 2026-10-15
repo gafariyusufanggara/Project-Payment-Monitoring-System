@@ -18,6 +18,7 @@
   FORM: refinement Operate, mirror tokens invoice_cicilan.html.
   FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
 -->
+{% include "partials/_search_box.html" %}
 <style>
   /* topbar badge: tint konsisten dgn page lain (pola document_status.html / verifikasi.html). */
   .tb-rekanan { background: #eaf0f6; color: #16324f; }
@@ -111,9 +112,13 @@
   </div>
 
   <div class="cic-toolbar">
-    <div class="ds-search">
+    <div class="ds-search ft-search">
       <i class="bi bi-search"></i>
       <input type="text" id="lrSearch" placeholder="Cari rekanan..." oninput="filterCards()" aria-label="Cari rekanan" />
+      <button type="button" class="ft-search-clear" aria-label="Bersihkan pencarian" hidden>
+        <i class="bi bi-x-lg"></i>
+      </button>
+      <kbd class="ft-search-kbd" aria-hidden="true">/</kbd>
     </div>
     <span class="cic-count" id="lrCount" aria-live="polite"></span>
   </div>

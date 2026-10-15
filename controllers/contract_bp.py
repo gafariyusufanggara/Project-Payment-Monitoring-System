@@ -81,6 +81,8 @@ def contract_action(contract_id):
     action = request.form.get('action', 'update')
     if action == 'delete':
         db_contract.delete_contract(contract_id)
+        from services import contract_match
+        contract_match.invalidate_cache()
         flash('Kontrak berhasil dihapus.', 'success')
         return redirect(url_for('contract.list_contracts'))
 
@@ -122,6 +124,8 @@ def contract_action(contract_id):
         flash('Kontrak berhasil diperbarui.', 'success')
     except Exception as e:
         flash(f'Gagal memperbarui kontrak: {e}', 'danger')
+    from services import contract_match
+    contract_match.invalidate_cache()
     return redirect(url_for('contract.contract_detail', contract_id=contract_id))
 
 
@@ -259,6 +263,13 @@ def import_template():
 
 @bp.route('/import', methods=['POST'])
 def import_excel():
+    # ── Mode konfirmasi: file sudah diunggah sebelumnya & disimpan sementara ──
+    confirmed = request.form.get('confirmed', '').strip() == '1'
+    token = request.form.get('import_token', '').strip()
+
+    if confirmed and token:
+        return _import_excel_confirm(token)
+
     if 'file' not in request.files:
         flash('Pilih file Excel terlebih dahulu!', 'danger')
         return redirect(url_for('contract.import_page'))
@@ -287,8 +298,13 @@ def import_excel():
     pid_str = str(project_id)
 
     import openpyxl
+    import io as _io
+    # Baca dari salinan in-memory agar stream unggahan TIDAK habis dikonsumsi
+    # (openpyxl memindahkan pointer zip). Stream tetap utuh untuk disimpan
+    # sementara di langkah konfirmasi replace.
     try:
-        wb = openpyxl.load_workbook(file, data_only=True)
+        raw = file.read()
+        wb = openpyxl.load_workbook(_io.BytesIO(raw), data_only=True)
     except Exception as e:
         flash(f'Gagal membuka file: {e}', 'danger')
         return redirect(url_for('contract.import_page'))
@@ -302,7 +318,6 @@ def import_excel():
     result = contract_excel.parse_contract_sheet(ws, project_id=pid_str)
     wb.close()
 
-
     if result is None:
         flash('Header tidak dikenali. Pastikan sheet punya kolom '
               '"No. Kontrak" dan "Vendor" (nama kolom bebas, boleh '
@@ -314,10 +329,118 @@ def import_excel():
         flash('Tidak ada baris kontrak yang ditemukan.', 'warning')
         return redirect(url_for('contract.import_page'))
 
-    # Seluruh penyimpanan (kontrak + termin) dalam SATU transaksi atomik:
-    # bila ada baris yang gagal, tidak ada kontrak yang "setengah tersimpan".
+    # ── Karena replace MENGHAPUS data kontrak proyek ini, minta konfirmasi dulu.
+    #    File disimpan sementara (token di session) agar bisa diproses di POST
+    #    konfirmasi tanpa upload ulang.
+    impact = db_contract.preview_import_impact(rows, pid_str)
+    token = _save_pending_import(raw, {
+        'project_id': pid_str,
+        'sheet_name': sheet_name,
+        'filename': file.filename,
+    })
+    return render_template('contract_import.html',
+                           project_list=_projects(),
+                           confirm_import={
+                               'token': token,
+                               'project_id': pid_str,
+                               'project_nama': project.get('nama_proyek', ''),
+                               'sheet_name': sheet_name,
+                               'rows': len(rows),
+                               'imported': imported,
+                               'skipped': skipped,
+                               'replace': impact['replace'],
+                               'delete': impact['delete'],
+                               'excel_only': impact['excel_only'],
+                           })
+
+
+# ── Pending-import helpers (konfirmasi replace) ──────────────────────────
+
+import os as _os
+import tempfile as _tempfile
+import uuid as _uuid
+
+_PENDING_DIR = _os.path.join(_tempfile.gettempdir(), 'kontrak_import_pending')
+
+
+def _save_pending_import(raw_bytes, meta):
+    """Simpan byte file unggahan ke temp + catat meta di session. Return token.
+
+    Menerima byte mentah (bukan FileStorage) agar isi file yang sudah dibaca
+    in-memory tersimpan UTUH — tanpa bergantung pada posisi stream upload."""
+    from flask import session
+    _os.makedirs(_PENDING_DIR, exist_ok=True)
+    token = _uuid.uuid4().hex
+    path = _os.path.join(_PENDING_DIR, token + '.xlsx')
+    with open(path, 'wb') as out:
+        out.write(raw_bytes)
+    session['kontrak_import_pending'] = {'token': token, 'path': path, **meta}
+    return token
+
+
+def _clear_pending_import():
+    from flask import session
+    info = session.pop('kontrak_import_pending', None)
+    if info and info.get('path'):
+        try:
+            _os.remove(info['path'])
+        except OSError:
+            pass
+    return info
+
+
+def _import_excel_confirm(token):
+    """POST konfirmasi: jalankan import replace memakai file temp yang tersimpan."""
+    from flask import session
+    info = session.get('kontrak_import_pending')
+    if not info or info.get('token') != token:
+        flash('Sesi konfirmasi import kedaluwarsa. Silakan unggah file lagi.', 'warning')
+        return redirect(url_for('contract.import_page'))
+
+    path = info.get('path')
+    if not path or not _os.path.exists(path):
+        _clear_pending_import()
+        flash('File sementara tidak ditemukan. Silakan unggah file lagi.', 'warning')
+        return redirect(url_for('contract.import_page'))
+
+    pid_str = info.get('project_id', '')
+    import db_project
+    project = db_project.get_project(int(pid_str)) if pid_str.isdigit() else None
+    if not project:
+        _clear_pending_import()
+        flash('Proyek tidak ditemukan.', 'danger')
+        return redirect(url_for('contract.import_page'))
+
+    import openpyxl
     try:
-        stat = db_contract.import_contracts(rows)
+        wb = openpyxl.load_workbook(path, data_only=True)
+    except Exception as e:
+        _clear_pending_import()
+        flash('File sementara rusak atau tidak bisa dibaca saat konfirmasi. '
+              f'Silakan unggah ulang file Excel. (detail: {e})', 'danger')
+        return redirect(url_for('contract.import_page'))
+
+    sheet_name = info.get('sheet_name', '')
+    if sheet_name and sheet_name in wb.sheetnames:
+        ws = wb[sheet_name]
+    else:
+        ws = wb[contract_excel.detect_contract_sheet(wb)]
+    result = contract_excel.parse_contract_sheet(ws, project_id=pid_str)
+    wb.close()
+    _clear_pending_import()
+
+    if result is None:
+        flash('Header tidak dikenali saat memproses ulang. Coba unggah lagi.', 'danger')
+        return redirect(url_for('contract.import_page'))
+    rows, imported, skipped = result
+    if not rows:
+        flash('Tidak ada baris kontrak yang ditemukan.', 'warning')
+        return redirect(url_for('contract.import_page'))
+
+    # Seluruh penyimpanan (autolink + hapus per-proyek + insert) dalam SATU
+    # transaksi atomik: bila ada baris yang gagal, tidak ada perubahan separuh.
+    try:
+        stat = db_contract.import_contracts(rows, project_id=pid_str, replace=True)
     except Exception as e:
         flash(f'Gagal menyimpan import (perubahan dibatalkan): {e}', 'danger')
         return redirect(url_for('contract.import_page'))
@@ -327,15 +450,21 @@ def import_excel():
     except Exception:
         pass
 
+    # Data kontrak berubah → badge kandidat typo No PO harus dihitung ulang.
+    from services import contract_match
+    contract_match.invalidate_cache()
+
     inserted = stat['inserted']
-    updated = stat['updated']
+    deleted = stat.get('deleted', 0)
     total_termin = stat['total_termin']
     warn = stat['warnings']
     vendor_kosong = stat.get('vendor_kosong', 0)
 
-    flash(f'Import selesai: {len(rows)} kontrak ({inserted} baru, {updated} diperbarui) '
-          f'dari {imported} baris Excel. Baris dilewati: {skipped}. '
-          f'Jadwal termin tersimpan: {total_termin}.', 'success')
+    flash(f'Import kontrak proyek "{project.get("nama_proyek", "")}" selesai: '
+          f'{len(rows)} kontrak dari {imported} baris Excel '
+          f'({inserted} baru, {deleted} data lama diganti). '
+          f'Jadwal termin tersimpan: {total_termin}. Proyek lain tidak terpengaruh.',
+          'success')
     if vendor_kosong:
         flash(f'{vendor_kosong} kontrak tanpa Nama Vendor di Excel — import tetap '
               f'disimpan, silakan lengkapi nama vendor di halaman Detail Kontrak.',
@@ -351,8 +480,15 @@ def import_excel():
     if di_luar:
         contoh = '; '.join(di_luar[:5])
         lagi = len(di_luar) - 5
-        flash(f'{len(di_luar)} kontrak ada di aplikasi tapi TIDAK ada di file Excel '
+        flash(f'{len(di_luar)} kontrak ada di proyek ini tapi TIDAK ada di file Excel '
               f'(kandidat data lama/duplikat) — periksa & hapus bila perlu: {contoh}'
+              + (f' — dan {lagi} lainnya.' if lagi > 0 else '.'), 'warning')
+    near_dup = stat.get('near_duplicate') or []
+    if near_dup:
+        contoh = '; '.join(near_dup[:5])
+        lagi = len(near_dup) - 5
+        flash(f'{len(near_dup)} kemungkinan duplikat legacy (nomor mirip & vendor sama) '
+              f'— periksa di Daftar Kontrak: {contoh}'
               + (f' — dan {lagi} lainnya.' if lagi > 0 else '.'), 'warning')
     return redirect(url_for('contract.list_contracts'))
 

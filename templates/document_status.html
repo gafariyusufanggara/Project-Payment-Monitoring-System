@@ -16,6 +16,7 @@
   FIRST VIEWPORT: header + KPI nominal + awal tabel dokumen revisi.
   FORM: refinement Operate, mirror tokens verifikasi.html/invoice_cicilan.html.
 -->
+{% include "partials/_search_box.html" %}
 <style>
   /* topbar badge: tint severity/neutral, pola dgn verifikasi.html */
   .tb-revisi { background: #fdf6d8; color: #8a6d00; }
@@ -67,7 +68,7 @@
     display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
     padding: 12px 18px; background: #f7f8f9; border-bottom: 1px solid #e3e5e8;
   }
-  .ds-toolbar .ds-search { flex: 1 1 280px; max-width: 420px; }
+  /* .ds-search lebar/geometri diatur oleh partials/_search_box.html (.ft-search). */
   .ds-toolbar-info { margin-left: auto; font-size: .72rem; font-weight: 600; color: #4d5766; }
 
   .ds-table-card { overflow-x: auto; }
@@ -165,9 +166,13 @@
 
   <div class="ds-card">
     <div class="ds-toolbar">
-      <div class="ds-search">
+      <div class="ds-search ft-search">
         <i class="bi bi-search"></i>
         <input type="text" id="dsSearch" placeholder="Cari rekanan, invoice, PO, deskripsi..." autocomplete="off" aria-label="Cari dokumen revisi" />
+        <button type="button" class="ft-search-clear" aria-label="Bersihkan pencarian" hidden>
+          <i class="bi bi-x-lg"></i>
+        </button>
+        <kbd class="ft-search-kbd" aria-hidden="true">/</kbd>
       </div>
       <span class="ds-toolbar-info" id="dsCount"></span>
     </div>

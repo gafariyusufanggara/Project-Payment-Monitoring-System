@@ -21,7 +21,7 @@ if s.rekanan not in all_rekanan %} {% set _ = all_rekanan.append(s.rekanan) %}
 
   <div class="lp-rail lp-rail--select lp-rail--single lp-rail--jt" id="topRail">
     <div class="lp-rail-group">
-      <label class="lp-rail-label" for="monthSel"><i class="bi bi-calendar3"></i> Bulan JT</label>
+      <label class="lp-rail-label" for="monthSel"><i class="bi bi-calendar3"></i> Periode</label>
       <select id="monthSel" class="lp-sel" aria-label="Pilih bulan jatuh tempo">
         {% for r in report_rows %}
         <option value="{{ r.key }}" {% if r.key == current_month %}selected{% endif %}>{{ r.label }}</option>

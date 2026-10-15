@@ -9,6 +9,43 @@ topbar_title %}Import Kontrak{% endblock %} {% block topbar_badges %}
 </span>
 {% endblock %} {% block content %}
 <div class="animate-in imp-wrap">
+  {% if confirm_import %}
+  {# ── Konfirmasi replace: tampilkan dampak sebelum menghapus data kontrak ── #}
+  <div class="imp-card" style="margin-bottom:16px">
+    <div class="imp-card-body">
+      <div style="display:flex;gap:10px;align-items:flex-start;padding:4px 2px 10px">
+        <i class="bi bi-exclamation-triangle" style="font-size:1.5rem;color:#8a6d00"></i>
+        <div>
+          <h3 style="margin:0 0 4px;font-size:1rem">Konfirmasi Import Kontrak</h3>
+          <p style="margin:0;font-size:.85rem;color:#4d5766">
+            Import ini akan <strong>MEGGANTI seluruh data kontrak proyek
+            &ldquo;{{ confirm_import.project_nama }}&rdquo;</strong> dengan isi file
+            <strong>{{ confirm_import.filename }}</strong>.
+            <strong>Proyek lain tidak terpengaruh.</strong>
+          </p>
+        </div>
+      </div>
+      <ul style="margin:8px 0 12px;padding-left:20px;font-size:.85rem;color:#33414f">
+        <li>{{ confirm_import.replace }} kontrak proyek ini akan <strong>diganti</strong>.</li>
+        {% if confirm_import.delete %}
+        <li>{{ confirm_import.delete }} kontrak legacy (belum terikat proyek) akan <strong>dihapus</strong>.</li>
+        {% endif %}
+        <li>{{ confirm_import.excel_only }} nomor kontrak unik dibaca dari file Excel
+          ({{ confirm_import.rows }} baris, {{ confirm_import.skipped }} dilewati).</li>
+      </ul>
+      <form method="POST" action="{{ url_for('contract.import_excel') }}" style="display:flex;gap:8px;flex-wrap:wrap">
+        <input type="hidden" name="confirmed" value="1" />
+        <input type="hidden" name="import_token" value="{{ confirm_import.token }}" />
+        <button type="submit" class="btn btn-import">
+          <i class="bi bi-check2-circle" aria-hidden="true"></i> Ya, Ganti Data Kontrak
+        </button>
+        <a href="{{ url_for('contract.import_page') }}" class="btn btn-secondary-premium">
+          <i class="bi bi-x-lg" aria-hidden="true"></i> Batal
+        </a>
+      </form>
+    </div>
+  </div>
+  {% endif %}
   <div class="imp-card">
     <div class="imp-card-body">
       <form
@@ -133,10 +170,11 @@ topbar_title %}Import Kontrak{% endblock %} {% block topbar_badges %}
             <code>Durasi Termin Pembayaran (Hari)</code>
           </div>
           <p class="mt-2 mb-0">
-            <strong>1 baris = 1 termin.</strong> No. kontrak yang sudah
-            terdaftar akan <strong>diganti datanya</strong> (bukan dobel).
-            Pencocokan dengan invoice memakai kolom
-            <strong>NO PO / KONTRAK</strong> di halaman Data Invoice.
+            <strong>1 baris = 1 termin.</strong> Import ini akan
+            <strong>mengganti seluruh data kontrak proyek terpilih</strong>
+            dengan isi file Excel (proyek lain tetap aman). Anda akan diminta
+            konfirmasi sebelum data lama diganti. Pencocokan dengan invoice
+            memakai kolom <strong>NO PO / KONTRAK</strong> di halaman Data Invoice.
           </p>
         </div>
 
@@ -643,6 +681,13 @@ topbar_title %}Import Kontrak{% endblock %} {% block topbar_badges %}
       btn.innerHTML =
         '<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span> Mengimport...';
     });
+  })();
+  // Selaraskan badge sidebar Progress Kontrak setelah import kontrak (bisa
+  // mengubah kandidat typo No PO) tanpa menunggu reload penuh.
+  (function () {
+    function sync() { if (window.refreshPoBadge) window.refreshPoBadge(); }
+    if (window.onPageReady) onPageReady(sync);
+    else document.addEventListener('DOMContentLoaded', sync);
   })();
 </script>
 {% endblock %}

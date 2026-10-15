@@ -15,6 +15,7 @@
   mengatur lebar kolom sticky & min-width (14 kolom vs 19).
 -->
 {% include "partials/_dt_theme.html" %}
+{% include "partials/_search_box.html" %}
 <style>
   /* topbar badge: tint konsisten dgn page lain (pola document_status.html / verifikasi.html). */
   .tb-total { background: #eaf0f6; color: #16324f; }
@@ -170,12 +171,15 @@
               <option value="Ada">Ada Invoice</option>
               <option value="Belum">Belum Ada Invoice</option>
             </select>
-            <div class="search-box ds-search">
+            <div class="search-box ds-search ft-search">
               <i class="bi bi-search"></i>
               <input type="text" id="kcSearch" placeholder="Cari no. kontrak / vendor..." autocomplete="off" aria-label="Cari kontrak" />
-              <button class="search-clear" id="kcSearchClear" style="display:none">&times;</button>
-              <span class="search-count" id="kcCount" aria-live="polite"></span>
+              <button type="button" class="ft-search-clear" id="kcSearchClear" aria-label="Bersihkan pencarian" hidden>
+                <i class="bi bi-x-lg"></i>
+              </button>
+              <kbd class="ft-search-kbd" aria-hidden="true">/</kbd>
             </div>
+            <span class="search-count" id="kcCount" aria-live="polite"></span>
             <div class="toolbar-actions">
               <a href="{{ url_for('contract.po_review') }}" class="ds-btn ds-btn--sm">
                 <i class="bi bi-search"></i> Pemeriksaan No PO{% if po_review_count %} <span class="kc-review-badge">{{ po_review_count }}</span>{% endif %}
@@ -307,18 +311,18 @@ function filterRows() {
   var anyFilter = q || vendor || status;
   if (el) el.textContent = anyFilter ? shown + ' dari ' + rows.length + ' kontrak' : '';
   var clr = document.getElementById('kcSearchClear');
-  if (clr) clr.style.display = q ? '' : 'none';
+  if (clr) clr.hidden = !q;
 }
 document.getElementById('kcSearch')?.addEventListener('input', filterRows);
 document.getElementById('filterVendor')?.addEventListener('change', filterRows);
 document.getElementById('filterStatus')?.addEventListener('change', filterRows);
-document.getElementById('kcSearchClear')?.addEventListener('click', function () {
-  var inp = document.getElementById('kcSearch');
-  if (inp) { inp.value = ''; inp.focus(); }
-  filterRows();
-});
+// Tombol X dibersihkan oleh handler generik di partials/_search_box.html
+// (klik → kosongkan input → dispatch 'input' → filterRows() ikut jalan).
 // Re-init pada full load & setiap HTMX swap (konten di-swap tanpa reload penuh).
 if (window.onPageReady) onPageReady(filterRows);
 else document.addEventListener('DOMContentLoaded', filterRows);
+// Sinkronkan badge sidebar Progress Kontrak (di luar #mainContent) saat halaman
+// ini tampil, agar tanda seru akurat tanpa menunggu reload penuh.
+if (window.onPageReady) onPageReady(function () { if (window.refreshPoBadge) window.refreshPoBadge(); });
 </script>
 {% endblock %}

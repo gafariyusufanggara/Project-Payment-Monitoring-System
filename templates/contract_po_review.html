@@ -293,5 +293,12 @@
     t.addEventListener('click', function () { activate(t.dataset.tab, true); });
   });
 })();
+// Halaman tinjauan No PO: pastikan badge sidebar Progress Kontrak selalu
+// sinkron saat halaman ini dibuka (mis. setelah aksi abaikan/kembalikan).
+(function () {
+  function sync() { if (window.refreshPoBadge) window.refreshPoBadge(); }
+  if (window.onPageReady) onPageReady(sync);
+  else document.addEventListener('DOMContentLoaded', sync);
+})();
 </script>
 {% endblock %}

@@ -156,6 +156,16 @@ def edit(row_idx):
         flash('Data berhasil diedit! Salinan tersimpan di DB Audit (DB utama tidak diubah).', 'success')
     else:
         flash('Gagal menyimpan ke DB Audit.', 'error')
+
+    # Bila No PO / Kontrak berubah, kandidat typo No PO di badge sidebar
+    # (Progress Kontrak) bisa berubah — invalidasi cache agar dihitung ulang.
+    _col_po = 'NO PO / KONTRAK'
+    _po_old = str(orig_for_log.get(_col_po) or '').strip()
+    _po_new = str(snapshot.get(_col_po) or '').strip()
+    if _po_old != _po_new:
+        from services import contract_match
+        contract_match.invalidate_cache()
+
     return redirect(url_for('main.index'))
 
 
@@ -305,6 +315,25 @@ def vendor_invoices():
     if invoices is None:
         return jsonify({'rekanan': rekanan, 'invoices': []})
     return jsonify({'rekanan': rekanan, 'invoices': invoices})
+
+
+@bp.route('/api/po-review-count')
+def api_po_review_count():
+    """Jumlah invoice kandidat typo No PO (badge ikon sidebar Progress Kontrak).
+
+    Dipakai untuk menyinkronkan badge sidebar TANPA reload penuh: sidebar
+    berada di luar #mainContent sehingga navigasi HTMX tidak menyegarkannya.
+    Cache TTL di services.contract_match di-invalidate lebih dulu agar angka
+    selalu segar setelah data No PO/kontrak berubah.
+    """
+    from services.project_context import get_read_filter
+    from services import contract_match
+    try:
+        contract_match.invalidate_cache()
+        count = contract_match.count_findings(get_read_filter())
+    except Exception:
+        count = 0
+    return jsonify({'count': count})
 
 
 @bp.route('/api/categories', methods=['POST'])

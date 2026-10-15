@@ -1,0 +1,141 @@
+<style>
+  /* ═══════════════════════════════════════════════════════════════
+   SHARED SEARCH BOX — one visual language for every list page.
+   Mirror of the Daftar Invoice search box (partials/_dt_theme.html)
+   so Status Dokumen / Progress Cicilan / Retensi / Verifikasi Data /
+   Progress Kontrak / Daftar Invoice all render identically.
+
+   Scoped under .ft-search only (no .dt-invoice prefix) so the same
+   markup works on pages that do not carry the invoice table theme.
+   ═══════════════════════════════════════════════════════════════ */
+  .ft-search.search-box,
+  .ft-search.ds-search {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    flex: 1 1 320px;
+    max-width: 400px;
+  }
+  /* Single source of truth for the input geometry. Overrides the
+     conflicting .search-box (base.css) + .ds-search (app.css) rules:
+     equal height with the filter controls, room on the right for the
+     plain "x", and no growth animation on focus (the old
+     `transition: all 0.2s` made the box stretch and knocked the clear
+     button out from under the cursor). */
+  .ft-search.search-box input,
+  .ft-search.ds-search input {
+    width: 100%;
+    min-width: 0;
+    height: 34px;
+    padding: 0 30px 0 34px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    line-height: normal;
+    background: #fff;
+    transition: none;
+  }
+  .ft-search.search-box input:focus,
+  .ft-search.ds-search input:focus {
+    width: 100%;
+  }
+  .ft-search .ft-search-clear {
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: none;
+    background: none;
+    color: #94a3b8;
+    font-size: 0.72rem;
+    cursor: pointer;
+    transition: none;
+    z-index: 2;
+  }
+  .ft-search .ft-search-clear > i {
+    display: block;
+    line-height: 1;
+  }
+  .ft-search .ft-search-clear[hidden] {
+    display: none;
+  }
+  .ft-search .ft-search-clear:hover {
+    color: #912018;
+  }
+  .ft-search .ft-search-kbd {
+    position: absolute;
+    top: 50%;
+    right: 34px;
+    transform: translateY(-50%);
+    padding: 1px 6px;
+    border: 1px solid #dce3eb;
+    border-radius: 5px;
+    background: #f7f8f9;
+    color: #94a3b8;
+    font-size: 0.62rem;
+    font-family: "JetBrains Mono", monospace;
+    pointer-events: none;
+  }
+  /* Hide the "/" hint while the box is focused or already has text. */
+  .ft-search:focus-within .ft-search-kbd,
+  .ft-search input:not(:placeholder-shown) ~ .ft-search-kbd {
+    display: none;
+  }
+  @media (max-width: 640px) {
+    .ft-search.search-box,
+    .ft-search.ds-search {
+      flex: 1 1 100%;
+      max-width: none;
+    }
+  }
+</style>
+<script>
+  /* Generic behaviour for every shared search box:
+     - show the clear button only while the field has text;
+     - one click clears the field and re-runs the page's own filter.
+     onmousedown=preventDefault keeps focus on the input so the first
+     click always registers (no need to click twice). */
+  (function () {
+    function wire(box) {
+      if (box.dataset.ftSearchWired) return;
+      box.dataset.ftSearchWired = "1";
+      var input = box.querySelector("input");
+      var clear = box.querySelector(".ft-search-clear");
+      if (!input || !clear) return;
+      var sync = function () {
+        clear.hidden = !input.value;
+      };
+      input.addEventListener("input", sync);
+      clear.addEventListener("mousedown", function (e) {
+        e.preventDefault();
+      });
+      clear.addEventListener("click", function () {
+        input.value = "";
+        sync();
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        input.focus();
+      });
+      sync();
+    }
+    function init(root) {
+      (root || document).querySelectorAll(".ft-search").forEach(wire);
+    }
+    // Partial ini di-render ulang setiap kali HTMX menukar #mainContent.
+    // Pasang listener global sekali saja agar tidak menumpuk.
+    window.__ftSearchInit = init;
+    if (!window.__ftSearchBooted) {
+      window.__ftSearchBooted = true;
+      document.addEventListener("htmx:afterSwap", function (e) { init(e.target); });
+    }
+    if (window.onPageReady) onPageReady(function () { init(document); });
+    else document.addEventListener("DOMContentLoaded", function () { init(document); });
+    // Konten HTMX yang baru di-swap bisa belum ter-init oleh onPageReady
+    // (script di dalam swap dieksekusi HTMX) — jalankan sekali lagi di sini.
+    init(document);
+  })();
+</script>

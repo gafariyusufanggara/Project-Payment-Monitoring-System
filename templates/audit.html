@@ -13,6 +13,7 @@ topbar_icon %}bi-clock-history{% endblock %} {% block topbar_badges %}
   FORM: refinement Operate, mirror tokens verifikasi.html/verifikasi_ignore.html.
   FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
 -->
+{% include "partials/_search_box.html" %}
 <style>
   .au-wrap { display: flex; flex-direction: column; gap: 16px; max-width: 1100px; margin: 0 auto; }
   .au-sub { margin: 2px 0 0; font-size: .78rem; color: #667080; }
@@ -139,7 +140,7 @@ topbar_icon %}bi-clock-history{% endblock %} {% block topbar_badges %}
 
   <div class="au-toolbar">
     <label class="au-select-all"><input type="checkbox" id="auSelectAll" aria-label="Pilih semua baris yang terlihat" /> Pilih semua</label>
-    <div class="ds-search"><i class="bi bi-search"></i><input type="text" id="auSearch" placeholder="Cari R-no, rekanan, invoice..." oninput="filterAudit()" aria-label="Cari catatan audit" /></div>
+    <div class="ds-search ft-search"><i class="bi bi-search"></i><input type="text" id="auSearch" placeholder="Cari R-no, rekanan, invoice..." oninput="filterAudit()" aria-label="Cari catatan audit" /><button type="button" class="ft-search-clear" aria-label="Bersihkan pencarian" hidden><i class="bi bi-x-lg"></i></button><kbd class="ft-search-kbd" aria-hidden="true">/</kbd></div>
     <button class="au-btn" id="auBatchBtn" disabled title="Pilih kartu lalu tandai selesai"><i class="bi bi-check2-circle"></i> Selesai Terpilih <span id="auBatchCount">0</span></button>
     <span class="au-count" id="auCount" aria-live="polite"></span>
   </div>

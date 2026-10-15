@@ -86,13 +86,6 @@
             <div class="brand-title">Project Payment</div>
             <small>Monitoring System</small>
           </div>
-          <button
-            class="sidebar-toggle-btn"
-            onclick="toggleSidebar()"
-            title="Sembunyikan sidebar"
-          >
-            <i class="bi bi-chevron-left"></i>
-          </button>
         </div>
         <nav class="sidebar-nav">
           {% block sidebar_nav %}
@@ -122,43 +115,30 @@
             <i class="bi bi-person-lock"></i> <span>Retensi</span>
           </button>
 
-          <div class="sidebar-section">Data Transaksi</div>
+          <div class="sidebar-section">Data Invoice</div>
           <button class="nav-item" onclick="navigateTo('/data-hutang')" data-label="Daftar Invoice">
             <i class="bi bi-table"></i> <span>Daftar Invoice</span>
+          </button>
+          {% set _exc_n = exclude_cat_count|default(0) + exclude_rek_count|default(0) %}
+          <button class="nav-item" onclick="navigateTo('/pengaturan')" id="navExclude" data-label="Exclude Rekanan">
+            <i class="bi bi-slash-circle"></i> <span>Exclude Rekanan</span>
+            <span
+              class="nav-badge nav-badge-neutral"
+              id="sidebarExcBadge"
+              title="{{ exclude_tip }}"
+              {% if _exc_n == 0 %}hidden{% endif %}
+            >
+              {{ _exc_n }}
+            </span>
           </button>
 
           <div class="sidebar-section">Progress Invoice</div>
           <button class="nav-item" onclick="navigateTo('/kontrak/')" id="navProgressKontrak" data-label="Progress Kontrak">
             <i class="bi bi-file-earmark-text"></i> <span>Progress Kontrak</span>
-            {% if po_review_count|default(0) > 0 %}
-            <span class="nav-badge nav-badge-warning nav-badge-icon" title="{{ po_review_count }} No PO perlu ditinjau (kandidat typo)"><i class="bi bi-exclamation"></i></span>
-            {% endif %}
+            <span class="nav-badge nav-badge-warning nav-badge-icon" id="sidebarPoBadge" data-po-count="{{ po_review_count|default(0) }}" title="{{ po_review_count|default(0) }} No PO perlu ditinjau (kandidat typo)"{% if po_review_count|default(0) <= 0 %} hidden{% endif %}><i class="bi bi-exclamation"></i></span>
           </button>
           <button class="nav-item" onclick="navigateTo('/invoice-cicilan')" data-label="Progress Cicilan">
             <i class="bi bi-arrow-repeat"></i> <span>Progress Cicilan</span>
-          </button>
-
-          <div class="sidebar-section">Kepatuhan</div>
-          <button
-            class="nav-item"
-            onclick="navigateTo('/verifikasi')"
-            id="navVerifikasi"
-          >
-            <i class="bi bi-shield-exclamation"></i>
-            <span>Verifikasi Data</span>
-            {% if verification_total > 0 %}
-            <span
-              class="nav-badge {{ 'nav-badge-critical' if verification_critical > 0 else 'nav-badge-warning' }}"
-            >
-              {{ verification_total }}
-            </span>
-            {% endif %}
-          </button>
-          <button class="nav-item" onclick="navigateTo('/audit')" id="navAudit" data-label="Catatan Audit">
-            <i class="bi bi-clock-history"></i> <span>Catatan Audit</span>
-            {% if audit_total > 0 %}
-            <span class="nav-badge nav-badge-info">{{ audit_total }}</span>
-            {% endif %}
           </button>
 
           <div class="sidebar-section">Rekap Invoice</div>
@@ -192,21 +172,32 @@
             <i class="bi bi-file-earmark-arrow-up"></i> <span>Import Kontrak</span>
           </button>
 
-          <div class="sidebar-section">Sistem</div>
+          <div class="sidebar-section">Kepatuhan</div>
+          <button
+            class="nav-item"
+            onclick="navigateTo('/verifikasi')"
+            id="navVerifikasi"
+          >
+            <i class="bi bi-shield-exclamation"></i>
+            <span>Verifikasi Data</span>
+            {% if verification_total > 0 %}
+            <span
+              class="nav-badge {{ 'nav-badge-critical' if verification_critical > 0 else 'nav-badge-warning' }}"
+            >
+              {{ verification_total }}
+            </span>
+            {% endif %}
+          </button>
+          <button class="nav-item" onclick="navigateTo('/audit')" id="navAudit" data-label="Catatan Audit">
+            <i class="bi bi-clock-history"></i> <span>Catatan Audit</span>
+            {% if audit_total > 0 %}
+            <span class="nav-badge nav-badge-info">{{ audit_total }}</span>
+            {% endif %}
+          </button>
+
+          <div class="sidebar-section">Proyek</div>
           <button class="nav-item" onclick="navigateTo('/project/')" data-label="Daftar Proyek">
             <i class="bi bi-building"></i> <span>Daftar Proyek</span>
-          </button>
-          {% set _exc_n = exclude_cat_count|default(0) + exclude_rek_count|default(0) %}
-          <button class="nav-item" onclick="navigateTo('/pengaturan')" id="navExclude" data-label="Exclude Rekanan">
-            <i class="bi bi-slash-circle"></i> <span>Exclude Rekanan</span>
-            <span
-              class="nav-badge nav-badge-neutral"
-              id="sidebarExcBadge"
-              title="{{ exclude_tip }}"
-              {% if _exc_n == 0 %}hidden{% endif %}
-            >
-              {{ _exc_n }}
-            </span>
           </button>
           {% endblock %}
         </nav>
@@ -217,14 +208,19 @@
       <main class="main-content" id="mainContent">
         {% block topbar %}
         <div class="topbar">
-          <button class="mobile-menu-toggle" type="button" aria-label="Buka navigasi" aria-controls="primaryNavigation" aria-expanded="false" onclick="toggleMobileNavigation()">
-            <i class="bi bi-list"></i>
-          </button>
-          <h1 id="pageTitle">
-            <i class="bi {% block topbar_icon %}bi-grid-1x2{% endblock %}"></i>
-            {% block topbar_title %}Proyek{% endblock %}
-            {% if update_label %}<span class="page-update" title="{{ update_tip }}">Update {{ update_label }}</span>{% endif %}
-          </h1>
+          <div class="topbar-left">
+            <button class="mobile-menu-toggle" type="button" aria-label="Buka navigasi" aria-controls="primaryNavigation" aria-expanded="false" onclick="toggleMobileNavigation()">
+              <i class="bi bi-list"></i>
+            </button>
+            <button class="sidebar-toggle-topbar" type="button" onclick="toggleSidebar()" title="Sembunyikan sidebar" aria-label="Sembunyikan sidebar" aria-controls="primaryNavigation" aria-expanded="true">
+              <i class="bi bi-list"></i>
+            </button>
+            <h1 id="pageTitle">
+              <i class="bi {% block topbar_icon %}bi-grid-1x2{% endblock %}"></i>
+              {% block topbar_title %}Proyek{% endblock %}
+              {% if update_label %}<span class="page-update" title="{{ update_tip }}">Update {{ update_label }}</span>{% endif %}
+            </h1>
+          </div>
           <div class="topbar-right">
             {% block topbar_scope %}
             <div class="project-scope">
@@ -580,15 +576,15 @@
       function applySidebarState(isCollapsed) {
           const sidebar = document.querySelector('.sidebar');
           const main = document.querySelector('.main-content');
-          const btn = document.querySelector('.sidebar-toggle-btn');
+          const btn = document.querySelector('.sidebar-toggle-topbar');
           if (sidebar) sidebar.classList.toggle('collapsed', isCollapsed);
           if (main) main.classList.toggle('sidebar-collapsed', isCollapsed);
           document.documentElement.classList.toggle('sb-collapsed', isCollapsed);
           if (btn) {
-              btn.title = isCollapsed ? 'Perluas sidebar' : 'Sembunyikan sidebar';
-              btn.innerHTML = isCollapsed
-                  ? '<i class="bi bi-chevron-right"></i>'
-                  : '<i class="bi bi-chevron-left"></i>';
+              const label = isCollapsed ? 'Perluas sidebar' : 'Sembunyikan sidebar';
+              btn.title = label;
+              btn.setAttribute('aria-label', label);
+              btn.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
           }
       }
       // Terapkan ulang state tersimpan ke DOM saat ini (dipanggil setelah HTMX swap).
@@ -1045,6 +1041,28 @@
         }
       }
       window.syncExcludeBadges = syncExcludeBadges;
+
+      // ═══ Progress Kontrak badge sync (sidebar, ikon tanda seru) ═══
+      // Sidebar di luar #mainContent → HTMX tidak menyegarkannya. Halaman/aksi
+      // yang mengubah data No PO/kontrak memanggil refreshPoBadge() agar badge
+      // muncul/hilang tanpa reload penuh.
+      function syncPoBadge(n) {
+        n = parseInt(n, 10) || 0;
+        const b = document.getElementById('sidebarPoBadge');
+        if (!b) return;
+        b.hidden = n <= 0;
+        b.dataset.poCount = String(n);
+        b.setAttribute('title', n + ' No PO perlu ditinjau (kandidat typo)');
+      }
+      window.syncPoBadge = syncPoBadge;
+
+      function refreshPoBadge() {
+        fetch('/api/po-review-count', { headers: { 'Accept': 'application/json' } })
+          .then(r => r.ok ? r.json() : null)
+          .then(d => { if (d && typeof d.count === 'number') syncPoBadge(d.count); })
+          .catch(() => {});
+      }
+      window.refreshPoBadge = refreshPoBadge;
 
       // ═══ Project scope selector (topbar) ═══
       // Topbar berada DI DALAM #mainContent, jadi HTMX menukar <select> ini

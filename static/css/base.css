@@ -210,7 +210,9 @@
         display: none;
       }
       .sidebar.collapsed .sidebar-brand {
-        padding: 16px 12px;
+        padding: 18px 12px;
+        justify-content: center;
+        gap: 0;
       }
       .sidebar.collapsed .sidebar-brand .brand-icon {
         margin: 0 auto;
@@ -222,9 +224,6 @@
         justify-content: center;
         padding: 12px;
         gap: 0;
-      }
-      .sidebar.collapsed .sidebar-toggle-btn {
-        right: -8px;
       }
       /* sb-collapsed: applied in <head> before paint — no transition flicker */
       .sb-collapsed .sidebar {
@@ -239,7 +238,9 @@
         display: none;
       }
       .sb-collapsed .sidebar-brand {
-        padding: 16px 12px;
+        padding: 18px 12px;
+        justify-content: center;
+        gap: 0;
       }
       .sb-collapsed .sidebar-brand .brand-icon {
         margin: 0 auto;
@@ -252,9 +253,6 @@
         padding: 12px;
         gap: 0;
         position: relative;
-      }
-      .sb-collapsed .sidebar-toggle-btn {
-        right: -8px;
       }
       .sb-collapsed .nav-badge {
         position: absolute;
@@ -271,60 +269,74 @@
       }
 
       .sidebar-brand {
-        padding: 24px 20px 20px;
+        padding: 20px 16px 18px;
         border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         position: relative;
+        display: flex;
+        align-items: center;
+        gap: 11px;
+      }
+      .sidebar-brand .brand-text {
+        min-width: 0;
+        line-height: 1.25;
       }
       /* Ikon brand diselaraskan dengan panel login (.auth-hero__brand):
          kotak kaca (glass) + border tipis + ikon teal terang. */
       .sidebar-brand .brand-icon {
-        width: 46px;
-        height: 46px;
+        width: 42px;
+        height: 42px;
         border-radius: 12px;
         background: rgba(255, 255, 255, 0.12);
         border: 1px solid rgba(255, 255, 255, 0.18);
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.4rem;
+        font-size: 1.3rem;
         color: #6ee7d6;
-        margin-bottom: 10px;
         flex-shrink: 0;
       }
       .sidebar-brand .brand-title {
         margin: 0;
-        font-size: 0.95rem;
+        font-size: 0.85rem;
         font-weight: 700;
-        letter-spacing: 0.3px;
+        letter-spacing: 0.2px;
+        white-space: nowrap;
       }
       .sidebar-brand small {
-        font-size: 0.65rem;
+        display: block;
+        margin-top: 3px;
+        font-size: 0.62rem;
         opacity: 0.5;
         letter-spacing: 0.5px;
         text-transform: uppercase;
+        white-space: nowrap;
       }
-      .sidebar-toggle-btn {
-        position: absolute;
-        right: 12px;
-        top: 50%;
-        transform: translateY(-50%);
-        width: 26px;
-        height: 26px;
-        border-radius: 7px;
-        background: rgba(255, 255, 255, 0.08);
-        color: rgba(255, 255, 255, 0.5);
-        border: none;
-        display: flex;
+      /* Tombol show/hide sidebar — kini di topbar (kiri, sebelum judul halaman).
+         Gaya & ikon disamakan dengan .mobile-menu-toggle namun ukurannya lebih
+         ringkas agar proporsional dengan tinggi topbar (56px). */
+      .sidebar-toggle-topbar {
+        display: inline-flex;
+        width: 34px;
+        height: 34px;
+        flex: 0 0 34px;
         align-items: center;
         justify-content: center;
+        border: 1px solid var(--border);
+        border-radius: 9px;
+        background: var(--card);
+        color: var(--deep);
+        font-size: 1rem;
         cursor: pointer;
-        font-size: 0.75rem;
-        transition: all 0.25s;
-        flex-shrink: 0;
+        transition: all 0.2s;
       }
-      .sidebar-toggle-btn:hover {
-        background: rgba(255, 255, 255, 0.2);
-        color: #fff;
+      .sidebar-toggle-topbar:hover {
+        background: var(--accent-light, #eaf0f6);
+        color: var(--accent);
+        border-color: rgba(15, 118, 110, 0.3);
+      }
+      .sidebar-toggle-topbar:focus-visible {
+        outline: 3px solid rgba(15, 118, 110, 0.24);
+        outline-offset: 2px;
       }
 
       .sidebar-nav {
@@ -518,6 +530,13 @@
       .topbar-badge:hover {
         transform: translateY(-1px);
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      }
+      /* ── Topbar left cluster (tombol toggle sidebar + judul halaman) ── */
+      .topbar-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
       }
       /* ── Topbar right cluster (project scope + badges) ── */
       .topbar-right {
@@ -1426,7 +1445,7 @@
           padding: 12px;
           min-height: 44px;
         }
-        .sidebar-toggle-btn {
+        .sidebar-toggle-topbar {
           display: none;
         }
         .main-content {
@@ -1482,10 +1501,16 @@
           display: block;
         }
         .sidebar .sidebar-brand {
-          padding: 20px 18px;
+          padding: 18px 16px;
         }
         .sidebar .sidebar-brand .brand-icon {
-          margin: 0 0 10px;
+          margin: 0;
+        }
+        .sidebar .sidebar-brand .brand-title {
+          font-size: 0.92rem;
+        }
+        .sidebar .sidebar-brand small {
+          font-size: 0.64rem;
         }
         .sidebar .sidebar-nav {
           padding: 12px;
@@ -1573,12 +1598,14 @@
           flex-wrap: wrap;
           padding: 8px 12px;
         }
+        .topbar-left {
+          flex: 1 1 100%;
+        }
         .topbar h1 {
-          flex: 1 1 calc(100% - 56px);
+          flex: 1 1 auto;
         }
         .topbar-right {
           flex: 1 1 100%;
-          padding-left: 54px;
         }
         .project-scope,
         .project-scope-select {

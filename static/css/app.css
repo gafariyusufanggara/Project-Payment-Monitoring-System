@@ -956,6 +956,24 @@
   }
 }
 
+/* Logout confirm modal — tetap di tengah pada layar sempit.
+   Bootstrap hanya memberi `margin-left/right: auto` (untuk horizontal-center)
+   di atas 576px. Di bawah itu .modal-dialog fallback ke `margin` seragam, dan
+   base.css (<=992px) menimpanya jadi `margin: 12px` — sehingga dialog modal-sm
+   menempel ke sisi, bukan di tengah. Kembalikan auto-center + batasi lebar. */
+@media (max-width: 992px) {
+  #logoutModal .modal-dialog {
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+@media (max-width: 576px) {
+  #logoutModal .modal-dialog {
+    margin: 12px auto;
+    max-width: calc(100% - 24px);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .topbar-logout,
   #logoutModal .lgo-btn {

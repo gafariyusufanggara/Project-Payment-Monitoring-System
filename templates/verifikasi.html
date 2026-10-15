@@ -18,6 +18,7 @@
   FORM: refinement Operate, mirror tokens invoice_cicilan.html/_dashboard.html.
   FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
 -->
+{% include "partials/_search_box.html" %}
 <style>
   /* topbar badge: tint severity, sama pola dgn tb-* laporan.css */
   .tb-kritis { background: #fef0ee; color: #912018; }
@@ -300,7 +301,7 @@
         <button class="vf-filter" data-filter="COMPLETION"><i class="bi bi-file-earmark-check" style="font-size:.7rem"></i> Kelengkapan</button>
         <button class="vf-filter" data-filter="WARNING"><i class="bi bi-exclamation-triangle" style="font-size:.7rem"></i> Peringatan</button>
         <button class="vf-filter" data-filter="DUPLICATE"><i class="bi bi-copy" style="font-size:.7rem"></i> Duplikat</button>
-        <div class="ds-search"><i class="bi bi-search"></i><input type="text" id="vfSearch" placeholder="Cari rekanan, kategori, deskripsi..." autocomplete="off" aria-label="Saring baris berdasarkan nama rekanan" /></div>
+        <div class="ds-search ft-search"><i class="bi bi-search"></i><input type="text" id="vfSearch" placeholder="Cari rekanan, kategori, deskripsi..." autocomplete="off" aria-label="Saring baris berdasarkan nama rekanan" /><button type="button" class="ft-search-clear" aria-label="Bersihkan pencarian" hidden><i class="bi bi-x-lg"></i></button><kbd class="ft-search-kbd" aria-hidden="true">/</kbd></div>
       </div>
       <div class="vf-toolbar-actions">
         <div class="vf-batch-alasan" id="vfBatchAlasan">

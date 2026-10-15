@@ -15,6 +15,7 @@
   FORM: refinement Operate, mirror tokens verifikasi.html.
   FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
 -->
+{% include "partials/_search_box.html" %}
 <style>
   .tb-total { background: #eaf0f6; color: #16324f; }
   .ig-wrap { display: flex; flex-direction: column; gap: 16px; max-width: 1000px; margin: 0 auto; }
@@ -110,7 +111,7 @@
   {% if ignored %}
   <div class="ig-toolbar">
       <label class="ig-select-all"><input type="checkbox" id="igSelectAll" aria-label="Pilih semua baris yang terlihat" /> Pilih semua yang terlihat</label>
-    <div class="ds-search"><i class="bi bi-search"></i><input type="text" id="igSearch" placeholder="Cari rekanan, invoice, kategori, alasan..." oninput="filterIgnored()" aria-label="Saring data diabaikan" /></div>
+    <div class="ds-search ft-search"><i class="bi bi-search"></i><input type="text" id="igSearch" placeholder="Cari rekanan, invoice, kategori, alasan..." oninput="filterIgnored()" aria-label="Saring data diabaikan" /><button type="button" class="ft-search-clear" aria-label="Bersihkan pencarian" hidden><i class="bi bi-x-lg"></i></button><kbd class="ft-search-kbd" aria-hidden="true">/</kbd></div>
     <button class="ig-btn" id="igBatchRestoreBtn" disabled title="Pilih kartu lalu kembalikan"><i class="bi bi-arrow-counterclockwise"></i> Kembalikan Terpilih <span id="igBatchCount">0</span></button>
     <span class="ig-count" id="igCount" aria-live="polite"></span>
   </div>

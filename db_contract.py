@@ -572,26 +572,56 @@ def upsert_contract(no_kontrak, vendor, project_id='', nilai_kontrak=0,
         return 'inserted', cur.lastrowid
 
 
-def import_contracts(rows):
+def import_contracts(rows, project_id=None, replace=True, also_unbound=True):
     """Simpan hasil parse import Excel dalam SATU transaksi atomik.
 
     rows: list dict dari services.contract_excel.parse_contract_sheet.
+    project_id: proyek yang di-import. Wajib diisi untuk mode 'replace'.
+    replace: True (default) = ganti seluruh kontrak milik proyek terpilih
+        (meniru pola Import Invoice: delete-per-proyek lalu insert ulang).
+        False = mode upsert lama (per baris), untuk kompatibilitas.
+    also_unbound: hanya berlaku saat replace=True. Bila True, kontrak legacy
+        dengan project_id kosong yang nomornya TIDAK dipakai proyek lain ikut
+        dihapus (membersihkan data lama yang belum terikat proyek).
 
-    Menggabungkan upsert_contract + replace_termins sehingga bila salah satu
-    baris gagal, seluruh import di-rollback (tidak ada kontrak "setengah
-    tersimpan"). Return dict statistik:
-        {'inserted', 'updated', 'total_termin', 'warnings', 'vendor_kosong',
-         'di_luar_excel'}
-    warnings: daftar string kontrak yang total Nilai DPP Termin-nya tidak sama
-    dengan Nilai (DPP) kontrak (validasi ringan, seperti sebelumnya), plus
-    kontrak yang Nama Vendor-nya kosong di Excel.
-    di_luar_excel: daftar kontrak yang ada di DB tapi TIDAK ada di file Excel
-    (kandidat data lama/duplikat) — hanya untuk pelaporan, tidak dihapus.
+    Return dict statistik:
+        {'inserted', 'updated', 'deleted', 'deleted_termin', 'total_termin',
+         'warnings', 'vendor_kosong', 'di_luar_excel', 'near_duplicate'}
+    warnings    : total DPP termin != Nilai (DPP) kontrak, plus vendor kosong.
+    di_luar_excel: kontrak di scope proyek yang TIDAK ada di file Excel
+        (kandidat data lama/duplikat) — hanya DILAPORKAN, tidak dihapus otomatis.
+    near_duplicate: pasangan kontrak 'mirip & vendor sama' (kemungkinan typo /
+        duplikat legacy) — hanya DILAPORKAN.
     """
     inserted = updated = total_termin = vendor_kosong = 0
+    deleted_contracts = deleted_termin = 0
     warn = []
+    pid = str(project_id) if project_id not in (None, '') else None
+
     with _conn() as conn:
         conn.row_factory = _dict_factory
+
+        # ── Langkah 1: autolink kontrak legacy (project_id kosong) yang nomornya
+        #    PERSIS ada di file Excel → ikat ke proyek import. Ini mencegah
+        #    kontrak lama "nyangkut" tanpa proyek lalu terhitung di scope lain.
+        if pid is not None:
+            for r in rows:
+                key = _norm_kontrak(r.get('no_kontrak'))
+                if not key:
+                    continue
+                conn.execute(
+                    "UPDATE vendor_contracts SET project_id = ? "
+                    "WHERE UPPER(TRIM(no_kontrak)) = ? "
+                    "AND (project_id IS NULL OR project_id = '')",
+                    (pid, key))
+
+        # ── Langkah 2: mode replace → hapus seluruh kontrak proyek ini (+ termin).
+        if replace and pid is not None:
+            stat = _delete_contracts_by_project_conn(conn, pid, also_unbound)
+            deleted_contracts = stat['contracts']
+            deleted_termin = stat['termins']
+
+        # ── Langkah 3: upsert setiap baris Excel.
         for r in rows:
             key = _norm_kontrak(r['no_kontrak'])
             if not key:
@@ -609,7 +639,7 @@ def import_contracts(rows):
                            durasi_termin=?, tipe_kontrak=?, metode_penetapan=?,
                            ppn_rate=?, total_dpp=?, total_ppn=?
                      WHERE id=?
-                 ''', (r['vendor'].strip(), str(r.get('project_id') or ''),
+                 ''', (r['vendor'].strip(), str(r.get('project_id') or pid or ''),
                        r['nilai_kontrak'], r.get('tgl_kontrak', ''),
                        r.get('tgl_mulai', ''), r.get('tgl_selesai', ''),
                        r.get('keterangan', ''), r.get('tipe_pekerjaan', '').strip(),
@@ -631,7 +661,7 @@ def import_contracts(rows):
                           metode_penetapan, ppn_rate, total_dpp, total_ppn)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (r['no_kontrak'].strip(), r['vendor'].strip(),
-                      str(r.get('project_id') or ''), r['nilai_kontrak'],
+                      str(r.get('project_id') or pid or ''), r['nilai_kontrak'],
                       r.get('tgl_kontrak', ''), r.get('tgl_mulai', ''),
                       r.get('tgl_selesai', ''), r.get('keterangan', ''),
                       r.get('tipe_pekerjaan', '').strip(),
@@ -686,22 +716,164 @@ def import_contracts(rows):
 
         conn.commit()
 
-        # Kontrak di DB yang TIDAK ada di file Excel = kandidat data lama/sampah
-        # atau duplikat (mis. salah ketik No PO). Hanya DILAPORKAN, tidak
-        # dihapus otomatis, supaya pengguna bisa periksa dulu di daftar kontrak.
+        # ── Laporan: kontrak di scope proyek import yang TIDAK ada di file Excel
+        #    (kandidat data lama/duplikat). Discope ke proyek import agar tidak
+        #    melaporkan kontrak milik proyek lain.
         excel_keys = {_norm_kontrak(r['no_kontrak']) for r in rows
                       if _norm_kontrak(r['no_kontrak'])}
         di_luar = []
-        for row in conn.execute(
-                'SELECT no_kontrak, vendor FROM vendor_contracts ORDER BY no_kontrak'):
-            k = _norm_kontrak(row['no_kontrak'])
-            if k not in excel_keys:
+        near_dup = []
+        if pid is not None:
+            db_rows = conn.execute(
+                'SELECT id, no_kontrak, vendor, project_id FROM vendor_contracts '
+                'ORDER BY no_kontrak').fetchall()
+            # Nomor + vendor kontrak yang ADA di file Excel (untuk cek kemiripan).
+            excel_index = []
+            for r in rows:
+                k = _norm_kontrak(r.get('no_kontrak'))
+                if k:
+                    excel_index.append((k, (r.get('vendor') or '').strip(),
+                                        (r.get('no_kontrak') or '').strip()))
+            scope = [row for row in db_rows
+                     if str(row.get('project_id') or '') in (pid, '')]
+            for row in scope:
+                k = _norm_kontrak(row['no_kontrak'])
+                if k in excel_keys:
+                    continue
                 v = (row['vendor'] or '').strip() or '(vendor kosong)'
                 di_luar.append(f"{row['no_kontrak']} ({v})")
+                # Cek kemungkinan duplikat legacy: mirip & vendor sama.
+                for kk, ev, eno in excel_index:
+                    if not ev or not (row['vendor'] or '').strip():
+                        continue
+                    if _norm_vendor(ev) != _norm_vendor(row['vendor']):
+                        continue
+                    if _sim_kontrak(k, kk) >= SIMILARITY_THRESHOLD:
+                        near_dup.append(
+                            f"{row['no_kontrak']} ({v}) mirip dengan "
+                            f"{eno} di file Excel")
+                        break
+
     _recalc_percent_all()
     return {'inserted': inserted, 'updated': updated,
+            'deleted': deleted_contracts, 'deleted_termin': deleted_termin,
             'total_termin': total_termin, 'warnings': warn,
-            'vendor_kosong': vendor_kosong, 'di_luar_excel': di_luar}
+            'vendor_kosong': vendor_kosong, 'di_luar_excel': di_luar,
+            'near_duplicate': near_dup}
+
+
+def _delete_contracts_by_project_conn(conn, project_id, also_unbound=False):
+    """Varian delete-per-proyek yang memakai koneksi yang sudah terbuka.
+
+    Dipakai di dalam transaksi import agar delete + insert atomik.
+    Return {'contracts', 'termins'}.
+    """
+    pid = str(project_id)
+    conn.row_factory = _dict_factory
+    rows = conn.execute(
+        'SELECT id, no_kontrak, project_id FROM vendor_contracts').fetchall()
+
+    other_nos = set()
+    if also_unbound:
+        other_nos = {
+            _norm_kontrak(r.get('no_kontrak'))
+            for r in conn.execute(
+                'SELECT no_kontrak FROM vendor_contracts WHERE '
+                "project_id IS NOT NULL AND project_id <> '' AND project_id <> ?",
+                (pid,)).fetchall()
+        }
+
+    ids_to_delete = []
+    for r in rows:
+        p = str(r.get('project_id') or '')
+        if p == pid:
+            ids_to_delete.append(r['id'])
+        elif also_unbound and p == '' and _norm_kontrak(r.get('no_kontrak')) not in other_nos:
+            ids_to_delete.append(r['id'])
+
+    if not ids_to_delete:
+        return {'contracts': 0, 'termins': 0}
+
+    placeholders = ','.join('?' for _ in ids_to_delete)
+    tcur = conn.execute(
+        f'DELETE FROM vendor_contract_termin WHERE contract_id IN ({placeholders})',
+        ids_to_delete)
+    termins_deleted = tcur.rowcount
+    ccur = conn.execute(
+        f'DELETE FROM vendor_contracts WHERE id IN ({placeholders})',
+        ids_to_delete)
+    contracts_deleted = ccur.rowcount
+    return {'contracts': contracts_deleted, 'termins': termins_deleted}
+
+
+def preview_import_impact(rows, project_id, also_unbound=True):
+    """Hitung dampak import 'replace' TANPA mengubah data (untuk konfirmasi).
+
+    Return dict:
+        replace   : jumlah kontrak proyek ini yang akan diganti/dihapus.
+        delete    : jumlah kontrak legacy (project_id kosong) yang ikut dihapus.
+        excel_only: jumlah nomor unik di file Excel.
+        new_only  : jumlah nomor di Excel yang belum ada di registri.
+    """
+    pid = str(project_id)
+    excel_keys = {_norm_kontrak(r['no_kontrak']) for r in rows
+                  if _norm_kontrak(r['no_kontrak'])}
+    with _conn() as conn:
+        conn.row_factory = _dict_factory
+        db_rows = conn.execute(
+            'SELECT id, no_kontrak, project_id FROM vendor_contracts').fetchall()
+        other_nos = set()
+        if also_unbound:
+            other_nos = {
+                _norm_kontrak(r.get('no_kontrak'))
+                for r in conn.execute(
+                    'SELECT no_kontrak FROM vendor_contracts WHERE '
+                    "project_id IS NOT NULL AND project_id <> '' AND project_id <> ?",
+                    (pid,)).fetchall()
+            }
+
+    replace = 0
+    legacy_delete = 0
+    existing_all = set()
+    for r in db_rows:
+        k = _norm_kontrak(r.get('no_kontrak'))
+        if k:
+            existing_all.add(k)
+        p = str(r.get('project_id') or '')
+        if p == pid:
+            replace += 1
+        elif also_unbound and p == '' and k not in other_nos:
+            legacy_delete += 1
+    return {
+        'replace': replace,
+        'delete': legacy_delete,
+        'excel_only': len(excel_keys),
+        'new_only': len(excel_keys - existing_all),
+    }
+
+
+# ── Utilitas mirip (dipakai untuk laporan duplikat legacy) ────────────────
+SIMILARITY_THRESHOLD = 0.90
+
+
+def _sim_kontrak(a, b):
+    """Kemiripan dua nomor kontrak (case-insensitive), 0..1."""
+    from difflib import SequenceMatcher
+    return SequenceMatcher(None, str(a or '').upper(),
+                           str(b or '').upper()).ratio()
+
+
+def _norm_vendor(name):
+    """Normalisasi nama vendor (konsisten dgn verification._normalize_rekanan)."""
+    if not name:
+        return ''
+    s = str(name).lower().strip()
+    s = ' '.join(s.split())
+    for pref in ('pt.', 'cv.', 'ud.', 'pd.'):
+        if s.startswith(pref):
+            s = s.replace(pref, pref[:-1] + ' ', 1)
+    s = ' '.join(s.split())
+    return s.strip(' .,-;:')
 
 
 def _recalc_percent_all():
