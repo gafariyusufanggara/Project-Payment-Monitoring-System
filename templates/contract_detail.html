@@ -37,19 +37,18 @@
   .kd-s6 { grid-column: span 6; }
   .kd-s12 { grid-column: span 12; }
   .kd-label { display: block; font-size: .7rem; font-weight: 600; color: #4d5766; margin-bottom: 5px; letter-spacing: .2px; }
-  /* Mode baca: kartu definisi rapi dengan pemisah antar-baris */
+  /* Mode baca: kartu definisi rapi; pemisah HANYA antar-section (bukan tiap field) */
   .kd-def { display: grid; grid-template-columns: repeat(12, 1fr); gap: 0 12px; }
-  .kd-def > div { min-width: 0; padding: 9px 0; border-bottom: 1px dashed #eef0f2; }
-  .kd-def > div.kd-def__sec { padding: 0 0 7px; border-bottom: 1px solid #e3e5e8; }
+  .kd-def > div { min-width: 0; padding: 8px 0; }
   .kd-def dt { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: #667080; margin-bottom: 3px; }
   .kd-def dd { margin: 0; font-size: .86rem; color: #333333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .kd-def dd.kd-money { font-variant-numeric: tabular-nums; text-align: left; font-weight: 600; }
-  .kd-def__sec { grid-column: span 12; font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: #16324f; margin: 14px 0 0; padding: 0 0 7px; border-bottom: 1px solid #e3e5e8; display: flex; align-items: center; gap: 8px; }
+  /* Section header: label kecil + garis halus mengisi ruang di kanan. */
+  .kd-def__sec { grid-column: span 12; font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: #16324f; margin: 18px 0 2px; padding: 0; display: flex; align-items: center; gap: 10px; }
   .kd-def__sec::after { content: ''; flex: 1; height: 1px; background: #e3e5e8; }
   .kd-def__sec:first-child { margin-top: 0; }
-  .kd-input, .kd-select, .kd-textarea { width: 100%; padding: 8px 12px; border-radius: 10px; border: 1px solid #e3e5e8; font-size: .84rem; background: #fff; color: #333333; font-family: inherit; outline: none; }
-  .kd-input:focus, .kd-select:focus, .kd-textarea:focus { border-color: #16324f; box-shadow: 0 0 0 3px rgba(0, 86, 145,.12); }
-  .kd-textarea { min-height: 62px; resize: vertical; }
+  .kd-input, .kd-select { width: 100%; padding: 8px 12px; border-radius: 10px; border: 1px solid #e3e5e8; font-size: .84rem; background: #fff; color: #333333; font-family: inherit; outline: none; }
+  .kd-input:focus, .kd-select:focus { border-color: #16324f; box-shadow: 0 0 0 3px rgba(0, 86, 145,.12); }
   .kd-money { font-variant-numeric: tabular-nums; text-align: right; }
   .kd-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; align-items: center; }
   .kd-actions .spacer { flex: 1 1 auto; }
@@ -135,7 +134,6 @@
         <div class="kd-def__sec">Umum</div>
         <div class="kd-s12"><dt>No. Kontrak</dt><dd>{{ contract.no_kontrak }}</dd></div>
         <div class="kd-s12"><dt>Vendor / Rekanan</dt><dd title="{{ contract.vendor }}">{% if contract.vendor %}{{ contract.vendor }}{% else %}<span class="ds-badge ds-badge-amber"><i class="bi bi-exclamation-triangle"></i> Vendor belum diisi — klik Ubah untuk melengkapi</span>{% endif %}</dd></div>
-        <div class="kd-s12"><dt>Proyek</dt><dd>{{ (project_list|selectattr('0', 'equalto', contract.project_id|string)|map(attribute='1')|first) or '—' }}</dd></div>
         <div class="kd-s4"><dt>Tipe Kontrak</dt><dd>{{ contract.tipe_kontrak or '—' }}</dd></div>
         <div class="kd-s4"><dt>Metode Pembayaran</dt><dd>{{ contract.metode_pembayaran or '—' }}</dd></div>
         <div class="kd-s4"><dt>PPN</dt><dd>{% if contract.ppn_rate %}{{ '%g'|format(contract.ppn_rate) }}%{% else %}—{% endif %}</dd></div>
@@ -149,9 +147,8 @@
         <div class="kd-s4"><dt>Tipe Pekerjaan</dt><dd>{{ contract.tipe_pekerjaan or '—' }}</dd></div>
         <div class="kd-s4"><dt>Item Pekerjaan</dt><dd>{{ contract.item_pekerjaan or '—' }}</dd></div>
         <div class="kd-s4"><dt>Durasi Termin</dt><dd>{% if contract.durasi_termin %}{{ '%g'|format(contract.durasi_termin) }} hari{% else %}—{% endif %}</dd></div>
-        <div class="kd-s4"><dt>Tgl Kontrak</dt><dd>{{ contract.tgl_kontrak|tgl }}</dd></div>
-        <div class="kd-s4"><dt>Tgl Selesai</dt><dd>{{ contract.tgl_selesai|tgl }}</dd></div>
-        {% if contract.keterangan %}<div class="kd-s12" style="border-bottom:none"><dt>Keterangan</dt><dd style="white-space:pre-wrap;overflow:visible">{{ contract.keterangan }}</dd></div>{% endif %}
+        <div class="kd-s6"><dt>Tgl Kontrak Mulai</dt><dd>{{ contract.tgl_kontrak|tgl }}</dd></div>
+        <div class="kd-s6"><dt>Tgl Kontrak Selesai</dt><dd>{{ contract.tgl_selesai|tgl }}</dd></div>
       </dl>
       </div>
       <form method="POST" id="kdForm" hidden
@@ -169,15 +166,6 @@
               <label class="kd-label" for="vendor">Vendor / Rekanan *</label>
               <input class="kd-input" id="vendor" name="vendor" required
                      value="{{ contract.vendor if contract else '' }}" placeholder="PT. Nama Vendor" />
-            </div>
-            <div class="kd-s12">
-              <label class="kd-label" for="project_id">Proyek</label>
-              <select class="kd-select" id="project_id" name="project_id">
-                <option value="">— Tanpa Proyek —</option>
-                {% for pid, label in project_list %}
-                <option value="{{ pid }}" {% if contract and contract.project_id|string == pid|string %}selected{% endif %}>{{ label }}</option>
-                {% endfor %}
-              </select>
             </div>
             <div class="kd-s4">
               <label class="kd-label" for="tipe_kontrak">Tipe Kontrak</label>
@@ -226,12 +214,12 @@
                      value="{{ contract.item_pekerjaan if contract else '' }}" placeholder="Water Injection Pump" />
             </div>
             <div class="kd-s4">
-              <label class="kd-label" for="tgl_kontrak">Tgl Kontrak</label>
+              <label class="kd-label" for="tgl_kontrak">Tgl Kontrak Mulai</label>
               <input class="kd-input" id="tgl_kontrak" name="tgl_kontrak" type="date"
                      value="{{ contract.tgl_kontrak if contract else '' }}" />
             </div>
             <div class="kd-s4">
-              <label class="kd-label" for="tgl_selesai">Tgl Selesai</label>
+              <label class="kd-label" for="tgl_selesai">Tgl Kontrak Selesai</label>
               <input class="kd-input" id="tgl_selesai" name="tgl_selesai" type="date"
                      value="{{ contract.tgl_selesai if contract else '' }}" />
             </div>
@@ -239,16 +227,6 @@
               <label class="kd-label" for="durasi_termin">Durasi Termin (Hari)</label>
               <input class="kd-input kd-money" id="durasi_termin" name="durasi_termin" type="number" min="0" step="1"
                      value="{{ contract.durasi_termin|int if contract and contract.durasi_termin else '' }}" placeholder="0" />
-            </div>
-          </div>
-        </div>
-
-        <div class="kd-group">
-          <h2 class="kd-group__title">Catatan</h2>
-          <div class="kd-grid">
-            <div class="kd-s12">
-              <label class="kd-label" for="keterangan">Keterangan</label>
-              <textarea class="kd-textarea" id="keterangan" name="keterangan" placeholder="Ruang lingkup pekerjaan, catatan termin, dll.">{{ contract.keterangan if contract else '' }}</textarea>
             </div>
           </div>
         </div>
@@ -309,12 +287,11 @@
         {% endif %}
       </p>
       <div class="kd-scroll">
-        <table class="kd-table" style="min-width:900px">
+        <table class="kd-table" style="min-width:760px">
           <thead>
             <tr>
               <th>#</th>
               <th>Termin</th>
-              <th>Tgl Maksimal</th>
               <th class="num">Termin (%)</th>
               {% if not persen_ok %}<th class="num">Normalisasi (%)</th>{% endif %}
               <th class="num">Total Termin (Rp)</th>
@@ -327,7 +304,6 @@
             <tr>
               <td class="cell-dim">{{ t.urutan_no }}</td>
               <td>{{ t.label or 'Termin ' ~ t.urutan_no }}</td>
-              <td>{{ t.tgl_termin or '-' }}</td>
               <td class="cell-money">{% if t.persen %}{{ '%g'|format(t.persen) }}%{% else %}-{% endif %}</td>
               {% if not persen_ok %}<td class="cell-money">{{ '%.2f'|format(t.normalisasi) }}%</td>{% endif %}
               <td class="cell-money">{{ t.nilai|money }}</td>
@@ -338,7 +314,6 @@
             <tr style="background:#f7f8f9;font-weight:700">
               <td></td>
               <td>Total</td>
-              <td></td>
               <td class="cell-money">{% if total_persen %}{{ '%g'|format(total_persen) }}%{% else %}-{% endif %}</td>
               {% if not persen_ok %}<td class="cell-money">{{ '%.2f'|format(total_norm) }}%</td>{% endif %}
               <td class="cell-money">{{ total_termin_nilai|money }}</td>
@@ -352,8 +327,9 @@
       <div class="ds-empty" style="padding:14px">
         <i class="bi bi-list-check" style="color:#a3a8af"></i>
         <div class="ds-empty__title">Belum ada jadwal termin</div>
-        <p class="ds-empty__text">Import Kontrak dengan kolom <strong>Termin</strong> /
-        <strong>Termin (%)</strong> / <strong>Total Termin (Rp)</strong> (1 baris = 1 termin).</p>
+        <p class="ds-empty__text">Import Kontrak dengan kolom <strong>Termin</strong>,
+        <strong>Nilai DPP Termin</strong>, dan <strong>Nilai PPN Termin</strong>
+        (1 baris Excel = 1 termin).</p>
       </div>
       {% endif %}
     </div>
@@ -370,39 +346,36 @@
       </p>
       {% if invoices %}
       <div class="kd-scroll">
-        <table class="kd-table">
+        <table class="kd-table" style="min-width:980px">
           <thead>
             <tr>
               <th>No. Invoice</th>
               <th>Tgl Terima</th>
               <th>Deskripsi</th>
-              <th class="num">Harga (Exclude)</th>
+              <th class="num">Nilai DPP</th>
+              <th class="num">Pot. PPH</th>
               <th class="num">Bayar DPP</th>
               <th class="num">Sisa DPP</th>
+              <th class="num">Nilai PPN</th>
               <th class="num">Bayar PPN</th>
-              <th>Status</th>
+              <th class="num">Sisa PPN</th>
             </tr>
           </thead>
           <tbody>
             {% for inv in invoices %}
             {% set sisa_inv = (inv.harga or 0) - (inv.bayar or 0) %}
+            {% set sisa_ppn_inv = (inv.nilai_ppn or 0) - (inv.bayar_ppn or 0) %}
             <tr>
               <td class="cell-dim">{{ inv.no_invoice or '-' }}</td>
               <td>{{ inv.tgl_terima or '-' }}</td>
               <td class="cell-desc" title="{{ inv.deskripsi }}">{{ inv.deskripsi or '-' }}</td>
               <td class="cell-money">{% if inv.dup %}<span style="color:#a3a8af">0</span>{% else %}{{ inv.harga|money }}{% endif %}</td>
+              <td class="cell-money">{% if inv.pot_pph %}{{ inv.pot_pph|money }}{% else %}-{% endif %}</td>
               <td class="cell-money">{{ inv.bayar|money }}</td>
               <td class="cell-money" style="{% if sisa_inv > 0 %}color:#912018{% else %}color:#115e59{% endif %}">{{ sisa_inv|money }}</td>
-              <td class="cell-money">{% if inv.bayar_ppn %}{{ inv.bayar_ppn|money }}{% endif %}</td>
-              <td>
-                {% if inv.status_dpp == 'Lunas' %}
-                <span class="ds-badge ds-badge-green">Lunas</span>
-                {% elif inv.status_dpp %}
-                <span class="ds-badge ds-badge-amber">{{ inv.status_dpp }}</span>
-                {% else %}
-                <span class="ds-badge ds-badge-gray">-</span>
-                {% endif %}
-              </td>
+              <td class="cell-money">{% if inv.nilai_ppn %}{{ inv.nilai_ppn|money }}{% else %}-{% endif %}</td>
+              <td class="cell-money">{% if inv.bayar_ppn %}{{ inv.bayar_ppn|money }}{% else %}-{% endif %}</td>
+              <td class="cell-money" style="{% if sisa_ppn_inv > 0 %}color:#912018{% else %}color:#115e59{% endif %}">{{ sisa_ppn_inv|money }}</td>
             </tr>
             {% endfor %}
           </tbody>

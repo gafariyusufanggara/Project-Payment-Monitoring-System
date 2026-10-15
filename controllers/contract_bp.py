@@ -7,7 +7,8 @@ Routes:
   POST /kontrak/<id>                -> update / hapus
   GET  /kontrak/import              -> halaman import Excel
   POST /kontrak/import              -> upload + parse + upsert
-  GET  /kontrak/belum-terdaftar     -> nomor kontrak di invoice tanpa registri
+  GET  /kontrak/belum-terdaftar     -> redirect ke /kontrak/tinjau-no-po?tab=tak-terdaftar
+  GET  /kontrak/tinjau-no-po        -> pemeriksaan No PO (2 tab: temuan / tak terdaftar)
   POST /kontrak/belum-terdaftar/abaikan-vendor     -> abaikan vendor
   POST /kontrak/belum-terdaftar/kembalikan-vendor  -> batalkan abaikan
 """
@@ -39,11 +40,25 @@ def list_contracts():
     contracts = db_contract.get_contracts(pid)
     summary = db_contract.get_summary(pid)
     project_labels = {str(p_id): label for p_id, label in _projects()}
+    # Angka badge scanner No PO = jumlah INVOICE yang masuk kandidat typo
+    # (mirip & vendor sama) — yaitu yang benar-benar bermasalah. Ringan,
+    # di-cache per request via g.
+    try:
+        from services.contract_match import find_po_similarity
+        _po = find_po_similarity(pid)
+        po_review_count = _po['count']
+        po_unmatched_value = _po['unmatched_value']
+        po_unmatched_count = _po['unmatched_count']
+    except Exception:
+        po_review_count = po_unmatched_value = po_unmatched_count = 0
     return render_template('contracts.html',
                            contracts=contracts,
                            summary=summary,
                            project_labels=project_labels,
-                           project_list=_projects())
+                           project_list=_projects(),
+                           po_review_count=po_review_count,
+                           po_unmatched_value=po_unmatched_value,
+                           po_unmatched_count=po_unmatched_count)
 
 
 # ── DETAIL ───────────────────────────────────────────────────────────
@@ -93,7 +108,10 @@ def contract_action(contract_id):
             request.form.get('tgl_kontrak', ''),
             request.form.get('tgl_mulai', ''),
             request.form.get('tgl_selesai', ''),
-            request.form.get('keterangan', ''),
+            # 'keterangan' tidak lagi dipakai di form Detail Kontrak (kolom ini
+            # tidak ada di file Excel procurement); dikosongkan agar data lama
+            # yang mungkin terisi ikut bersih saat Update.
+            '',
             request.form.get('tipe_pekerjaan', ''),
             request.form.get('item_pekerjaan', ''),
             request.form.get('metode_pembayaran', ''),
@@ -127,14 +145,17 @@ def import_template():
     ws.title = 'Kontrak Vendor'  # dikenali detect_contract_sheet saat re-upload
 
     # Nama header HARUS tetap dikenali HEADER_ALIASES di services/contract_excel.py.
-    # Format terbaru (docs/Template Kontrak Vendor Terbaru.csv).
+    # Struktur & urutan kolom disamakan dengan file procurement nyata
+    # (docs/Rekap Kontrak Vendor Procurement Only.xlsx): tanggal kontrak memakai
+    # label "Tgl Kontrak Mulai" (bukan "Tgl Kontrak") dan TIDAK ada kolom
+    # "Tgl Maksimal Termin" / "Tgl Terima Berkas Lengkap" / "Keterangan".
     headers = ['No', 'Tipe Pekerjaan', 'Item Pekerjaan', 'No PO', 'Vendor',
-               'Tipe Kontrak', 'Nilai Kontrak', 'Tgl Kontrak', 'Tgl Kontrak Selesai',
-               'Metode Penetapan Nilai Kontrak', 'PPN (%)', 'Total DPP', 'Total PPN',
-               'Metode Pembayaran', 'Termin', 'Tgl Maksimal Termin', 'Termin (%)',
-               'Normalisasi Termin (%)', 'Nilai DPP Termin', 'Nilai PPN Termin',
-               'Durasi Termin Pembayaran (Hari)', 'Total Tagihan (Exclude PPH)',
-               'Retensi (5%)', 'Tgl Terima Berkas Lengkap', 'Keterangan']
+               'Tipe Kontrak', 'Nilai Kontrak', 'Tgl Kontrak Mulai',
+               'Tgl Kontrak Selesai', 'Metode Penetapan Nilai Kontrak', 'PPN (%)',
+               'Total DPP', 'Total PPN', 'Metode Pembayaran', 'Termin',
+               'Termin (%)', 'Normalisasi Termin (%)', 'Nilai DPP Termin',
+               'Nilai PPN Termin', 'Durasi Termin Pembayaran (Hari)',
+               'Total Tagihan\n(Exclude PPH)', 'Retensi (5%)']
     ws.append(headers)
     # start_color/end_color mengisi fgColor DAN bgColor sekaligus: pada OOXML,
     # solid fill memakai bgColor sebagai warna latar, jadi fgColor saja membuat
@@ -146,9 +167,9 @@ def import_template():
         cell.fill = fill
         cell.alignment = Alignment(vertical='center', horizontal='center',
                                    wrap_text=True)
-    widths = (5, 14, 26, 34, 30, 12, 18, 12, 14, 16, 9, 18, 16, 18, 24, 14,
-              10, 12, 18, 16, 12, 18, 12, 16, 30)
-    for col, w in zip('ABCDEFGHIJKLMNOPQRSTUVWXY', widths):
+    widths = (5, 14, 26, 34, 30, 12, 18, 14, 14, 16, 9, 18, 16, 18, 24, 10,
+              12, 18, 16, 12, 18, 12)
+    for col, w in zip('ABCDEFGHIJKLMNOPQRSTUV', widths):
         ws.column_dimensions[col].width = w
     ws.freeze_panes = 'F2'
     # Sheet data sengaja KOSONG: contoh tidak ikut terimport secara tidak sengaja.
@@ -162,7 +183,7 @@ def import_template():
     rules = [
         'CARA ISI SHEET "Kontrak Vendor":',
         '1. Satu baris = satu termin pembayaran. Satu No PO boleh punya beberapa baris termin.',
-        '2. No PO, Vendor, Nilai Kontrak, tanggal, dst cukup diisi di BARIS PERTAMA kontrak;',
+        '2. No PO, Vendor, Nilai Kontrak, "Tgl Kontrak Mulai", "Tgl Kontrak Selesai", dst cukup diisi di BARIS PERTAMA kontrak;',
         '    baris termin berikutnya cukup isi kolom "Termin", "Termin (%)", "Nilai DPP Termin", "Nilai PPN Termin".',
         '3. "Nilai Kontrak" = nilai total kontrak. PPN Exclude: sama dengan Total DPP;',
         '    PPN Include: sudah termasuk PPN (Total DPP lebih kecil).',
@@ -185,30 +206,27 @@ def import_template():
         [1, 'Mech', 'Water Injection Pump', 'PB.001/PO/NK-WIKA/03/SINTONG/12/2025',
          'PT Sulzer Indonesia', 'Material', 20100000000, datetime(2025, 12, 24),
          datetime(2027, 1, 27), 'PPN Exclude', 0.11, 20100000000, 2211000000,
-         'PPN Reimburse', 'Uang Muka', None, 0.10, 0.10, 2010000000, 221100000,
-         60, 2231100000, None, datetime(2026, 1, 16), 'Lunas DPP, Lunas PPN'],
-        ['', '', '', '', '', '', '', '', '', '', '', '', '', '', 'FAT', None,
-         0.30, 0.27, 5427000000, 596970000, 60, 6023970000, None, None, ''],
+         'PPN Reimburse', 'Uang Muka', 0.10, 0.10, 2010000000, 221100000,
+         60, 2231100000, None],
+        ['', '', '', '', '', '', '', '', '', '', '', '', '', '', 'FAT', 0.30,
+         0.27, 5427000000, 596970000, 60, 6023970000, None],
         ['', '', '', '', '', '', '', '', '', '', '', '', '', '',
-         'Material on Site/BASTB', datetime(2026, 10, 14), 0.60, 0.54,
-         10854000000, 1193940000, 60, 12047940000, None, None, ''],
+         'Material on Site/BASTB', 0.60, 0.54, 10854000000, 1193940000,
+         60, 12047940000, None],
         ['', '', '', '', '', '', '', '', '', '', '', '', '', '', 'Commissioning',
-         datetime(2027, 1, 27), 0.10, 0.09, 1809000000, 198990000, 60,
-         2007990000, None, None, ''],
+         0.10, 0.09, 1809000000, 198990000, 60, 2007990000, None],
         [5, 'Inst', 'MPS', 'PB.005/PO/NK-WIKA/02/SINTONG/03/2026',
          'PT CONTROL SYSTEM ARENA PARA NUSA', 'Material', 1915000000,
          datetime(2026, 3, 10), datetime(2027, 5, 23), 'PPN Exclude', 0.11,
-         1915000000, 210650000, 'PPN Include', 'Approval Doc', None, 0.20, 0.20,
-         383000000, 42130000, 90, 425130000, None, datetime(2026, 9, 11),
-         'Tertagih'],
-        ['', '', '', '', '', '', '', '', '', '', '', '', '', '', 'FAT', None,
-         0.20, 0.20, 383000000, 42130000, 90, 425130000, None, None, ''],
+         1915000000, 210650000, 'PPN Include', 'Approval Doc', 0.20, 0.20,
+         383000000, 42130000, 90, 425130000, None],
+        ['', '', '', '', '', '', '', '', '', '', '', '', '', '', 'FAT', 0.20,
+         0.20, 383000000, 42130000, 90, 425130000, None],
         ['', '', '', '', '', '', '', '', '', '', '', '', '', '',
-         'Material on Site/BASTB', datetime(2026, 6, 16), 0.55, 0.55,
-         1053250000, 115857500, 90, 1169107500, None, None, ''],
+         'Material on Site/BASTB', 0.55, 0.55, 1053250000, 115857500,
+         90, 1169107500, None],
         ['', '', '', '', '', '', '', '', '', '', '', '', '', '', 'Commissioning',
-         datetime(2027, 6, 30), 0.05, 0.05, 95750000, 10532500, 90, 106282500,
-         None, None, ''],
+         0.05, 0.05, 95750000, 10532500, 90, 106282500, None],
     ]
     start = len(rules) + 1
     for r, row in enumerate(contoh, start=start):
@@ -219,13 +237,17 @@ def import_template():
                 cell.font = Font(color='FFFFFF', bold=True, size=10)
                 cell.fill = fill
                 cell.alignment = Alignment(wrap_text=True, vertical='center')
-            if c in (7, 12, 13, 19, 20, 22, 23) and isinstance(val, (int, float)):
+            # Kolom uang: Nilai Kontrak(7), Total DPP(12), Total PPN(13),
+            # Nilai DPP Termin(18), Nilai PPN Termin(19), Total Tagihan(21), Retensi(22).
+            if c in (7, 12, 13, 18, 19, 21, 22) and isinstance(val, (int, float)):
                 cell.number_format = '#,##0'
-            if c in (11, 17, 18) and isinstance(val, (int, float)):
+            # Kolom persen: PPN %(11), Termin %(16), Normalisasi Termin %(17).
+            if c in (11, 16, 17) and isinstance(val, (int, float)):
                 cell.number_format = '0.00%'
-            if c in (8, 9, 16, 24) and isinstance(val, datetime):
+            # Kolom tanggal: Tgl Kontrak Mulai(8), Tgl Kontrak Selesai(9).
+            if c in (8, 9) and isinstance(val, datetime):
                 cell.number_format = 'yyyy-mm-dd'
-    for col, w in zip('ABCDEFGHIJKLMNOPQRSTUVWXY', widths):
+    for col, w in zip('ABCDEFGHIJKLMNOPQRSTUV', widths):
         guide.column_dimensions[col].width = w
 
     buf = io.BytesIO()
@@ -336,13 +358,12 @@ def import_excel():
 
 
 # ── NOMOR KONTRAK DI INVOICE TANPA REGISTRI ──────────────────────────
+# Halaman ini kini menyatu dengan "Tinjau No PO" sebagai tab.
+# Route lama dipertahankan sebagai redirect agar bookmark/URL lama tak rusak.
 
 @bp.route('/belum-terdaftar')
 def unmatched():
-    pid = _active_project_id()
-    missing = db_contract.get_unmatched_contract_nos(pid)
-    return render_template('contract_unmatched.html', missing=missing,
-                           ignored_vendors=db_ignore.get_ignored_vendors())
+    return redirect(url_for('contract.po_review', tab='tak-terdaftar'))
 
 
 @bp.route('/belum-terdaftar/abaikan-vendor', methods=['POST'])
@@ -351,7 +372,7 @@ def ignore_vendor():
     if vendor:
         db_ignore.ignore_vendor(vendor, request.form.get('alasan', '').strip())
         flash(f'Vendor "{vendor}" diabaikan dari daftar belum terdaftar.', 'success')
-    return redirect(url_for('contract.unmatched'))
+    return redirect(url_for('contract.po_review', tab='tak-terdaftar'))
 
 
 @bp.route('/belum-terdaftar/kembalikan-vendor', methods=['POST'])
@@ -360,4 +381,39 @@ def unignore_vendor():
     if vendor:
         db_ignore.unignore_vendor(vendor)
         flash(f'Vendor "{vendor}" tidak lagi diabaikan.', 'success')
-    return redirect(url_for('contract.unmatched'))
+    return redirect(url_for('contract.po_review', tab='tak-terdaftar'))
+
+
+# ── PEMERIKSAAN NO PO (2 tab: Temuan + Tak Terdaftar) ────────────────
+
+@bp.route('/tinjau-no-po')
+def po_review():
+    """Halaman pemeriksaan No PO / Kontrak.
+
+    Dua tab:
+      - 'temuan'        : kandidat typo (mirip & vendor sama) + kontrak tanpa invoice
+      - 'tak-terdaftar' : nomor kontrak di invoice yang belum ada di registri
+                          (+ aksi abaikan/ kembalikan vendor)
+
+    Read-only untuk scanner: hanya MENAMPILKAN kandidat untuk diperiksa manusia.
+    Tidak ada penghubungan otomatis, karena pada data nyata nomor berdekatan
+    (mis. PB.062 vs PB.064) sering merupakan kontrak BERBEDA.
+    """
+    from services.contract_match import find_po_similarity, SIMILARITY_THRESHOLD
+    pid = _active_project_id()
+    res = find_po_similarity(pid)
+    missing = db_contract.get_unmatched_contract_nos(pid)
+    tab = request.args.get('tab', 'temuan')
+    if tab not in ('temuan', 'tak-terdaftar'):
+        tab = 'temuan'
+    return render_template('contract_po_review.html',
+                           mirip=res['mirip'],
+                           tanpa_invoice=res['tanpa_invoice'],
+                           unmatched_value=res['unmatched_value'],
+                           unmatched_count=res['unmatched_count'],
+                           missing=missing,
+                           ignored_vendors=db_ignore.get_ignored_vendors(),
+                           total=res['count'],
+                           active_tab=tab,
+                           threshold=SIMILARITY_THRESHOLD,
+                           project_list=_projects())

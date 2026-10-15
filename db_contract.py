@@ -153,6 +153,7 @@ def _query_invoice_rows(project_id=None):
                        "HARGA (EXLD)"                 AS harga,
                        "PEMBAYARAN DPP"               AS bayar,
                        "PEMBAYARAN PPN"               AS bayar_ppn,
+                       "POT. PPH"                     AS pot_pph,
                        "TOTAL (INCLD)"                AS total,
                        "STATUS TERHADAP DPP"          AS status_dpp,
                        "JTH TEMPO"                    AS jth_tempo,
@@ -751,6 +752,10 @@ def get_contract_invoices(no_kontrak):
             'kode_biaya': r.get('kode_biaya') or '',
             'harga': 0.0 if is_dup else safe_float(r.get('harga')),
             'total': 0.0 if is_dup else safe_float(r.get('total')),
+            'pot_pph': safe_float(r.get('pot_pph')),
+            # Nilai PPN = TOTAL (INCLD) - HARGA (EXLD); duplikat sudah di-nol-kan.
+            'nilai_ppn': 0.0 if is_dup else (safe_float(r.get('total'))
+                                             - safe_float(r.get('harga'))),
             'bayar': safe_float(r.get('bayar')),
             'bayar_ppn': safe_float(r.get('bayar_ppn')),
             'volume': r.get('volume') or '',
@@ -793,19 +798,16 @@ def _linked_invoice_counts(project_id, known_keys):
 def get_summary(project_id=None):
     """Ringkasan untuk KPI halaman daftar kontrak.
 
-    KPI = Σ Total DPP / Total PPN kolom Excel, persis seperti di file.
-    Kontrak tanpa Total DPP (kolom kosong di Excel) tidak ikut dijumlahkan;
-    PPN fallback = DPP x ppn_rate bila kolom Total PPN kosong.
+    KPI = Σ Total DPP / Total PPN per kontrak, memakai basis yang SAMA dengan
+    kolom tabel (c.nilai_dpp / c.nilai_ppn dari get_contracts). Ini penting:
+    kontrak yang kolom "Total DPP"-nya kosong di Excel memakai fallback
+    nilai_kontrak, dan kontrak tanpa Total PPN memakai DPP x ppn_rate. Bila
+    KPI memakai total_dpp/total_ppn mentah, jumlah KPI akan berbeda dari
+    jumlah kolom yang terlihat pengguna.
     """
     contracts = get_contracts(project_id)
-    total_dpp = total_ppn = 0.0
-    for c in contracts:
-        dpp = safe_float(c.get('total_dpp'))
-        ppn = safe_float(c.get('total_ppn'))
-        if not ppn and dpp:
-            ppn = dpp * safe_float(c.get('ppn_rate')) / 100.0
-        total_dpp += dpp
-        total_ppn += ppn
+    total_dpp = sum(safe_float(c.get('nilai_dpp')) for c in contracts)
+    total_ppn = sum(safe_float(c.get('nilai_ppn')) for c in contracts)
     total_tertagih = sum(float(c.get('tertagih') or 0) for c in contracts)
     total_tertagih_ppn = sum(float(c.get('tertagih_ppn') or 0) for c in contracts)
     # Pembayaran & sisa hutang — DPP dan PPN selalu dipisah, tidak pernah digabung.

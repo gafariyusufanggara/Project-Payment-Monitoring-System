@@ -40,6 +40,10 @@
   .kc-no a:hover { text-decoration: underline; }
   .kc-item { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #4d5766; font-size: .73rem; }
   .badge-status.badge-amber { background: #fdf6d8; color: #8a6d00; }
+  .kc-review-badge { display: inline-block; min-width: 18px; padding: 0 5px; margin-left: 4px; border-radius: 20px; background: #fdf6d8; color: #8a6d00; font-size: .66rem; font-weight: 700; line-height: 1.5; text-align: center; }
+  .kc-unmatched-banner { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; padding: 10px 14px; border-radius: 12px; border: 1px solid #f0dca0; background: #fdf6d8; color: #6b5500; font-size: .78rem; }
+.kc-unmatched-banner i { font-size: 1rem; }
+
   .kc-page #kcTable thead th.col-sticky-right,
   .kc-page #kcTable tbody td.col-sticky-right { min-width: 96px; }
   /* Stat. Invoice — pill kecil sebagai satu-satunya penanda kelompok. */
@@ -58,9 +62,10 @@
   .kc-bar > span.over { background: linear-gradient(90deg, #b42318, #f0705f); }
   .kc-bar > span.none { background: #e3e5e8; }
   .kc-empty-note { font-size: .72rem; color: #667080; }
-  /* Toolbar: tombol "Belum Terdaftar" sejajar kanan bersama filter tabel. */
-  .kc-page .filter-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; width: 100%; }
-  .kc-page .filter-group .ds-btn { margin-left: auto; }
+/* Toolbar: tombol "Pemeriksaan No PO" sejajar kanan. */
+.kc-page .filter-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; width: 100%; }
+.kc-page .filter-group .search-box { margin-right: 0; }
+.kc-page .toolbar-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
   ::selection { background: #eaf0f6; }
   @media (max-width: 1024px) { .kc-kpis { grid-template-columns: repeat(2, 1fr); } }
   @media (max-width: 640px) { .ds-kpi--compact .ds-kpi__value { font-size: 1rem; } }
@@ -110,12 +115,12 @@
       <div><div class="ds-kpi__label">Terbayar PPN</div><div class="ds-kpi__value">{{ summary.total_dibayar_ppn|money }}</div>
         <div class="ds-kpi__hint">{% if summary.total_tertagih_ppn > 0 %}{{ (summary.total_dibayar_ppn / summary.total_tertagih_ppn * 100)|round(1) }}{% else %}0{% endif %}% dari yang ditagihkan</div></div>
     </div>
-    <div class="ds-kpi ds-kpi--compact{% if summary.total_sisa_dpp > 0 %} ds-kpi--warn{% endif %}" tabindex="0">
+    <div class="ds-kpi ds-kpi--compact{% if summary.total_sisa_dpp > 0 %} ds-kpi--warn{% endif %}" tabindex="0" title="Sisa hutang DPP = invoice yang sudah ditagih tapi belum dibayar (berbeda dari kolom 'Sisa Tagih')">
       <div class="kpi-ico kpi-ico--rose"><i class="bi bi-wallet2"></i></div>
       <div><div class="ds-kpi__label">Sisa Hutang DPP</div><div class="ds-kpi__value">{{ summary.total_sisa_dpp|money }}</div>
         <div class="ds-kpi__hint">{{ summary.belum_lunas }} invoice belum lunas</div></div>
     </div>
-    <div class="ds-kpi ds-kpi--compact{% if summary.total_sisa_ppn > 0 or summary.jatuh_tempo > 0 %} ds-kpi--warn{% endif %}" tabindex="0">
+    <div class="ds-kpi ds-kpi--compact{% if summary.total_sisa_ppn > 0 or summary.jatuh_tempo > 0 %} ds-kpi--warn{% endif %}" tabindex="0" title="Sisa hutang PPN = invoice PPN yang sudah ditagih tapi belum dibayar (berbeda dari kolom 'Sisa Tagih')">
       <div class="kpi-ico kpi-ico--rose"><i class="bi bi-hourglass-split"></i></div>
       <div><div class="ds-kpi__label">Sisa Hutang PPN</div><div class="ds-kpi__value">{{ summary.total_sisa_ppn|money }}</div>
         <div class="ds-kpi__hint">{{ summary.jatuh_tempo }} invoice jatuh tempo</div></div>
@@ -123,6 +128,12 @@
   </div>
 
   <div class="dt-invoice kc-page">
+    {% if po_unmatched_count %}
+    <div class="kc-unmatched-banner">
+      <i class="bi bi-exclamation-triangle"></i>
+      <span><strong>{{ po_unmatched_count }} invoice</strong> ({{ po_unmatched_value|money }}) memakai No PO yang belum cocok ke kontrak mana pun — nilainya belum ikut terhitung di bawah.</span>
+    </div>
+    {% endif %}
     {% if contracts %}
     <div class="table-wrapper">
       <div class="table-toolbar">
@@ -144,9 +155,11 @@
               <button class="search-clear" id="kcSearchClear" style="display:none">&times;</button>
               <span class="search-count" id="kcCount" aria-live="polite"></span>
             </div>
-            <a href="{{ url_for('contract.unmatched') }}" class="ds-btn ds-btn--sm">
-              <i class="bi bi-question-circle"></i> Belum Terdaftar
-            </a>
+            <div class="toolbar-actions">
+              <a href="{{ url_for('contract.po_review') }}" class="ds-btn ds-btn--sm">
+                <i class="bi bi-search"></i> Pemeriksaan No PO{% if po_review_count %} <span class="kc-review-badge">{{ po_review_count }}</span>{% endif %}
+              </a>
+            </div>
           </div>
         </div>
       </div>
@@ -162,8 +175,8 @@
               <th class="text-end">PPN Kontrak</th>
               <th class="text-end">Tagihan DPP</th>
               <th class="text-end">Tagihan PPN</th>
-              <th class="text-end">Belum Ditagih (DPP)</th>
-              <th class="text-end">Belum Ditagih (PPN)</th>
+              <th class="text-end" title="Nilai kontrak yang belum ditagih ke vendor (Nilai Kontrak − Sudah Ditagih)">Sisa Tagih (DPP)</th>
+              <th class="text-end" title="Nilai kontrak PPN yang belum ditagih ke vendor (PPN Kontrak − Sudah Ditagih PPN)">Sisa Tagih (PPN)</th>
               <th class="text-end">Terbayar DPP (Rp)</th>
               <th>Terbayar DPP (%)</th>
               <th class="text-end">Terbayar PPN (Rp)</th>
@@ -177,6 +190,14 @@
                 data-vendor="{{ c.vendor }}"
                 data-status="{{ 'Ada' if c.status_invoice == 'Ada Invoice' else 'Belum' }}">
               {% set is_ada = c.status_invoice == 'Ada Invoice' %}
+              {# Toleransi pembulatan Rp 1: sisa dari selisih floating point yang
+                 sangat kecil (mis. -0.0000001) dianggap 0, bukan over-tagih.
+                 Sisa = Nilai Kontrak - Sudah Ditagih (sudut pandang "belum
+                 ditagih", bukan sisa hutang). Nilai negatif hanya bila benar-
+                 benar over-tagih (ditagih melebihi nilai kontrak). #}
+              {% set eps = 1.0 %}
+              {% set sisa_dpp = c.sisa_kontrak|float %}
+              {% set sisa_ppn = c.sisa_ppn|float %}
               <td class="col-sticky-left" data-type="num" data-v="{{ loop.index }}">
                 <span class="row-num">{{ loop.index }}</span>
               </td>
@@ -191,11 +212,11 @@
               <td class="cell-money">{{ (c.nilai_ppn or 0)|money }}</td>
               <td class="cell-money">{{ c.tertagih|money }}</td>
               <td class="cell-money">{{ c.tertagih_ppn|money }}</td>
-              <td class="cell-money{% if is_ada and c.sisa_kontrak|float > 0 %} kc-owe{% endif %}{% if c.sisa_kontrak|float > 0 %} text-danger{% elif not is_ada %} text-muted{% else %} text-success{% endif %}" style="font-weight:700">{{ c.sisa_kontrak|money }}</td>
-              <td class="cell-money{% if is_ada and c.sisa_ppn|float > 0 %} kc-owe{% endif %}{% if c.sisa_ppn|float > 0 %} text-danger{% elif not is_ada %} text-muted{% else %} text-success{% endif %}" style="font-weight:700">{{ c.sisa_ppn|money }}</td>
+              <td class="cell-money{% if is_ada and sisa_dpp|abs > eps %} kc-owe{% endif %}{% if sisa_dpp > eps %} text-danger{% elif sisa_dpp < -eps %} text-danger{% elif not is_ada %} text-muted{% else %} text-success{% endif %}" style="font-weight:700">{{ (0 if sisa_dpp|abs <= eps else sisa_dpp)|money }}</td>
+              <td class="cell-money{% if is_ada and sisa_ppn|abs > eps %} kc-owe{% endif %}{% if sisa_ppn > eps %} text-danger{% elif sisa_ppn < -eps %} text-danger{% elif not is_ada %} text-muted{% else %} text-success{% endif %}" style="font-weight:700">{{ (0 if sisa_ppn|abs <= eps else sisa_ppn)|money }}</td>
               <td class="cell-money">{{ c.dibayar|money }}</td>
               <td class="kc-prog">
-                {{ pay_bar(c.progres if c.total_dpp and c.total_dpp > 0 else none,
+                {{ pay_bar(c.progres if c.nilai_dpp and c.nilai_dpp > 0 else none,
                            c.over,
                            'Progres pembayaran DPP ' ~ c.no_kontrak,
                            'DPP Kontrak belum diisi.') }}

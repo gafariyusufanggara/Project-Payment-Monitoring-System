@@ -89,7 +89,8 @@ def _normalize_rekanan(name):
 # Per-row completeness checks
 # ---------------------------------------------------------------------------
 
-def check_row(row, duplicate_names=None, duplicate_row_ids=None):
+def check_row(row, duplicate_names=None, duplicate_row_ids=None,
+              similar_po_nos=None):
     """
     Evaluate a single data row against completeness rules.
 
@@ -99,6 +100,10 @@ def check_row(row, duplicate_names=None, duplicate_row_ids=None):
                          (optional, injected by get_incomplete_rows)
         duplicate_row_ids: set of _row values identified as true duplicates
                            (optional, injected by get_incomplete_rows)
+        similar_po_nos: set of NO PO / KONTRAK values whose number closely
+                        resembles a registered contract but does not match it
+                        exactly (optional, injected by _analyze). Numbers that
+                        match a contract exactly are NOT in this set.
 
     Returns (level, reasons) where level is 'CRITICAL' | 'COMPLETION' | 'WARNING' | 'DUPLICATE' | 'OK'
     and reasons is a list of human-readable Indonesian strings.
@@ -176,6 +181,12 @@ def check_row(row, duplicate_names=None, duplicate_row_ids=None):
     if duplicate_names and row.get(_COL_REKANAN) in duplicate_names:
         warning = True
         reasons.append('Nama rekanan punya beberapa ejaan')
+
+    # WARNING: No PO / Kontrak mirip sebuah kontrak terdaftar tapi tidak persis
+    # cocok (kandidat typo / beda skema). Hanya peringatan — tidak mengubah data.
+    if similar_po_nos and (row.get(_COL_PO) or '').strip() in similar_po_nos:
+        warning = True
+        reasons.append('No. PO / Kontrak mirip kontrak terdaftar — periksa kemungkinan salah ketik')
 
     # DUPLICATE: true duplicate — same invoice+rekanan, all vol=1, or identical rows
     if duplicate_row_ids and row.get('_row') in duplicate_row_ids:
@@ -412,6 +423,14 @@ def _analyze(project_id=None):
     duplicates = find_rekanan_duplicates(data=data)
     dup_names = {v['name'] for grp in duplicates for v in grp['variants']}
     duplicate_row_ids = find_true_duplicates(data=data)
+    # No PO yang mirip kontrak terdaftar tapi tidak persis cocok — dipakai untuk
+    # menandai baris sebagai WARNING agar pengguna memeriksa kemungkinan typo.
+    try:
+        from services.contract_match import find_po_similarity
+        _sim = find_po_similarity(project_id)
+        similar_po_nos = {m['po'] for m in _sim['mirip']}
+    except Exception:
+        similar_po_nos = set()
 
     rows = []
     counts = {
@@ -424,7 +443,9 @@ def _analyze(project_id=None):
         row_idx = row.get('_row')
         if row_idx in ignored:
             continue
-        level, reasons = check_row(row, duplicate_names=dup_names, duplicate_row_ids=duplicate_row_ids)
+        level, reasons = check_row(row, duplicate_names=dup_names,
+                                   duplicate_row_ids=duplicate_row_ids,
+                                   similar_po_nos=similar_po_nos)
         if level == 'OK':
             continue
         rows.append({

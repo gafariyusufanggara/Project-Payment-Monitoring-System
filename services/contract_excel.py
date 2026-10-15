@@ -36,7 +36,14 @@ HEADER_ALIASES = {
     'total_dpp': ['total dpp', 'total dpp (rp)', 'dpp kontrak'],
     'total_ppn': ['total ppn', 'total ppn (rp)', 'ppn kontrak'],
     'tgl_kontrak': ['tgl kontrak', 'tanggal kontrak', 'tgl. kontrak',
-                    'tanggal po', 'tgl po', 'tgl. po', 'tanggal spk', 'tgl spk'],
+                    'tanggal po', 'tgl po', 'tgl. po', 'tanggal spk', 'tgl spk',
+                    # File "Rekap Kontrak Vendor Procurement Only.xlsx" memakai
+                    # label 'Tgl Kontrak Mulai' untuk tanggal kontrak (bukan
+                    # 'Tgl Kontrak'). Tanpa alias ini kolom tanggal kontrak tidak
+                    # dikenali sehingga tanggal kontrak kosong saat import.
+                    'tgl kontrak mulai', 'tanggal kontrak mulai',
+                    'tgl mulai kontrak', 'tanggal mulai kontrak',
+                    'tgl kontrak dimulai', 'tanggal kontrak dimulai'],
     'tgl_selesai': ['tgl selesai', 'tanggal selesai', 'selesai', 'tgl end',
                     'end', 'tanggal selesai kontrak', 'berakhir', 'tgl berakhir',
                     'tgl kontrak selesai', 'tanggal kontrak selesai'],
