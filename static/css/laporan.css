@@ -511,9 +511,13 @@
 }
 .lp-rail--cutoff { border-color: var(--lp-primary); }
 .lp-rail--cutoff .lp-rail-period { background: var(--lp-primary); border-color: var(--lp-primary-dark); color: #fff; }
-.lp-sel--day { min-width: 0; width: 92px; }
-input.lp-sel--day { width: 150px; }
-input.lp-sel--day::-webkit-calendar-picker-indicator { cursor: pointer; }
+.lp-sel--date {
+  width: 168px; min-width: 168px;
+  font-variant-numeric: tabular-nums;
+  padding: 5px 10px;
+}
+.lp-sel--date::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.65; }
+.lp-sel--date::-webkit-calendar-picker-indicator:hover { opacity: 1; }
 .lp-btn--primary { background: var(--lp-primary); border-color: var(--lp-primary-dark); color: #fff; }
 .lp-btn--primary:hover { background: var(--lp-primary-dark); border-color: var(--lp-primary-dark); color: #fff; }
 .lp-bulanan ::selection { background: var(--lp-primary-ring); }

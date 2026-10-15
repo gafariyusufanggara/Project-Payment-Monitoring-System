@@ -42,11 +42,8 @@
       {% endfor %}
     </select>
     <span class="lp-rail-sep" aria-hidden="true"></span>
-    <label class="lp-rail-label lp-rail-label--plain" for="cutoffDay"><i class="bi bi-calendar-check"></i> Cut Off</label>
-    <input type="date" id="cutoffDay" class="lp-sel lp-sel--day" onchange="applyCutoff()" aria-label="Tanggal cut off" value="{{ cutoff if cutoff else '' }}" />
-    {% if cutoff %}
-    <button class="lp-btn" onclick="clearCutoff()" title="Hapus Cut Off"><i class="bi bi-x-circle"></i> Reset</button>
-    {% endif %}
+    <label class="lp-rail-label lp-rail-label--plain" for="cutoffDate"><i class="bi bi-calendar-check"></i> Cut Off</label>
+    <input type="date" id="cutoffDate" class="lp-sel lp-sel--date" onchange="applyCutoff()" aria-label="Tanggal cut off" value="{{ cutoff if cutoff else '' }}">
   </div>
   <div class="lp-rail-group lp-rail-group--end">
     <span class="lp-rail-period" id="cutoffMonthLabel">{% for r in report_rows %}{% if r.key == current_month %}{{ r.label }}{% endif %}{% endfor %}</span>
@@ -266,14 +263,31 @@
 const REKANAN_DATA = {{ report_rows | tojson }};
 function monthSel(){ return document.getElementById('monthSel'); }
 function activeMonthKey(){ const s=monthSel(); return s?s.value:''; }
+// Tahun-bulan periode aktif ('YYYY-MM'); #monthSel.value sudah 'YYYY-MM'.
+function activeYearMonth(){ const s=monthSel(); return s&&s.value?s.value.slice(0,7):''; }
+// Tanggal cut off 'YYYY-MM-DD' langsung dari native date picker.
+// '' berarti Tanpa Cut Off.
+function currentCutoffDate(){ const inp=document.getElementById('cutoffDate'); return inp&&inp.value?inp.value:''; }
+// Batasi date picker hanya pada bulan periode aktif.
+function setCutoffBounds(){
+  const inp=document.getElementById('cutoffDate'); const ym=activeYearMonth();
+  if(!inp||!ym) return;
+  const p=ym.split('-'); const year=parseInt(p[0],10); const month=parseInt(p[1],10);
+  if(!year||!month) return;
+  const pad=n=>String(n).padStart(2,'0');
+  inp.min=year+'-'+pad(month)+'-01';
+  inp.max=year+'-'+pad(month)+'-'+pad(new Date(year,month,0).getDate());
+  if(inp.value&&(inp.value<inp.min||inp.value>inp.max)) inp.value=inp.min;
+}
+function fmtDate(iso){ const p=String(iso).split('-'); return p.length===3?(p[2]+'/'+p[1]+'/'+p[0]):iso; }
+function updateCutoffLabel(monthKey){ const lbl=document.getElementById('cutoffMonthLabel'); if(!lbl) return; const base=monthLabel(monthKey||activeMonthKey()); const d=currentCutoffDate(); lbl.textContent=d?(base+' · s/d '+fmtDate(d)):base; }
 function setSelValue(sel,key){ if(!sel||!key) return false; for(let i=0;i<sel.options.length;i++){ if(sel.options[i].value===key){ sel.value=key; return true; } } return false; }
 function monthLabel(key){ const s=monthSel(); if(s){ for(const o of s.options){ if(o.value===key) return o.textContent.trim(); } } return key; }
-function selectMonth(key){ setSelValue(monthSel(), key); document.querySelectorAll('.month-section').forEach(el=>{ el.hidden=(el.id!=='section-'+key); }); const lbl=document.getElementById('cutoffMonthLabel'); if(lbl) lbl.textContent=monthLabel(key); if(window.TableEnhance) window.TableEnhance.refresh(); }
-function bindMonthSel(){ const sel=monthSel(); if(!sel||sel.dataset.bound) return; sel.dataset.bound='1'; sel.addEventListener('change', function(){ selectMonth(this.value); }); if(sel.value) selectMonth(sel.value); }
-function currentCutoffDate(){ const daySel=document.getElementById('cutoffDay'); return daySel?daySel.value:''; }
+function selectMonth(key,skipCutoff){ setSelValue(monthSel(), key); document.querySelectorAll('.month-section').forEach(el=>{ el.hidden=(el.id!=='section-'+key); }); const inp=document.getElementById('cutoffDate'); if(inp&&!skipCutoff) inp.value=''; setCutoffBounds(); updateCutoffLabel(key); if(window.TableEnhance) window.TableEnhance.refresh(); if(!skipCutoff){ const d=document.getElementById('cutoffDate'); if(d&&d.value) applyCutoff(); } }
+function bindMonthSel(){ const sel=monthSel(); if(!sel||sel.dataset.bound) return; sel.dataset.bound='1'; sel.addEventListener('change', function(){ selectMonth(this.value); }); if(sel.value) selectMonth(sel.value, true); }
 function exportExcel(btn){ btn=btn||document.getElementById('exportBtn'); const orig=btn.innerHTML; btn.innerHTML='<span class="spinner-border spinner-border-sm me-1" role="status"></span> Mengunduh...'; btn.disabled=true; const key=activeMonthKey(); const params=new URLSearchParams(); if(key) params.set('month', key); const cutoff=currentCutoffDate(); if(cutoff) params.set('cutoff', cutoff); const qs=params.toString(); window.location.href='/laporan-ppn/export'+(qs?'?'+qs:''); setTimeout(()=>{ btn.innerHTML=orig; btn.disabled=false; },3000); }
 function applyCutoff(){ const key=activeMonthKey(); const params=new URLSearchParams(); const cutoff=currentCutoffDate(); if(cutoff) params.set('cutoff', cutoff); if(key) params.set('month', key); const qs=params.toString(); window.location.href='/laporan-ppn'+(qs?'?'+qs:''); }
-function clearCutoff(){ const daySel=document.getElementById('cutoffDay'); if(daySel) daySel.value=''; applyCutoff(); }
+function clearCutoff(){ const inp=document.getElementById('cutoffDate'); if(inp) inp.value=''; applyCutoff(); }
 let _activeRow=null;
 function showDetail(monthKey,rekanan,rowEl){
   if(_activeRow) _activeRow.classList.remove('selected');
@@ -308,9 +322,11 @@ function showDetail(monthKey,rekanan,rowEl){
 }
 function esc(s){ return String(s||'-').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 function fmt(v){ return Math.round(Number(v||0)).toLocaleString('id-ID'); }
-// Expose fungsi ke window (dipakai attribut inline onclick).
+// Expose fungsi ke window (dipakai attribut inline onclick/onchange).
 window.exportExcel = exportExcel;
 window.showDetail = showDetail;
+window.applyCutoff = applyCutoff;
+window.clearCutoff = clearCutoff;
 // Re-init pada full load & setiap HTMX swap.
 if (window.onPageReady) onPageReady(bindMonthSel);
 else document.addEventListener('DOMContentLoaded', bindMonthSel);

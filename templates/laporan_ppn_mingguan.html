@@ -37,7 +37,7 @@
   {% for r in report_rows %}{% if r.key == current_week %}{% set ns.cy = r.year %}{% set ns.cm = r.month %}{% endif %}{% endfor %}
   {% if ns.cy == 0 and report_rows %}{% set ns.cy = report_rows[-1].year %}{% set ns.cm = report_rows[-1].month %}{% endif %}
 
-  <div class="lp-rail lp-rail--select lp-rail--mingguan{% if cutoff %} lp-rail--cutoff{% endif %}" id="topRail">
+  <div class="lp-rail lp-rail--select lp-rail--mingguan" id="topRail">
     <div class="lp-rail-group">
       <label class="lp-rail-label" for="monthSel"><i class="bi bi-calendar3"></i> Periode</label>
       <select id="monthSel" class="lp-sel" aria-label="Pilih bulan">
@@ -45,12 +45,6 @@
       <option value="{{ r.month }}" data-year="{{ r.year }}" {% if r.year == ns.cy and r.month == ns.cm %}selected{% endif %}>{{ ['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'][r.month] }} {{ r.year }}</option>
       {% endif %}{% endfor %}
       </select>
-      <span class="lp-rail-sep" aria-hidden="true"></span>
-      <label class="lp-rail-label lp-rail-label--plain" for="cutoffDay"><i class="bi bi-calendar-check"></i> Cut Off</label>
-      <input type="date" id="cutoffDay" class="lp-sel lp-sel--day" onchange="applyCutoff()" aria-label="Tanggal cut off" value="{{ cutoff if cutoff else '' }}" />
-      {% if cutoff %}
-      <button class="lp-btn" onclick="clearCutoff()" title="Hapus Cut Off"><i class="bi bi-x-circle"></i> Reset</button>
-      {% endif %}
     </div>
     <div class="lp-rail-group lp-rail-group--end">
       <span class="lp-rail-period" id="weekLabel">{% for r in report_rows %}{% if r.key == current_week %}{{ r.label_long }}{% endif %}{% endfor %}</span>
@@ -270,10 +264,7 @@ function bindMingguanEvents(){
   document.querySelectorAll('.month-section tbody tr[data-rekan]').forEach(tr=>{ tr.tabIndex=0; tr.setAttribute('role','button'); tr.setAttribute('aria-label','Lihat detail '+tr.dataset.rekan); tr.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); tr.click(); }}); });
 }
 (function initPeriod(){ bindMingguanEvents(); const btns=document.querySelectorAll('#weekBar .lp-rail-btn'); if(!btns.length) return; const a=document.querySelector('#weekBar .lp-rail-btn.active'); const anchor=a||btns[btns.length-1]; const mSel=document.getElementById('monthSel'); if(mSel){ for(const opt of mSel.options){ if(opt.dataset.year===anchor.dataset.year&&String(opt.value)===String(anchor.dataset.month)){ mSel.value=opt.value; break; } } } onPeriodChange(); })();
-function currentCutoffDate(){ const daySel=document.getElementById('cutoffDay'); return daySel?daySel.value:''; }
-function exportExcel(btn){ btn=btn||document.getElementById('exportBtn'); if(btn){ btn.disabled=true; setTimeout(()=>btn.disabled=false,1500); } const a=document.querySelector('#weekBar .lp-rail-btn.active'); const k=a?a.getAttribute('data-key'):''; const params=new URLSearchParams(); if(k) params.set('week', k); const cutoff=currentCutoffDate(); if(cutoff) params.set('cutoff', cutoff); const qs=params.toString(); window.location.href='/laporan-ppn-mingguan/export'+(qs?'?'+qs:''); }
-function applyCutoff(){ const cutoff=currentCutoffDate(); const a=document.querySelector('#weekBar .lp-rail-btn.active'); const k=a?a.getAttribute('data-key'):''; const params=new URLSearchParams(); if(cutoff) params.set('cutoff', cutoff); if(k) params.set('week', k); const qs=params.toString(); window.location.href='/laporan-ppn-mingguan'+(qs?'?'+qs:''); }
-function clearCutoff(){ const daySel=document.getElementById('cutoffDay'); if(daySel) daySel.value=''; applyCutoff(); }
+function exportExcel(btn){ btn=btn||document.getElementById('exportBtn'); if(btn){ btn.disabled=true; setTimeout(()=>btn.disabled=false,1500); } const a=document.querySelector('#weekBar .lp-rail-btn.active'); const k=a?a.getAttribute('data-key'):''; const params=new URLSearchParams(); if(k) params.set('week', k); const qs=params.toString(); window.location.href='/laporan-ppn-mingguan/export'+(qs?'?'+qs:''); }
 let _activeRow=null;
 function showDetail(monthKey,rekanan,rowEl){
   if(_activeRow) _activeRow.classList.remove('selected');
@@ -311,7 +302,7 @@ function fmt(v){ return Math.round(Number(v||0)).toLocaleString('id-ID'); }
 function _isoWeek(d){ const t=new Date(d.getFullYear(),d.getMonth(),d.getDate()); let w=t.getDay(); w=w===0?7:w; t.setDate(t.getDate()+4-w); const y0=new Date(t.getFullYear(),0,1); return [t.getFullYear(), Math.ceil(((t-y0)/86400000+1)/7)]; }
 function weekKeyOf(s){ if(!s||s==='-'||String(s).length<10) return null; const p=String(s).slice(0,10).split('-'); const y=+p[0],m=+p[1],dd=+p[2]; if(!y||!m||!dd) return null; const dt=new Date(y,m-1,dd); if(isNaN(dt)) return null; const wd=dt.getDay(); const sun=new Date(dt); sun.setDate(dt.getDate()-wd); const tue=new Date(sun); tue.setDate(sun.getDate()+2); const r=_isoWeek(tue); return r[0]+'-W'+String(r[1]).padStart(2,'0'); }
 
-// Expose fungsi ke window (dipakai attribut inline onclick).
+// Expose fungsi ke window (dipakai attribut inline onclick/onchange).
 window.exportExcel = exportExcel;
 window.selectMonth = selectMonth;
 window.showDetail = showDetail;

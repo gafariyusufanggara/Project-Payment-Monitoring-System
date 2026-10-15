@@ -45,12 +45,6 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
       </option>
       {% endif %} {% endfor %}
       </select>
-      <span class="lp-rail-sep" aria-hidden="true"></span>
-      <label class="lp-rail-label lp-rail-label--plain" for="cutoffDay"><i class="bi bi-calendar-check"></i> Cut Off</label>
-      <input type="date" id="cutoffDay" class="lp-sel lp-sel--day" onchange="applyCutoff()" aria-label="Tanggal cut off" value="{{ cutoff if cutoff else '' }}" />
-      {% if cutoff %}
-      <button class="lp-btn" onclick="clearCutoff()" title="Hapus Cut Off"><i class="bi bi-x-circle"></i> Reset</button>
-      {% endif %}
     </div>
     <div class="lp-rail-group lp-rail-group--end">
       <span class="lp-rail-period" id="weekLabel">{% for r in report_rows %}{% if r.key == current_week %}{{ r.label_long }}{% endif %}{% endfor %}</span>
@@ -371,11 +365,6 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
       if (lbl) { const wk = REKANAN_DATA.find(w => w.key === key); lbl.textContent = wk ? (wk.label_long || wk.label || key) : key; }
       afterVisibleChange();
   }
-  // ─── cut off (YYYY-MM-DD built from selected month + day) ───
-  function currentCutoffDate() {
-      const daySel = document.getElementById('cutoffDay');
-      return daySel ? daySel.value : '';
-  }
   function exportExcel(btn) {
       btn = btn || document.getElementById('exportBtn');
       if (btn) { btn.disabled = true; setTimeout(() => btn.disabled = false, 1500); }
@@ -383,25 +372,8 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
       const key = activeBtn ? activeBtn.getAttribute('data-key') : '';
       const params = new URLSearchParams();
       if (key) params.set('week', key);
-      const cutoff = currentCutoffDate();
-      if (cutoff) params.set('cutoff', cutoff);
       const qs = params.toString();
       window.location.href = '/laporan-mingguan/export' + (qs ? '?' + qs : '');
-  }
-  function applyCutoff() {
-      const cutoff = currentCutoffDate();
-      const params = new URLSearchParams();
-      const activeBtn = document.querySelector('#weekBar .lp-rail-btn.active');
-      const key = activeBtn ? activeBtn.getAttribute('data-key') : '';
-      if (cutoff) params.set('cutoff', cutoff);
-      if (key) params.set('week', key);
-      const qs = params.toString();
-      window.location.href = '/laporan-mingguan' + (qs ? '?' + qs : '');
-  }
-  function clearCutoff() {
-      const daySel = document.getElementById('cutoffDay');
-      if (daySel) daySel.value = '';
-      applyCutoff();
   }
   function bindMingguanEvents(){
     const mSel = document.getElementById('monthSel');
@@ -412,7 +384,7 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
       bindMingguanEvents();
       const btns = document.querySelectorAll('#weekBar .lp-rail-btn');
       if (!btns.length) return;
-      // Prefer the week the server marked active (deep link / cutoff reload);
+      // Prefer the week the server marked active (deep link);
       // otherwise default to the latest week.
       const activeBtn = document.querySelector('#weekBar .lp-rail-btn.active');
       const anchor = activeBtn || btns[btns.length - 1];
@@ -518,7 +490,7 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
   function _isoWeek(d){ const t=new Date(d.getFullYear(),d.getMonth(),d.getDate()); let w=t.getDay(); w=w===0?7:w; t.setDate(t.getDate()+4-w); const y0=new Date(t.getFullYear(),0,1); return [t.getFullYear(), Math.ceil(((t-y0)/86400000+1)/7)]; }
   function weekKeyOf(s){ if(!s||s==='-'||String(s).length<10) return null; const p=String(s).slice(0,10).split('-'); const y=+p[0],m=+p[1],dd=+p[2]; if(!y||!m||!dd) return null; const dt=new Date(y,m-1,dd); if(isNaN(dt)) return null; const wd=dt.getDay(); const sun=new Date(dt); sun.setDate(dt.getDate()-wd); const tue=new Date(sun); tue.setDate(sun.getDate()+2); const r=_isoWeek(tue); return r[0]+'-W'+String(r[1]).padStart(2,'0'); }
 
-  // Expose fungsi ke window (dipakai attribut inline onclick).
+  // Expose fungsi ke window (dipakai attribut inline onclick/onchange).
   window.exportExcel = exportExcel;
   window.selectMonth = selectMonth;
   window.showDetail = showDetail;

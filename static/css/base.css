@@ -123,17 +123,47 @@
         bottom: 0;
         z-index: 100;
         transition: width 0.25s ease;
-        /* Tema selaras panel brand halaman login (navy -> teal):
-           gradient 3-stop + glow teal halus, tanpa grid agar menu tetap tenang. */
+        /* Tema disamakan persis dengan panel brand halaman login (.auth-hero):
+           gradient 3-stop navy -> teal + glow teal + grid halus. */
         background:
-          radial-gradient(circle at 88% 8%, rgba(42, 151, 140, 0.22), transparent 46%),
           linear-gradient(160deg, #16324f 0%, #1b4a63 52%, #14524c 100%);
-        background-attachment: fixed;
         color: #fff;
         display: flex;
         flex-direction: column;
         border-right: 1px solid rgba(255, 255, 255, 0.06);
         overflow: hidden;
+      }
+      /* Glow + grid halus — identik dengan .auth-hero::before / ::after di
+         halaman login. Grid ditaruh di pseudo-element (z-index di bawah konten)
+         karena sidebar berisi elemen anak langsung dan overflow:hidden. */
+      .sidebar::before {
+        /* glow — sama dengan .auth-hero::before (tanpa mask) */
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        background-image:
+          radial-gradient(circle at 82% 12%, rgba(42, 151, 140, .34), transparent 42%),
+          radial-gradient(circle at 8% 92%, rgba(255, 255, 255, .08), transparent 46%);
+      }
+      .sidebar::after {
+        /* garis kisi halus — sama dengan .auth-hero::after (ter-mask) */
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, .045) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, .045) 1px, transparent 1px);
+        background-size: 46px 46px;
+        -webkit-mask-image: radial-gradient(ellipse at 30% 40%, #000 12%, transparent 72%);
+        mask-image: radial-gradient(ellipse at 30% 40%, #000 12%, transparent 72%);
+      }
+      .sidebar > * {
+        position: relative;
+        z-index: 1;
       }
       .sidebar.collapsed {
         width: var(--sidebar-collapsed-w);
@@ -1422,31 +1452,8 @@
         .app-layout {
           min-height: 100dvh;
           height: 100dvh;
-        overflow: hidden;
-      }
-      /* Grid halus selaras panel brand halaman login. Di sidebar grid ditaruh
-         di pseudo-element ::before (z-index di bawah konten) karena sidebar
-         berisi elemen anak langsung dan overflow:hidden. */
-      .sidebar::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        right: 0;
-        bottom: 0;
-        left: 0;
-        z-index: 0;
-        pointer-events: none;
-        background-image:
-          linear-gradient(rgba(255, 255, 255, 0.14) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(255, 255, 255, 0.14) 1px, transparent 1px);
-        background-size: 46px 46px;
-        -webkit-mask-image: radial-gradient(ellipse at 30% 26%, #000 24%, transparent 92%);
-        mask-image: radial-gradient(ellipse at 30% 26%, #000 24%, transparent 92%);
-      }
-      .sidebar > * {
-        position: relative;
-        z-index: 1;
-      }
+          overflow: hidden;
+        }
         .sidebar {
           width: min(300px, calc(100vw - 56px));
           transform: translateX(-100%);

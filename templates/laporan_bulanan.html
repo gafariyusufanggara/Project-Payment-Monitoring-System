@@ -30,11 +30,8 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
         {% endfor %}
       </select>
       <span class="lp-rail-sep" aria-hidden="true"></span>
-      <label class="lp-rail-label lp-rail-label--plain" for="cutoffDay"><i class="bi bi-calendar-check"></i> Cut Off</label>
-      <input type="date" id="cutoffDay" class="lp-sel lp-sel--day" onchange="applyCutoff()" aria-label="Tanggal cut off" value="{{ cutoff if cutoff else '' }}" />
-      {% if cutoff %}
-      <button class="lp-btn" onclick="clearCutoff()" title="Hapus Cut Off"><i class="bi bi-x-circle"></i> Reset</button>
-      {% endif %}
+      <label class="lp-rail-label lp-rail-label--plain" for="cutoffDate"><i class="bi bi-calendar-check"></i> Cut Off</label>
+      <input type="date" id="cutoffDate" class="lp-sel lp-sel--date" onchange="applyCutoff()" aria-label="Tanggal cut off" value="{{ cutoff if cutoff else '' }}">
     </div>
     <div class="lp-rail-group lp-rail-group--end">
       <span class="lp-rail-period" id="cutoffMonthLabel">{% for r in report_rows %}{% if r.key == current_month %}{{ r.label }}{% endif %}{% endfor %}</span>
@@ -135,6 +132,54 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
       return sel ? sel.value : '';
   }
 
+  // Tahun-bulan periode aktif ('YYYY-MM'). Untuk halaman bulanan,
+  // #monthSel.value sudah berupa 'YYYY-MM'.
+  function activeYearMonth() {
+      const sel = monthSel();
+      return sel && sel.value ? sel.value.slice(0, 7) : '';
+  }
+
+  // Tanggal cut off 'YYYY-MM-DD' langsung dari native date picker.
+  // Mengembalikan '' bila belum dipilih (Tanpa Cut Off).
+  function currentCutoffDate() {
+      const inp = document.getElementById('cutoffDate');
+      return inp && inp.value ? inp.value : '';
+  }
+
+  // Batasi date picker hanya pada bulan periode aktif (mis. pilih Oktober ->
+  // hanya 1..31 Oktober yang bisa dipilih). Dipanggil tiap periode berubah.
+  function setCutoffBounds() {
+      const inp = document.getElementById('cutoffDate');
+      const ym = activeYearMonth();
+      if (!inp || !ym) return;
+      const parts = ym.split('-');
+      const year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10);
+      if (!year || !month) return;
+      const pad = n => String(n).padStart(2, '0');
+      inp.min = `${year}-${pad(month)}-01`;
+      inp.max = `${year}-${pad(month)}-${pad(new Date(year, month, 0).getDate())}`;
+      // Bila nilai lama di luar rentang, kosongkan.
+      if (inp.value && (inp.value < inp.min || inp.value > inp.max)) inp.value = inp.min;
+      inp.disabled = false;
+  }
+
+  // Tampilkan label "Periode · s/d tanggal" bila cut off aktif.
+  function updateCutoffLabel(monthKey) {
+      const lbl = document.getElementById('cutoffMonthLabel');
+      if (!lbl) return;
+      const base = monthLabel(monthKey || activeMonthKey());
+      const d = currentCutoffDate();
+      lbl.textContent = d ? (base + ' · s/d ' + fmtDate(d)) : base;
+  }
+
+  function fmtDate(iso) {
+      const p = String(iso).split('-');
+      if (p.length !== 3) return iso;
+      return p[2] + '/' + p[1] + '/' + p[0];
+  }
+
+
   // ─── export ───
   function exportExcel(btn) {
       btn = btn || document.getElementById('exportBtn');
@@ -142,7 +187,7 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
       btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Mengunduh...';
       btn.disabled = true;
       const key = activeMonthKey();
-      const day = document.getElementById('cutoffDay') ? document.getElementById('cutoffDay').value : '';
+      const day = currentCutoffDate();
       const params = new URLSearchParams();
       if (key) params.set('month', key);
       if (day) params.set('cutoff', day);
@@ -166,23 +211,32 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
       return key;
   }
 
-  function selectMonth(key) {
+  function selectMonth(key, skipCutoff) {
       setSelValue(monthSel(), key);
       document.querySelectorAll('.month-section').forEach(el => { el.hidden = (el.id !== 'section-' + key); });
-      const lbl = document.getElementById('cutoffMonthLabel');
-      if (lbl) lbl.textContent = monthLabel(key);
+      const inp = document.getElementById('cutoffDate');
+      // Ganti periode -> reset cut off (bootstrap tidak mereset, agar
+      // deep-link ?cutoff=... tetap terpasang saat halaman pertama dibuka).
+      if (inp && !skipCutoff) inp.value = '';
+      setCutoffBounds();
+      updateCutoffLabel(key);
+      // Cut off terikat pada bulan periode: bila aktif, muat ulang agar
+      // tanggal cut off ikut pindah ke bulan periode yang baru.
+      if (!skipCutoff) {
+          const d = document.getElementById('cutoffDate');
+          if (d && d.value) applyCutoff();
+      }
   }
 
   // ─── cutoff date (fetch-based, no page refresh) ───
   function applyCutoff() {
-      const dayControl = document.getElementById('cutoffDay');
       const monthKey = activeMonthKey();
       const params = new URLSearchParams();
       const reportBody = document.getElementById('reportBody');
       const liveError = document.getElementById('cutoffError');
       if (liveError) liveError.remove();
       reportBody.setAttribute('aria-busy', 'true');
-      const day = dayControl.value;
+      const day = currentCutoffDate();
       params.set('partial', '1');
       if (day) {
           params.set('cutoff', day);
@@ -220,7 +274,8 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
   }
 
   function clearCutoff() {
-      document.getElementById('cutoffDay').value = '';
+      const inp = document.getElementById('cutoffDate');
+      if (inp) inp.value = '';
       applyCutoff();
   }
 
@@ -228,8 +283,8 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
       if (!key) return;
       setSelValue(monthSel(), key);
       document.querySelectorAll('.month-section').forEach(el => { el.hidden = (el.id !== 'section-' + key); });
-      const lbl = document.getElementById('cutoffMonthLabel');
-      if (lbl) lbl.textContent = monthLabel(key);
+      setCutoffBounds();
+      updateCutoffLabel(key);
   }
 
   // #monthSel kini di rail atas (tidak ikut partial), bind sekali saja.
@@ -238,7 +293,7 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
       if (!sel || sel.dataset.bound) return;
       sel.dataset.bound = '1';
       sel.addEventListener('change', function () { selectMonth(this.value); });
-      if (sel.value) selectMonth(sel.value);
+      if (sel.value) selectMonth(sel.value, true);
   }
 
   // ─── modal helpers ───

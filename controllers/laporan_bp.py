@@ -159,7 +159,13 @@ def laporan_ppn():
     report_rows, data_count = build_ppn_data(project_id=get_read_filter(), cutoff_date=cutoff_date)
     now_key = date.today().strftime('%Y-%m')
     months = [r['key'] for r in report_rows]
-    current_month = now_key if now_key in months else (months[-1] if months else '')
+    # Deep link: ?month=YYYY-MM preselects that period (used by cutoff reload),
+    # matching Rekap DPP Bulanan. Falls back to the running month, then latest.
+    requested_month = request.args.get('month', '').strip()
+    if requested_month and requested_month in months:
+        current_month = requested_month
+    else:
+        current_month = now_key if now_key in months else (months[-1] if months else '')
     return render_template('laporan_ppn.html',
                            report_rows=report_rows,
                            data_count=data_count,
