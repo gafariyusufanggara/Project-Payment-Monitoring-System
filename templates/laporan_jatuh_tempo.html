@@ -176,7 +176,6 @@ if s.rekanan not in all_rekanan %} {% set _ = all_rekanan.append(s.rekanan) %}
           <div class="lp-mtable-controls">
             <label for="invoiceSearch">Cari invoice, PO, atau deskripsi</label>
             <input type="search" id="invoiceSearch" class="form-control form-control-sm" autocomplete="off" placeholder="Ketik untuk menyaring detail…" aria-controls="modalInvoices">
-            <span id="invoiceCount" role="status" aria-live="polite"></span>
           </div>
           <section class="lp-current-totals" aria-label="Ringkasan periode dipilih">
             <div><span>Hutang DPP saat ini</span><strong id="currentInvoiceTotal">Rp 0</strong></div>
@@ -271,7 +270,7 @@ function showDetail(monthKey, rekanan, rowEl) {
   const invoices = rec ? rec.invoices : [];
   const monthLabel = monthData ? monthData.label : '';
   document.getElementById('modalLabel').innerHTML =
-    '<i class="bi bi-receipt"></i> ' + esc(rekanan) + ' — Jatuh Tempo ' + monthLabel + ' <span class="mm">' + invoices.length + ' invoice</span>';
+    '<i class="bi bi-receipt"></i> ' + esc(rekanan) + ' <span class="mm mm-cnt" role="status" aria-live="polite">' + invoices.length + ' invoice</span> <span class="mm">Periode ' + esc(monthLabel) + '</span>';
 
   const search = document.getElementById('invoiceSearch');
   search.value = '';
@@ -296,7 +295,7 @@ function showDetail(monthKey, rekanan, rowEl) {
       const paymentIsCurrent = payYM === monthKey;
       if (invoiceIsCurrent) currentInvoiceTotal += Number(inv.harga_excl ?? 0) || 0;
       if (paymentIsCurrent) currentPaymentTotal += Number(inv.bayar_dpp ?? 0) || 0;
-      return `<tr data-search="${esc([inv.invoice, inv.po, inv.deskripsi].join(' ').toLowerCase())}">
+      return `<tr class="${invoiceIsCurrent ? 'hl-row-inv' : (paymentIsCurrent ? 'hl-row-pay' : '')}" data-search="${esc([inv.invoice, inv.po, inv.deskripsi].join(' ').toLowerCase())}">
         <td class="l ${invoiceIsCurrent ? 'hl-date-invoice' : ''}">${esc(inv.tgl_berkas)}</td>
         ${CellExpand.td(inv.invoice, 'l iv', 40)}
         ${CellExpand.td(inv.po, 'l', 25)}
@@ -331,7 +330,8 @@ function showDetail(monthKey, rekanan, rowEl) {
       row.hidden = query && !row.dataset.search.includes(query);
       if (!row.hidden) visible++;
     });
-    document.getElementById('invoiceCount').textContent = query ? (visible + ' dari ' + invoices.length + ' invoice') : (invoices.length + ' invoice');
+    const mmEl = document.querySelector('#modalLabel .mm-cnt');
+    if (mmEl) mmEl.textContent = query ? (visible + ' dari ' + invoices.length + ' invoice') : (invoices.length + ' invoice');
   };
   search.oninput = filterInvoices;
   filterInvoices();

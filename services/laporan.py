@@ -60,7 +60,7 @@ def _build_cum(rekan_keyfn, filter_fn=None, project_id=None, cutoff_date=None):
     Returns: (rekan_cum dict, all_periods sorted list, sorted_rekan list, data)
     """
     data = db.read_data(project_id=project_id)
-    from constants import is_excluded_row  # exclusion rules (Pengaturan)
+    from constants import is_excluded_row  # exclusion rules (Exclude Invoice)
     data = [r for r in data if not is_excluded_row(r)]
     if filter_fn:
         data = [r for r in data if filter_fn(r)]
@@ -1139,7 +1139,7 @@ def build_jatuh_tempo_data(project_id=None):
     month_names = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
                    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
     data = db.read_data(project_id=project_id)
-    from constants import is_excluded_row  # exclusion rules (Pengaturan)
+    from constants import is_excluded_row  # exclusion rules (Exclude Invoice)
     data = [r for r in data if not is_excluded_row(r)]
     today = date.today()
     valid_count = 0

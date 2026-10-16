@@ -120,8 +120,8 @@
             <i class="bi bi-table"></i> <span>Daftar Invoice</span>
           </button>
           {% set _exc_n = exclude_cat_count|default(0) + exclude_rek_count|default(0) %}
-          <button class="nav-item" onclick="navigateTo('/pengaturan')" id="navExclude" data-label="Exclude Rekanan">
-            <i class="bi bi-slash-circle"></i> <span>Exclude Rekanan</span>
+          <button class="nav-item" onclick="navigateTo('/exclude-invoice')" id="navExclude" data-label="Exclude Invoice">
+            <i class="bi bi-slash-circle"></i> <span>Exclude Invoice</span>
             <span
               class="nav-badge nav-badge-neutral"
               id="sidebarExcBadge"
@@ -239,7 +239,7 @@
             </div>
             {% endblock %}
             <div class="topbar-badges">
-              <a class="topbar-badge" id="topbarExcludeBadge" style="background:#fdf6d8;color:#8a6d00;text-decoration:none;{% if (exclude_cat_count|default(0) + exclude_rek_count|default(0)) == 0 or request.path == '/pengaturan' %}display:none{% endif %}" href="/pengaturan" onclick="navigateTo('/pengaturan');return false;" title="{{ exclude_tip }} - tidak ikut dihitung di Dashboard & Rekap. Klik untuk ubah."><i class="bi bi-eye-slash"></i> Exclude: <span id="topbarExcludeDetail">{% if exclude_cat_count %}{{ exclude_cat_count }} kat{% endif %}{% if exclude_cat_count and exclude_rek_count %} • {% endif %}{% if exclude_rek_count %}{{ exclude_rek_count }} rekanan{% endif %} ({{ exclude_row_count }} baris)</span></a>
+              <a class="topbar-badge" id="topbarExcludeBadge" style="background:#fdf6d8;color:#8a6d00;text-decoration:none;{% if (exclude_cat_count|default(0) + exclude_rek_count|default(0)) == 0 or request.path == '/exclude-invoice' %}display:none{% endif %}" href="/exclude-invoice" onclick="navigateTo('/exclude-invoice');return false;" title="{{ exclude_tip }} - tidak ikut dihitung di Dashboard & Rekap. Klik untuk ubah."><i class="bi bi-eye-slash"></i> Exclude: <span id="topbarExcludeDetail">{% if exclude_cat_count %}{{ exclude_cat_count }} kat{% endif %}{% if exclude_cat_count and exclude_rek_count %} • {% endif %}{% if exclude_rek_count %}{{ exclude_rek_count }} rekanan{% endif %} ({{ exclude_row_count }} baris)</span></a>
               {% block topbar_badges %}{% endblock %}
             </div>
             <span class="topbar-divider" aria-hidden="true"></span>
@@ -329,17 +329,13 @@
       #editModal .modal-dialog { max-width: 1020px; }
       #editModal .modal-content { border: none; border-radius: 16px; overflow: hidden; max-height: calc(100vh - 3.5rem); box-shadow: 0 25px 60px rgba(0,0,0,.18); background: #fff; }
       #editModal form { display: flex; flex-direction: column; min-height: 0; flex: 1 1 auto; max-height: inherit; overflow: hidden; }
-      #editModal .modal-header { background: #16324f; color: #fff; border: none; padding: 16px 24px; flex: none; }
-      #editModal .modal-header .modal-title { font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
-      #editModal .modal-header .modal-title i { color: #5fd76e; }
-      #editModal .modal-header .im-sub { display: block; font-size: .7rem; font-weight: 400; color: rgba(255,255,255,.6); }
-      #editModal .modal-header .btn-close { filter: invert(1); opacity: .7; }
       #editModal .modal-body { padding: 18px 22px 28px; background: #f7f8f9; overflow-y: auto; flex: 1 1 auto; min-height: 0; }
       #editModal .modal-footer { background: #fff; border-top: 1px solid #e3e5e8; padding: 12px 22px; display: flex; align-items: center; gap: 8px; flex: none; }
       #editModal .modal-footer .im-note { font-size: .7rem; color: #667080; margin-right: auto; }
       #editModal .form-control, #editModal .form-select { font-size: .85rem; border-radius: 8px; height: 34px; }
       #editModal .form-control:focus, #editModal .form-select:focus { border-color: #16324f; box-shadow: 0 0 0 3px rgba(0, 86, 145,.12); }
       #editModal .form-control:focus-visible, #editModal .form-select:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 86, 145,.18); }
+      #editModal input[readonly] { background: #f7f8f9; color: #4d5766; }
       #editModal .im-card { border: 1px solid #e3e5e8; border-radius: 12px; overflow: hidden; margin-bottom: 12px; background: #fff; }
       #editModal .im-card:last-child { margin-bottom: 0; }
       #editModal .im-card__head { display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: #f7f8f9; border-bottom: 1px solid #e3e5e8; }
@@ -351,7 +347,7 @@
       #editModal .im-grid > div { min-width: 0; }
       #editModal .c2 { grid-column: span 2; } #editModal .c3 { grid-column: span 3; } #editModal .c4 { grid-column: span 4; }
       #editModal .c5 { grid-column: span 5; } #editModal .c6 { grid-column: span 6; } #editModal .c8 { grid-column: span 8; } #editModal .c12 { grid-column: span 12; }
-      #editModal .im-label { display: block; font-size: .7rem; font-weight: 700; color: #667080; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      #editModal .im-label { display: block; font-size: .7rem; font-weight: 700; color: #667080; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 4px; white-space: normal; overflow-wrap: anywhere; line-height: 1.3; }
       #editModal .im-mini { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: #4d5766; margin: 12px 0 8px; display: flex; align-items: center; gap: 8px; }
       #editModal .im-mini:first-child { margin-top: 0; }
       #editModal .im-mini::after { content: ""; flex: 1; height: 1px; background: #eef0f2; }
@@ -359,16 +355,35 @@
       #editModal .im-total .lbl { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: #16324f; }
       #editModal .im-total input { max-width: 260px; margin-left: auto; font-weight: 700; background: #fff; }
       @media (max-width: 768px) { #editModal .c2, #editModal .c3, #editModal .c4, #editModal .c5 { grid-column: span 6; } #editModal .c6, #editModal .c8 { grid-column: span 12; } }
-      @media (max-width: 480px) { #editModal .c2, #editModal .c3, #editModal .c4, #editModal .c5 { grid-column: span 12; } #editModal .modal-body { padding: 14px; } }
-      @media (max-width: 480px) { #editModal .modal-body { padding: 14px; } }
+      @media (max-width: 480px) {
+        #editModal .c2, #editModal .c3, #editModal .c4, #editModal .c5 { grid-column: span 12; }
+        #editModal .modal-body { padding: 14px; }
+        #editModal .modal-footer { flex-wrap: wrap; }
+        #editModal .modal-footer .im-note { flex-basis: 100%; margin-right: 0; }
+        #editModal .modal-footer .vm-btn { flex: 1 1 100%; justify-content: center; }
+        #editModal .im-total { flex-direction: column; align-items: stretch; gap: 8px; }
+        #editModal .im-total input { max-width: none; margin-left: 0; }
+      }
       @media (prefers-reduced-motion: reduce) { #editModal * { transition: none !important; } }
     </style>
     <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
       <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="editModalLabel"><i class="bi bi-pencil-square"></i><span>Edit Data<span class="im-sub">Perubahan tersimpan sebagai audit — DB utama tak berubah</span></span></h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+          <div class="vm-header" id="editModalLabel">
+            <div class="vm-header-top">
+              <div style="min-width:0">
+                <div class="vm-label">Levelansir / Rekanan</div>
+                <div class="vm-rekanan" id="edRekanan"></div>
+                <div class="vm-invoice-ref">
+                  <i class="bi bi-receipt"></i> <span id="edInvoice"></span>
+                </div>
+                <div class="vm-header-meta" id="edHeaderMeta"></div>
+              </div>
+              <div style="display:flex;align-items:flex-start;gap:10px;flex:none">
+                <div class="vm-header-badges" id="edBadges"></div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup" style="filter:invert(1);opacity:.7"></button>
+              </div>
+            </div>
           </div>
           <form method="POST" id="editForm">
             <div class="modal-body">
@@ -376,9 +391,9 @@
             </div>
             <div class="modal-footer">
               <span class="im-note">Total &amp; sisa dihitung ulang otomatis saat disimpan.</span>
-              <button type="button" class="ds-btn" data-bs-dismiss="modal">Batal</button>
-              <button type="submit" class="ds-btn ds-btn--primary">
-                <i class="bi bi-save me-1"></i>Catat Audit
+              <button type="button" class="vm-btn vm-btn-close" data-bs-dismiss="modal">Batal</button>
+              <button type="submit" class="vm-btn vm-btn-audit">
+                <i class="bi bi-save"></i>Catat Audit
               </button>
             </div>
           </form>
@@ -613,7 +628,8 @@
 
           function isCollapsed() {
               return sidebar.classList.contains('collapsed')
-                  || document.documentElement.classList.contains('sb-collapsed');
+                  || document.documentElement.classList.contains('sb-collapsed')
+                  || (window.matchMedia && window.matchMedia('(min-width: 769px) and (max-width: 1024px)').matches);
           }
           function show(el) {
               if (!isCollapsed()) return;
@@ -676,7 +692,7 @@
               '/data-hutang', '/status-dokumen', '/levelansir-retensi', '/invoice-cicilan',
           '/kontrak/', '/kontrak/import', '/project/', '/verifikasi', '/audit', '/import',
           '/laporan-bulanan', '/laporan-mingguan', '/laporan-jatuh-tempo',
-          '/laporan-ppn', '/laporan-ppn-mingguan', '/pengaturan',
+              '/laporan-ppn', '/laporan-ppn-mingguan', '/exclude-invoice',
       ];
       function isHtmxReady(url) {
           const path = (url || '').split('?')[0];
@@ -755,7 +771,7 @@
               activeText = 'Verifikasi Data';
           } else if (path === '/audit') {
               activeText = 'Catatan Audit';
-          } else if (path === '/pengaturan') {
+          } else if (path === '/exclude-invoice') {
               activeText = 'Exclude';
           }
           if (activeText) {
@@ -793,11 +809,38 @@
 
       // ═══ Shared VIEW (detail) modal (used by Data Invoice & Verifikasi pages) ═══
       const money = v => Math.round(Number(v || 0)).toLocaleString('id-ID');
+      const badge = s => s === 'Lunas' ? 'vm-badge-lunas' : s === 'Belum Lunas' ? 'vm-badge-belum' : 'vm-badge-na';
+      const FIELD_LABELS = {
+          'TGL TERIMA': 'TGL TERIMA BERKAS LENGKAP',
+          'TGL INV': 'TGL INVOICE',
+          'JTH TEMPO': 'TGL JATUH TEMPO',
+          'TGL FAKTUR PAJAK': 'TGL FAKTUR PAJAK',
+          'NO INVOICE INTERNAL': 'NO INVOICE CICILAN',
+          'HARGA (EXLD)': 'Harga (DPP)',
+          'project_id': 'PROYEK',
+      };
+      const labelOf = k => FIELD_LABELS[k] || k;
       const auditedRows = {{ (audited_rows|default([]))|tojson }};
       let _viewRowIdx = null;
 
       function viewRow(rowIdx) {
           _viewRowIdx = rowIdx;
+
+          // Tampilkan modal + state loading SEGERA (sebelum fetch) agar klik
+          // baris memberi umpan balik; fetch detail bisa terlambat.
+          const dlg = document.querySelector('#viewModal .modal-dialog');
+          dlg.classList.remove('modal-dialog-wide');
+          document.getElementById('vmRekanan').textContent = 'Memuat…';
+          document.getElementById('vmInvoice').textContent = '';
+          document.getElementById('vmBadges').innerHTML = '';
+          document.getElementById('vmHeaderMeta').innerHTML = '';
+          document.getElementById('vmFinbar').innerHTML = '';
+          document.getElementById('vmBody').innerHTML =
+              '<div class="vm-loading"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Memuat…</span></div><div class="vm-loading-text">Memuat detail…</div></div>';
+          const _editBtn = document.getElementById('viewEditBtn');
+          if (_editBtn) _editBtn.disabled = true;
+          bootstrap.Modal.getOrCreateInstance(document.getElementById('viewModal')).show();
+
           fetch('/edit/' + rowIdx).then(r => r.json()).then(data => {
               const rekanan = data['NAMA LEVELANSIR / REKANAN'] || '-';
               const invoice = data['NO INVOICE'] || '-';
@@ -808,8 +851,6 @@
               const bayarPPN = parseFloat(data['PEMBAYARAN PPN']) || 0;
               const sisaDPP = parseFloat(data['SISA HUTANG DPP']) || 0;
               const sisaPPN = parseFloat(data['SISA HUTANG PPN']) || 0;
-
-              const badge = s => s === 'Lunas' ? 'vm-badge-lunas' : s === 'Belum Lunas' ? 'vm-badge-belum' : 'vm-badge-na';
 
               // ── Header ──
               document.getElementById('vmRekanan').textContent = rekanan;
@@ -848,15 +889,6 @@
               const highlightFields = new Set(['HARGA (EXLD)', 'POT. RETENSI', 'POT. PPH', 'PPN', 'SISA HUTANG DPP', 'SISA HUTANG PPN']);
 
               const val = f => data[f] != null && data[f] !== '' ? data[f] : '-';
-              const fieldLabel = {
-                  'TGL TERIMA': 'TGL TERIMA BERKAS LENGKAP',
-                  'TGL INV': 'TGL INVOICE',
-                  'JTH TEMPO': 'TGL JATUH TEMPO',
-                  'TGL FAKTUR PAJAK': 'TGL FAKTUR PAJAK',
-                  'NO INVOICE INTERNAL': 'NO INVOICE CICILAN',
-                  'HARGA (EXLD)': 'Harga (DPP)',
-              };
-              const labelOf = k => fieldLabel[k] || k;
 
               const used = new Set();
 
@@ -908,8 +940,7 @@
               document.getElementById('vmBody').innerHTML = '<div class="vm-body-left">' + bodyHtml + '</div>';
 
               // ── Catatan Audit right column ──
-              const dlg = document.querySelector('#viewModal .modal-dialog');
-              dlg.classList.remove('modal-dialog-wide');
+              // (dlg sudah dideklarasikan & di-reset di awal viewRow)
               if (auditedRows.includes(rowIdx)) {
                   dlg.classList.add('modal-dialog-wide');
                   fetch('/audit/row/' + rowIdx).then(r => r.json()).then(entries => {
@@ -933,19 +964,48 @@
               }
 
               // Wire audit button
-              document.getElementById('viewEditBtn').onclick = function() {
+              const editBtn = document.getElementById('viewEditBtn');
+              editBtn.onclick = function() {
                   bootstrap.Modal.getInstance(document.getElementById('viewModal')).hide();
                   editRow(_viewRowIdx);
               };
-              new bootstrap.Modal(document.getElementById('viewModal')).show();
-          }).catch(() => Toast.err('Gagal memuat data. Coba lagi.'));
+              editBtn.disabled = false;
+          }).catch(() => {
+              document.getElementById('vmBody').innerHTML =
+                  '<div class="vm-loading"><div class="vm-loading-text"><i class="bi bi-exclamation-triangle"></i> Gagal memuat data. Silakan tutup dan coba lagi.</div></div>';
+              Toast.err('Gagal memuat data. Coba lagi.');
+          });
       }
       window.viewRow = viewRow;
 
       function editRow(rowIdx) {
+          const mdl = bootstrap.Modal.getOrCreateInstance(document.getElementById('editModal'));
+          document.getElementById('edRekanan').textContent = 'Memuat…';
+          document.getElementById('edInvoice').textContent = '';
+          document.getElementById('edBadges').innerHTML = '';
+          document.getElementById('edHeaderMeta').innerHTML = '';
+          document.getElementById('editFields').innerHTML =
+              '<div class="vm-loading"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Memuat…</span></div><div class="vm-loading-text">Memuat data…</div></div>';
+          mdl.show();
+
           fetch('/edit/' + rowIdx).then(r => r.json()).then(data => {
               const val = f => data[f] != null ? String(data[f]) : '';
               const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+              document.getElementById('edRekanan').textContent = data['NAMA LEVELANSIR / REKANAN'] || '-';
+              document.getElementById('edInvoice').textContent = data['NO INVOICE'] || '-';
+              const stDPP = data['STATUS TERHADAP DPP'] || '-';
+              const stPPN = data['STATUS TERHADAP PPN'] || '-';
+              document.getElementById('edBadges').innerHTML =
+                  `<span class="vm-badge ${badge(stDPP)}">DPP: ${esc(stDPP)}</span>` +
+                  `<span class="vm-badge ${badge(stPPN)}">PPN: ${esc(stPPN)}</span>`;
+              const kategori = (data['KATEGORI'] || '').trim();
+              const deskripsi = (data['DESKRIPSI'] || '').trim();
+              let metaHtml = `<span class="vm-header-chip"><i class="bi bi-shield-check"></i> Audit Data</span>`;
+              if (kategori) metaHtml += `<span class="vm-header-chip"><i class="bi bi-tag"></i> ${esc(kategori)}</span>`;
+              if (deskripsi) metaHtml += `<span class="vm-header-desc">${esc(deskripsi)}</span>`;
+              document.getElementById('edHeaderMeta').innerHTML = metaHtml;
+
               // Field renderer — same im-grid/im-label look as modal input.
               const fld = (f, cls, opts) => {
                   opts = opts || {};
@@ -962,7 +1022,7 @@
                   } else if (f === 'project_id') {
                       input = `<select class="form-select form-select-sm" name="project_id"><option value="">— Tanpa Proyek —</option>${projectList.map(p=>`<option value="${esc(p[0])}" ${String(p[0])===val(f)?'selected':''}>${esc(p[1])}</option>`).join('')}</select>`;
                   } else if (['HARGA (EXLD)','TOTAL (INCLD)','NILAI YG DITERIMA VENDOR'].includes(f)) {
-                      input = `<input type="number" class="form-control form-control-sm" name="${f}" step="any" value="${v}" readonly tabindex="-1" style="background:#f7f8f9">`;
+                      input = `<input type="number" class="form-control form-control-sm" name="${f}" step="any" value="${v}" readonly tabindex="-1" title="Dihitung otomatis">`;
                   } else if (dateFields.includes(f)) {
                       input = `<input type="date" class="form-control form-control-sm" name="${f}" value="${v}">`;
                   } else if (f === 'TGL MASUK DIVISI') {
@@ -973,7 +1033,7 @@
                       input = `<input type="text" class="form-control form-control-sm" name="${f}" value="${v}">`;
                   }
                   const req = ['TGL TERIMA BERKAS','NAMA LEVELANSIR / REKANAN','KATEGORI','STATUS TERHADAP DPP'].includes(f) ? ' <span class="req" style="color:#912018">*</span>' : '';
-                  return `<div class="${cls}"><label class="im-label">${f}${req}</label>${input}</div>`;
+                  return `<div class="${cls}"><label class="im-label">${labelOf(f)}${req}</label>${input}</div>`;
               };
               const card = (num, title, sub, body) =>
                   `<div class="im-card"><div class="im-card__head"><span class="im-num">${num}</span><h6>${title}</h6><small>${sub}</small></div><div class="im-card__body">${body}</div></div>`;
@@ -1002,7 +1062,7 @@
                           fld('VOLUME PROGRESS','c2') + fld('HARGA SATUAN','c2') + fld('HARGA (EXLD)','c2') +
                           fld('POT. RETENSI','c2') + fld('POT. PPH','c2') + fld('PPN','c2')
                       ) +
-                      `<div class="im-total"><span class="lbl">Total (INCLD) — auto</span>${fld('TOTAL (INCLD)','c6').replace(/^<div class="c6">/, '<div style="max-width:260px;margin-left:auto;width:100%">')}</div>`
+                      `<div class="im-total"><span class="lbl">Total (INCLD) — auto</span><input type="number" class="form-control form-control-sm" name="TOTAL (INCLD)" step="any" value="${esc(val('TOTAL (INCLD)'))}" readonly tabindex="-1" title="Dihitung otomatis"></div>`
                   ) +
                   card('04','Pembayaran','DPP & PPN terpisah',
                       mini('Jalur DPP') + grid(
@@ -1015,7 +1075,7 @@
                           fld('NO BUKTI BAYAR PPN','c4') + fld('TGL BAYAR PPN','c4')
                       )
                   ) +
-                  card('05','Sisa & Tambahan','Otomatis + konteks proyek',
+                  card('05','Tambahan & Proyek','Konteks proyek & catatan',
                       grid(
                           fld('TGL MASUK DIVISI','c3') + fld('project_id','c3') + fld('KETERANGAN','c6')
                       )
@@ -1024,20 +1084,23 @@
               document.getElementById('editForm').action = '/edit/' + rowIdx;
               document.getElementById('editFields').querySelectorAll('input,select')
                   .forEach(el => el.addEventListener('input', recalcEdit));
-              new bootstrap.Modal(document.getElementById('editModal')).show();
-          }).catch(() => Toast.err('Gagal memuat data. Coba lagi.'));
+          }).catch(() => {
+              document.getElementById('editFields').innerHTML =
+                  '<div class="vm-loading"><div class="vm-loading-text"><i class="bi bi-exclamation-triangle"></i> Gagal memuat data. Silakan tutup dan coba lagi.</div></div>';
+              Toast.err('Gagal memuat data. Coba lagi.');
+          });
       }
 
       // ═══ Exclude badge sync (sidebar + topbar) ═══
       // Sidebar berada DI LUAR #mainContent, jadi HTMX tidak menyegarkannya.
-      // Halaman Pengaturan memanggil ini setiap kali exclusion berubah agar
+      // Halaman Exclude Invoice memanggil ini setiap kali exclusion berubah agar
       // badge (dan sembunyinya saat 0) langsung ikut ter-update.
       function syncExcludeBadges(n) {
         n = parseInt(n, 10) || 0;
         const sb = document.getElementById('sidebarExcBadge');
         if (sb) { sb.textContent = n; sb.hidden = n <= 0; }
         const tb = document.getElementById('topbarExcludeBadge');
-        if (tb && window.location.pathname !== '/pengaturan') {
+        if (tb && window.location.pathname !== '/exclude-invoice') {
           tb.style.display = n > 0 ? '' : 'none';
         }
       }

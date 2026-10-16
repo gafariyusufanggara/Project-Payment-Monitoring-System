@@ -158,8 +158,14 @@
       </div>
     </div>
 
+    <label class="te-toolbar-check" id="revisiToggleWrap" hidden>
+      <input type="checkbox" id="filterRevisi" />
+      <span>Sembunyikan Dokumen Revisi</span>
+    </label>
+
     <div class="table-scroll">
       <table class="table dt-table" id="dataTable" data-enhance
+        data-te-toolbar-after="#revisiToggleWrap"
         data-te-default-hidden="NO. INV CICILAN|TGL INVOICE|TGL TERIMA BERKAS|NO. SERI FAKTUR|STATUS DPP|STATUS PPN|TOTAL (INCLD)">
         <thead>
           <tr>
@@ -248,6 +254,7 @@
             data-sisa-dpp="{{ row['SISA HUTANG DPP']|default(0,true)|float }}"
             data-sisa-ppn="{{ row['SISA HUTANG PPN']|default(0,true)|float }}"
             data-row-idx="{{ row._row }}"
+            data-revisi="{{ '1' if (row['TGL TERIMA'] or '')|string|trim == '' else '0' }}"
           >
             <td class="col-sticky-left" data-type="num" data-v="{{ loop.index }}">
               <span class="row-num">{{ loop.index }}</span>
@@ -258,7 +265,7 @@
               >{% endif %}
               {% if row._row in excluded_rows %}<span
                 class="excl-flag"
-                title="Kategori/rekanan di-exclude dari perhitungan (Pengaturan)"
+                title="Kategori/rekanan di-exclude dari perhitungan (Exclude Invoice)"
                 ><i class="bi bi-eye-slash"></i></span
               >{% endif %}
               {% set _lv = verif_row_levels.get(row._row) if verif_row_levels else None %}
@@ -359,7 +366,8 @@
               <button
                 class="btn-action"
                 onclick="editRow({{ row._row }})"
-                title="Edit data"
+                title="Audit Data"
+                aria-label="Audit Data"
               >
                 <i class="bi bi-pencil"></i>
               </button>
@@ -367,6 +375,37 @@
           </tr>
           {% endfor %}
         </tbody>
+        <tfoot id="dtFoot">
+          <tr>
+            <td></td>
+            <td>
+              <span class="dt-foot-lbl">SUBTOTAL</span>
+            </td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td class="cell-money text-end dt-foot-val"></td>
+            <td class="cell-money text-end dt-foot-val"></td>
+            <td class="cell-money text-end dt-foot-val"></td>
+            {% if has_retensi %}
+            <td class="cell-money text-end dt-foot-val"></td>
+            {% endif %}
+            <td class="cell-money text-end dt-foot-val"></td>
+            <td class="cell-money text-end dt-foot-val"></td>
+            <td></td>
+            <td class="cell-money text-end dt-foot-val"></td>
+            <td></td>
+            <td class="cell-money text-end dt-foot-val"></td>
+            <td class="cell-money text-end dt-foot-val"></td>
+            <td></td>
+          </tr>
+        </tfoot>
       </table>
     </div>
   </div>

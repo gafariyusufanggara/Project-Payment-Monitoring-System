@@ -205,11 +205,11 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
               <td class="c-no">{{ loop.index }}</td>
               <td>
                 {{ s.rekanan }} {% if s.count > 0 %}
-                <span class="inv-badge inv-badge-h"
+                <span class="inv-badge inv-badge-h" title="{{ s.count }} invoice masuk periode ini" aria-label="{{ s.count }} invoice masuk periode ini"
                   >{{ s.count }}</span
                 >
                 {% endif %} {% if s.pay_count > 0 %}
-                <span class="inv-badge inv-badge-p"
+                <span class="inv-badge inv-badge-p" title="{{ s.pay_count }} pembayaran periode ini" aria-label="{{ s.pay_count }} pembayaran periode ini"
                   >{{ s.pay_count }}</span
                 >
                 {% endif %}
@@ -284,7 +284,6 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
           <div class="lp-mtable-controls">
             <label for="invoiceSearch">Cari invoice, PO, atau deskripsi</label>
             <input type="search" id="invoiceSearch" class="form-control form-control-sm" autocomplete="off" placeholder="Ketik untuk menyaring detail…" aria-controls="modalInvoices">
-            <span id="invoiceCount" role="status" aria-live="polite"></span>
           </div>
           <section class="lp-current-totals" aria-label="Ringkasan periode dipilih">
             <div><span>Invoice DPP saat ini</span><strong id="currentInvoiceTotal">Rp 0</strong></div>
@@ -412,7 +411,9 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
           }
       }
       allInvoices.sort((a, b) => (a.tgl_berkas < b.tgl_berkas ? -1 : a.tgl_berkas > b.tgl_berkas ? 1 : 0));
-      document.getElementById('modalLabel').innerHTML = '<i class="bi bi-receipt"></i> ' + esc(rekanan) + ' <span class="mm">Periode ' + esc(monthKey) + ' · ' + allInvoices.length + ' invoice</span>';
+      const _wk = REKANAN_DATA.find(w => w.key === monthKey);
+      const perLabel = _wk ? (_wk.label_long || _wk.label || monthKey) : monthKey;
+      document.getElementById('modalLabel').innerHTML = '<i class="bi bi-receipt"></i> ' + esc(rekanan) + ' <span class="mm mm-cnt" role="status" aria-live="polite">' + allInvoices.length + ' invoice</span> <span class="mm">Periode ' + esc(perLabel) + '</span>';
       const search = document.getElementById('invoiceSearch');
       search.value = '';
       const body = document.getElementById('modalInvoices');
@@ -435,7 +436,7 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
               const paymentIsCurrent = payWK === monthKey;
               if (invoiceIsCurrent) currentInvoiceTotal += Number(inv.harga_excl ?? 0) || 0;
               if (paymentIsCurrent) currentPaymentTotal += Number(inv.bayar_dpp ?? 0) || 0;
-              return '<tr data-search="' + esc([inv.invoice, inv.po, inv.deskripsi].join(' ').toLowerCase()) + '">' +
+              return '<tr class="' + (invoiceIsCurrent ? 'hl-row-inv' : (paymentIsCurrent ? 'hl-row-pay' : '')) + '" data-search="' + esc([inv.invoice, inv.po, inv.deskripsi].join(' ').toLowerCase()) + '">' +
                 '<td class="l ' + (invoiceIsCurrent ? 'hl-date-invoice' : '') + '">' + esc(inv.tgl_berkas) + '</td>' +
                 '<td class="l">' + esc(inv.tgl_inv) + '</td>' +
                 CellExpand.td(inv.invoice, 'l iv', 40) +
@@ -472,7 +473,8 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
               row.hidden = query && !row.dataset.search.includes(query);
               if (!row.hidden) visible++;
           });
-          document.getElementById('invoiceCount').textContent = query ? (visible + ' dari ' + allInvoices.length + ' invoice') : (allInvoices.length + ' invoice');
+          const mmEl = document.querySelector('#modalLabel .mm-cnt');
+          if (mmEl) mmEl.textContent = query ? (visible + ' dari ' + allInvoices.length + ' invoice') : (allInvoices.length + ' invoice');
       };
       search.oninput = filterInvoices;
       filterInvoices();

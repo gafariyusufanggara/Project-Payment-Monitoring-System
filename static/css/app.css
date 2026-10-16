@@ -942,7 +942,7 @@
 /* Di layar sempit: sembunyikan label teks, sisakan ikon (tetap terlihat).
    Badge cluster juga disembunyikan di breakpoint ini (base.css), jadi
    pemisahnya ikut disembunyikan agar tidak menggantung. */
-@media (max-width: 576px) {
+@media (max-width: 480px) {
   .topbar-logout .logout-label {
     display: none;
   }
@@ -961,13 +961,13 @@
    di atas 576px. Di bawah itu .modal-dialog fallback ke `margin` seragam, dan
    base.css (<=992px) menimpanya jadi `margin: 12px` — sehingga dialog modal-sm
    menempel ke sisi, bukan di tengah. Kembalikan auto-center + batasi lebar. */
-@media (max-width: 992px) {
+@media (max-width: 1024px) {
   #logoutModal .modal-dialog {
     margin-left: auto;
     margin-right: auto;
   }
 }
-@media (max-width: 576px) {
+@media (max-width: 480px) {
   #logoutModal .modal-dialog {
     margin: 12px auto;
     max-width: calc(100% - 24px);
@@ -979,4 +979,29 @@
   #logoutModal .lgo-btn {
     transition: none;
   }
+}
+
+/* ===== Responsive typography scale (tablet/mobile) =====
+   Catatan: KPI value butuh specificity setara "penetral gaya lama"
+   (.ds-kpi .ds-kpi__value.ds-kpi__value) agar override benar-benar menang. */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .ds-page-head { font-size: 1.15rem; }
+  .ds-section-title { font-size: 1rem; }
+  .ds-kpi .ds-kpi__value.ds-kpi__value,
+  .lp-kpi-cell .ds-kpi__value.ds-kpi__value,
+  .lp-sisa-card .ds-kpi__value.ds-kpi__value { font-size: 1.35rem; }
+}
+@media (max-width: 768px) {
+  :root { --ds-fs-xl: 1.15rem; }
+  .ds-page-head { font-size: 1.15rem; }
+  .ds-section-title { font-size: 0.95rem; }
+  .ds-kpi .ds-kpi__value.ds-kpi__value,
+  .lp-kpi-cell .ds-kpi__value.ds-kpi__value,
+  .lp-sisa-card .ds-kpi__value.ds-kpi__value { font-size: 1.2rem; }
+}
+@media (max-width: 480px) {
+  .ds-page-head { font-size: 1.1rem; }
+  .ds-kpi .ds-kpi__value.ds-kpi__value,
+  .lp-kpi-cell .ds-kpi__value.ds-kpi__value,
+  .lp-sisa-card .ds-kpi__value.ds-kpi__value { font-size: 1.1rem; }
 }

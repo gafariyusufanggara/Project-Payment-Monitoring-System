@@ -324,7 +324,7 @@ def get_levelansir_retensi(project_id=None):
 
 
 def count_excluded_rows(project_id=None):
-    """COUNT rows matching Pengaturan exclusion lists — single SQL COUNT.
+    """COUNT rows matching Exclude Invoice exclusion lists — single SQL COUNT.
 
     Same semantics as constants.is_excluded_row (case-insensitive trim match
     on KATEGORI or NAMA LEVELANSIR/REKANAN) and the same project scope rules

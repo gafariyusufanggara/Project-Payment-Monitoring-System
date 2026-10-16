@@ -147,8 +147,8 @@
               <td class="c-no">{{ loop.index }}</td>
               <td>
                 {{ s.rekanan }}
-                {% if s.count > 0 %}<span class="inv-badge inv-badge-h">{{ s.count }}</span>{% endif %}
-                {% if s.ppn_pay_count > 0 %}<span class="inv-badge inv-badge-p">{{ s.ppn_pay_count }}</span>{% endif %}
+                {% if s.count > 0 %}<span class="inv-badge inv-badge-h" title="{{ s.count }} invoice masuk periode ini" aria-label="{{ s.count }} invoice masuk periode ini">{{ s.count }}</span>{% endif %}
+                {% if s.ppn_pay_count > 0 %}<span class="inv-badge inv-badge-p" title="{{ s.ppn_pay_count }} pembayaran periode ini" aria-label="{{ s.ppn_pay_count }} pembayaran periode ini">{{ s.ppn_pay_count }}</span>{% endif %}
               </td>
               <td class="c-h">{{ s.lalu_ppn|money }}</td>
               <td class="c-h">{{ s.saat_ini_ppn|money }}</td>
@@ -204,7 +204,6 @@
           <div class="lp-mtable-controls">
             <label for="invoiceSearch">Cari invoice, PO, atau deskripsi</label>
             <input type="search" id="invoiceSearch" class="form-control form-control-sm" autocomplete="off" placeholder="Ketik untuk menyaring detail…" aria-controls="modalInvoices">
-            <span id="invoiceCount" role="status" aria-live="polite"></span>
           </div>
           <section class="lp-current-totals" aria-label="Ringkasan periode dipilih">
             <div><span>PPN saat ini</span><strong id="currentInvoiceTotal">Rp 0</strong></div>
@@ -272,7 +271,8 @@ function showDetail(monthKey,rekanan,rowEl){
   const allInvoices=[];
   for(const wk of REKANAN_DATA){ const rec=wk.rekanan_list.find(s=>s.rekanan===rekanan); if(rec&&rec.invoices) for(const inv of rec.invoices) allInvoices.push({...inv, bulan:wk.label, bulanKey:wk.key}); }
   allInvoices.sort((a,b)=>(a.tgl_berkas<b.tgl_berkas?-1:a.tgl_berkas>b.tgl_berkas?1:0));
-  document.getElementById('modalLabel').innerHTML='<i class="bi bi-receipt"></i> '+esc(rekanan)+' <span class="mm">'+allInvoices.length+' invoice</span>';
+  const _wk=REKANAN_DATA.find(w=>w.key===monthKey); const perLabel=_wk?(_wk.label_long||_wk.label||monthKey):monthKey;
+  document.getElementById('modalLabel').innerHTML='<i class="bi bi-receipt"></i> '+esc(rekanan)+' <span class="mm mm-cnt" role="status" aria-live="polite">'+allInvoices.length+' invoice</span> <span class="mm">Periode '+esc(perLabel)+'</span>';
   const search=document.getElementById('invoiceSearch'); search.value='';
   const body=document.getElementById('modalInvoices'); const tfoot=document.getElementById('modalTfoot');
   let currentInvoiceTotal=0, currentPaymentTotal=0;
@@ -286,13 +286,13 @@ function showDetail(monthKey,rekanan,rowEl){
       const invoiceIsCurrent=invWK===monthKey; const paymentIsCurrent=payWK===monthKey;
       if(invoiceIsCurrent) currentInvoiceTotal+=Number(inv.ppn??0)||0;
       if(paymentIsCurrent) currentPaymentTotal+=Number(inv.bayar_ppn??0)||0;
-      return '<tr data-search="'+esc([inv.invoice,inv.po,inv.deskripsi].join(' ').toLowerCase())+'"><td class="l '+(invoiceIsCurrent?'hl-date-invoice':'')+'">'+esc(inv.tgl_berkas)+'</td>'+CellExpand.td(inv.invoice,'l iv',40)+CellExpand.td(inv.po,'l',25)+'<td class="l">'+esc(inv.jth_tempo)+'</td>'+CellExpand.td(inv.deskripsi,'l',40)+'<td class="m-h">'+fmt(inv.harga_excl)+'</td><td class="m-h">'+fmt(inv.ppn)+'</td><td class="l '+(paymentIsCurrent?'hl-date-payment':'')+'">'+esc(inv.tgl_bayar_ppn)+'</td><td class="m-p">'+fmt(inv.bayar_ppn)+'</td><td class="m-s '+cls+'">'+fmt(sisa)+'</td></tr>';
+      return '<tr class="'+(invoiceIsCurrent?'hl-row-inv':(paymentIsCurrent?'hl-row-pay':''))+'" data-search="'+esc([inv.invoice,inv.po,inv.deskripsi].join(' ').toLowerCase())+'"><td class="l '+(invoiceIsCurrent?'hl-date-invoice':'')+'">'+esc(inv.tgl_berkas)+'</td>'+CellExpand.td(inv.invoice,'l iv',40)+CellExpand.td(inv.po,'l',25)+'<td class="l">'+esc(inv.jth_tempo)+'</td>'+CellExpand.td(inv.deskripsi,'l',40)+'<td class="m-h">'+fmt(inv.harga_excl)+'</td><td class="m-h">'+fmt(inv.ppn)+'</td><td class="l '+(paymentIsCurrent?'hl-date-payment':'')+'">'+esc(inv.tgl_bayar_ppn)+'</td><td class="m-p">'+fmt(inv.bayar_ppn)+'</td><td class="m-s '+cls+'">'+fmt(sisa)+'</td></tr>';
     }).join('');
     if(tfoot){ tfoot.hidden=false; document.getElementById('ftDpp').textContent=fmt(tDpp); document.getElementById('ftPpn').textContent=fmt(tPpn); document.getElementById('ftBayar').textContent=fmt(tB); const ftS=document.getElementById('ftSisa'); ftS.textContent=fmt(tS); ftS.className=tS>0?'t-s-pos':'t-s-zero'; }
   }
   document.getElementById('currentInvoiceTotal').textContent='Rp '+fmt(currentInvoiceTotal);
   document.getElementById('currentPaymentTotal').textContent='Rp '+fmt(currentPaymentTotal);
-  const filterInvoices=()=>{ const query=search.value.trim().toLocaleLowerCase('id-ID'); let visible=0; body.querySelectorAll('tr[data-search]').forEach(row=>{ row.hidden=query&&!row.dataset.search.includes(query); if(!row.hidden) visible++; }); document.getElementById('invoiceCount').textContent=query?(visible+' dari '+allInvoices.length+' invoice'):(allInvoices.length+' invoice'); };
+  const filterInvoices=()=>{ const query=search.value.trim().toLocaleLowerCase('id-ID'); let visible=0; body.querySelectorAll('tr[data-search]').forEach(row=>{ row.hidden=query&&!row.dataset.search.includes(query); if(!row.hidden) visible++; }); const mmEl=document.querySelector('#modalLabel .mm-cnt'); if(mmEl) mmEl.textContent=query?(visible+' dari '+allInvoices.length+' invoice'):(allInvoices.length+' invoice'); };
   search.oninput=filterInvoices; filterInvoices();
   const modalEl=document.getElementById('ppnModal'); const modal=bootstrap.Modal.getOrCreateInstance(modalEl); modal.show();
   modalEl.addEventListener('hidden.bs.modal', function _onHide(){ modalEl.removeEventListener('hidden.bs.modal', _onHide); if(_activeRow){ _activeRow.classList.remove('selected'); _activeRow=null; } });

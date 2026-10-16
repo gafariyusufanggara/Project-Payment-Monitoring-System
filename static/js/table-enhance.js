@@ -267,6 +267,18 @@
       });
     }
 
+    /* Host-provided controls (e.g. a page-specific filter checkbox) that belong
+       NEXT TO the column button: <table data-te-toolbar-after="#selector">.
+       The markup ships hidden in the template so it never flashes un-styled
+       before the enhancement mounts. */
+    var extraSel = table.getAttribute('data-te-toolbar-after');
+    if (extraSel && host) {
+      host.querySelectorAll(extraSel).forEach(function (node) {
+        node.hidden = false;
+        bar.appendChild(node);
+      });
+    }
+
     var info = el('div', 'te-info');
     if (_isLaporan) {
       info.classList.add('te-info--hdr');
@@ -355,6 +367,13 @@
         Array.prototype.forEach.call(body.rows, function (tr) {
           col.body.push(tr.cells[i] || null);
         });
+        // tfoot cells ride along so hiding a column (Kolom panel) hides its
+        // subtotal cell too — otherwise the footer row drifts out of alignment.
+        if (table.tFoot) {
+          Array.prototype.forEach.call(table.tFoot.rows, function (tr) {
+            col.body.push(tr.cells[i] || null);
+          });
+        }
         cellCache.push(col);
       }
       return cellCache;

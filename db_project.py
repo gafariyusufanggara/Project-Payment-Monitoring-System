@@ -240,7 +240,7 @@ def _project_rows(project_id):
     Same scope as the DPP/PPN laporan & main dashboard:
       * must have TGL TERIMA (tanggal berkas lengkap) — an invoice whose berkas
         is not complete yet is not a countable debt;
-      * must NOT be excluded by the Pengaturan exclusion rules.
+      * must NOT be excluded by the Exclude Invoice exclusion rules.
     Without these the project page totals disagreed with the reports.
     """
     import db as _db

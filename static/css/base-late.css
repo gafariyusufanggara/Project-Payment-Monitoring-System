@@ -177,6 +177,20 @@
         flex: 1 1 auto;
         min-height: 0;
       }
+      /* State loading modal detail (viewRow): spinner di tengah body. */
+      .vm-loading {
+        flex: 1 1 auto;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        padding: 48px 16px;
+      }
+      .vm-loading-text {
+        font-size: .85rem;
+        color: #667080;
+      }
       .vm-body-left {
         flex: 1;
         min-width: 0;
@@ -356,3 +370,20 @@
         box-shadow: 0 4px 15px rgba(0, 86, 145, 0.35);
         transform: translateY(-1px);
       }
+
+@media (max-width: 768px) {
+  .vm-header { padding: 12px 16px; }
+  .vm-rekanan { font-size: 1.05rem; }
+  .vm-finbar-val { font-size: 0.95rem; }
+}
+@media (max-width: 480px) {
+  #viewModal .modal-footer { flex-wrap: wrap; }
+  #viewModal .modal-footer .vm-note { flex-basis: 100%; margin-right: 0; }
+  #viewModal .modal-footer .vm-btn { flex: 1 1 100%; justify-content: center; }
+}
+@media (max-width: 480px) {
+  #viewModal .vm-header-top { flex-direction: column; align-items: stretch; gap: 10px; }
+  #viewModal .vm-header-badges { flex-wrap: wrap; }
+  #viewModal .vm-invoice-ref, #viewModal .vm-header-desc { overflow-wrap: anywhere; }
+  #viewModal .vm-finbar { grid-template-columns: 1fr; }
+}

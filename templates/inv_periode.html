@@ -64,9 +64,11 @@
      menjangkau tabel .rp-tbl. */
   .rp-tbl tbody td .inv-badge {
     font-family: "Inter", system-ui, sans-serif; font-size: .55rem; font-weight: 800;
-    padding: 1px 7px; border-radius: 5px; margin-left: 6px; vertical-align: middle;
+    padding: 1px 7px; margin-left: 6px; vertical-align: middle;
     display: inline-block;
   }
+.rp-tbl tbody td .inv-badge-h { border-radius: 999px; }
+.rp-tbl tbody td .inv-badge-p { border-radius: 999px; }
   /* Baris dapat diklik untuk membuka modal detail invoice (pola Dashboard). */
   .rp-row { cursor: pointer; }
   .rp-row:hover td { background: #eaf0f6 !important; }
@@ -92,8 +94,8 @@
   .rp-empty { text-align: center; padding: 56px 20px; color: #667080; }
   .rp-empty i { font-size: 2.4rem; color: #c9ccd1; }
   .rp-empty p { margin: 10px 0 0; font-size: .84rem; }
-  @media (max-width: 900px) { .rp-kpis { grid-template-columns: repeat(2, 1fr); } }
-  @media (max-width: 560px) { .rp-kpis { grid-template-columns: 1fr; } }
+  @media (max-width: 1024px) { .rp-kpis { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 480px) { .rp-kpis { grid-template-columns: 1fr; } }
 </style>
 
 <div class="rp-wrap animate-in">
@@ -154,6 +156,10 @@
         <i class="bi bi-file-earmark-bar-graph"></i>
         Ringkasan Levelansir
         <span class="tag">{{ visible|length }} levelansir</span>
+        <span class="inv-legend" style="margin-left:auto" aria-label="Keterangan badge">
+          <span><i class="swatch swatch-h"></i>Invoice masuk</span>
+          <span><i class="swatch swatch-p"></i>Pembayaran</span>
+        </span>
       </div>
       {% if plist %}
       <div class="rp-scroll">
@@ -182,7 +188,7 @@
                 onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showRekapDetail(this.dataset.rekanan)}">
               <td>{{ ns.no }}</td>
               <td class="vend">
-                {{ s.rekanan }}{% if s.count > 0 %}<span class="inv-badge inv-badge-h" title="{{ s.count }} invoice masuk periode ini">{{ s.count }}</span>{% endif %}{% if s.pay_count > 0 %}<span class="inv-badge inv-badge-p" title="{{ s.pay_count }} pembayaran periode ini">{{ s.pay_count }}</span>{% endif %}
+                {{ s.rekanan }}{% if s.count > 0 %}<span class="inv-badge inv-badge-h" title="{{ s.count }} invoice masuk periode ini" aria-label="{{ s.count }} invoice masuk periode ini">{{ s.count }}</span>{% endif %}{% if s.pay_count > 0 %}<span class="inv-badge inv-badge-p" title="{{ s.pay_count }} pembayaran periode ini" aria-label="{{ s.pay_count }} pembayaran periode ini">{{ s.pay_count }}</span>{% endif %}
               </td>
               <td class="num">{{ s.saat_ini_hutang|money }}</td>
               <td class="num">{{ s.saat_ini_pph|money }}</td>
@@ -232,7 +238,8 @@
         <h5 class="modal-title" id="rpVendorLabel">
           <i class="bi bi-receipt"></i>
           <span id="rpVendorName">Detail Invoice</span>
-          <span class="mm" id="rpVendorMeta"></span>
+          <span class="mm mm-cnt" id="rpVendorMeta" role="status" aria-live="polite"></span>
+          <span class="mm">Periode {{ period_label | e }}</span>
         </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
       </div>
@@ -241,11 +248,10 @@
           <div class="lp-mtable-controls">
             <label for="rpInvoiceSearch">Cari invoice, PO, atau deskripsi</label>
             <input type="search" id="rpInvoiceSearch" class="form-control form-control-sm" autocomplete="off" placeholder="Ketik untuk menyaring detail…" aria-controls="rpModalInvoices">
-            <span id="rpInvoiceCount" role="status" aria-live="polite"></span>
           </div>
-          <section class="lp-current-totals" aria-label="Ringkasan">
-            <div><span>Hutang DPP</span><strong id="rpTotalHutang">Rp 0</strong></div>
-            <div><span>Bayar DPP</span><strong id="rpTotalBayar">Rp 0</strong></div>
+          <section class="lp-current-totals" aria-label="Ringkasan periode dipilih">
+            <div><span>Invoice DPP saat ini</span><strong id="rpTotalHutang">Rp 0</strong></div>
+            <div><span>Bayar DPP saat ini</span><strong id="rpTotalBayar">Rp 0</strong></div>
           </section>
         </div>
         <div class="lp-scrollbox" tabindex="0" role="region" aria-label="Rincian invoice, dapat digulir horizontal dan vertikal">
@@ -300,24 +306,47 @@
   }
   function fmt(v) { return Math.round(Number(v || 0)).toLocaleString('id-ID'); }
 
+  const PERIOD_MODE = '{{ mode }}';
+  const PERIOD_KEY = '{{ period_key }}';
+  function _isoWeek(d) {
+    const t = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    let w = t.getDay(); w = w === 0 ? 7 : w;
+    t.setDate(t.getDate() + 4 - w);
+    const y0 = new Date(t.getFullYear(), 0, 1);
+    return [t.getFullYear(), Math.ceil(((t - y0) / 86400000 + 1) / 7)];
+  }
+  function weekKeyOf(s) {
+    if (!s || s === '-' || String(s).length < 10) return null;
+    const p = String(s).slice(0, 10).split('-');
+    const y = +p[0], m = +p[1], dd = +p[2];
+    if (!y || !m || !dd) return null;
+    const dt = new Date(y, m - 1, dd);
+    if (isNaN(dt)) return null;
+    const wd = dt.getDay();
+    const sun = new Date(dt); sun.setDate(dt.getDate() - wd);
+    const tue = new Date(sun); tue.setDate(sun.getDate() + 2);
+    const r = _isoWeek(tue);
+    return r[0] + '-W' + String(r[1]).padStart(2, '0');
+  }
+
   function renderInvoices(rekanan, invoices) {
     const body = document.getElementById('rpModalInvoices');
     const tfoot = document.getElementById('rpModalTfoot');
     const search = document.getElementById('rpInvoiceSearch');
     if (!body) return;
     search.value = '';
-    document.getElementById('rpVendorMeta').textContent = '· ' + invoices.length + ' invoice';
+    document.getElementById('rpVendorMeta').textContent = invoices.length + ' invoice';
 
     if (!invoices.length) {
       body.innerHTML = '<tr class="em"><td colspan="13"><i class="bi bi-inbox"></i>Tidak ada data untuk ' + esc(rekanan) + '</td></tr>';
       if (tfoot) tfoot.hidden = true;
       document.getElementById('rpTotalHutang').textContent = 'Rp 0';
       document.getElementById('rpTotalBayar').textContent = 'Rp 0';
-      document.getElementById('rpInvoiceCount').textContent = '0 invoice';
       return;
     }
 
     let tH = 0, tPpn = 0, tPph = 0, tRet = 0, tB = 0, tS = 0;
+    let pH = 0, pB = 0;
     const cx = (window.CellExpand && CellExpand.td)
       ? CellExpand.td
       : ((t, c) => '<td class="' + c + '">' + esc(t) + '</td>');
@@ -330,8 +359,18 @@
       tB += Number(inv.bayar_dpp) || 0;
       tS += sisa;
       const sisaClass = sisa > 0 ? 'sn' : 'sz';
-      return '<tr data-search="' + esc([inv.invoice, inv.po, inv.deskripsi].join(' ').toLowerCase()) + '">' +
-        '<td class="l">' + esc(inv.tgl_berkas) + '</td>' +
+      const inPeriod = (v) => PERIOD_MODE === 'bulan'
+        ? String(v || '').slice(0, 7) === PERIOD_KEY
+        : weekKeyOf(v) === PERIOD_KEY;
+      const invIn = inPeriod(inv.tgl_berkas);
+      const payIn = inPeriod(inv.tgl_bayar_dpp);
+      const invCls = invIn ? ' hl-date-invoice' : '';
+      const payCls = payIn ? ' hl-date-payment' : '';
+      if (invIn) pH += Number(inv.harga_excl) || 0;
+      if (payIn) pB += Number(inv.bayar_dpp) || 0;
+      const rowPayAttr = invIn ? ' class="hl-row-inv"' : (payIn ? ' class="hl-row-pay"' : '');
+      return '<tr' + rowPayAttr + ' data-search="' + esc([inv.invoice, inv.po, inv.deskripsi].join(' ').toLowerCase()) + '">' +
+        '<td class="l' + invCls + '">' + esc(inv.tgl_berkas) + '</td>' +
         '<td class="l">' + esc(inv.tgl_inv) + '</td>' +
         cx(inv.invoice, 'l iv', 40) +
         cx(inv.po, 'l', 25) +
@@ -341,7 +380,7 @@
         '<td>' + fmt(inv.ppn) + '</td>' +
         '<td>' + fmt(inv.pot_pph) + '</td>' +
         '<td>' + fmt(inv.retensi) + '</td>' +
-        '<td class="l">' + esc(inv.tgl_bayar_dpp) + '</td>' +
+        '<td class="l' + payCls + '">' + esc(inv.tgl_bayar_dpp) + '</td>' +
         '<td class="m-p">' + fmt(inv.bayar_dpp) + '</td>' +
         '<td class="m-s ' + sisaClass + '">' + fmt(sisa) + '</td>' +
       '</tr>';
@@ -358,8 +397,8 @@
       ftS.textContent = fmt(tS);
       ftS.className = tS > 0 ? 't-s-pos' : 't-s-zero';
     }
-    document.getElementById('rpTotalHutang').textContent = 'Rp ' + fmt(tH);
-    document.getElementById('rpTotalBayar').textContent = 'Rp ' + fmt(tB);
+    document.getElementById('rpTotalHutang').textContent = 'Rp ' + fmt(pH);
+    document.getElementById('rpTotalBayar').textContent = 'Rp ' + fmt(pB);
 
     const filter = () => {
       const q = search.value.trim().toLocaleLowerCase('id-ID');
@@ -368,7 +407,7 @@
         row.hidden = q && !row.dataset.search.includes(q);
         if (!row.hidden) visible++;
       });
-      document.getElementById('rpInvoiceCount').textContent =
+      document.getElementById('rpVendorMeta').textContent =
         q ? (visible + ' dari ' + invoices.length + ' invoice') : (invoices.length + ' invoice');
     };
     search.oninput = filter;

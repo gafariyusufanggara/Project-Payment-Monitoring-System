@@ -203,7 +203,7 @@
          yang dirender oleh JS (lihat initSidebarTooltips di base.html). */
             .sidebar.collapsed .brand-title,
       .sidebar.collapsed .sidebar-brand small,
-      .sidebar.collapsed .sidebar-nav .nav-item span,
+      .sidebar.collapsed .sidebar-nav .nav-item > span:not(.nav-badge),
       .sidebar.collapsed .sidebar-section,
       .sidebar.collapsed .sidebar-footer,
       .sidebar.collapsed .sidebar-brand .brand-text {
@@ -231,7 +231,7 @@
       }
       .sb-collapsed .brand-title,
       .sb-collapsed .sidebar-brand small,
-      .sb-collapsed .sidebar-nav .nav-item span,
+      .sb-collapsed .sidebar-nav .nav-item > span:not(.nav-badge),
       .sb-collapsed .sidebar-section,
       .sb-collapsed .sidebar-footer,
       .sb-collapsed .sidebar-brand .brand-text {
@@ -1263,13 +1263,6 @@
         background: #f7f8f9;
         border-top: 1px solid var(--border);
       }
-      #editFields .form-label {
-        font-size: 0.68rem;
-        font-weight: 700;
-        color: var(--muted);
-        text-transform: uppercase;
-        letter-spacing: 0.3px;
-      }
       #editFields .form-control,
       #editFields .form-select {
         font-size: 0.82rem;
@@ -1413,26 +1406,35 @@
         outline: 3px solid rgba(15, 118, 110, 0.24);
         outline-offset: 2px;
       }
-      @media (min-width: 993px) {
+      @media (min-width: 769px) {
         body.sidebar-open::before {
           opacity: 0;
           visibility: hidden;
         }
       }
-      @media (max-width: 992px) {
+      /* ===== TABLET (769-1024): sidebar jadi rail ikon 64px ===== */
+      @media (min-width: 769px) and (max-width: 1024px) {
+        :root {
+          --sidebar-w: 64px;
+          --sidebar-collapsed-w: 64px;
+        }
         .sidebar {
           width: 64px;
         }
         .brand-title,
         .sidebar-brand small,
-        .sidebar-nav .nav-item span,
         .sidebar-section,
         .sidebar-footer,
         .sidebar-brand .brand-text {
           display: none;
         }
+        .sidebar-nav .nav-item > span:not(.nav-badge) {
+          display: none;
+        }
         .sidebar-brand {
           padding: 16px 12px;
+          justify-content: center;
+          gap: 0;
         }
         .sidebar-brand .brand-icon {
           margin: 0 auto;
@@ -1443,23 +1445,37 @@
         .sidebar-nav .nav-item {
           justify-content: center;
           padding: 12px;
+          gap: 0;
+          position: relative;
           min-height: 44px;
+        }
+        .sidebar-nav .nav-item .nav-badge {
+          position: absolute;
+          top: 4px;
+          right: 8px;
+          margin: 0;
+          min-width: 18px;
+          height: 18px;
+          padding: 0 4px;
+          line-height: 18px;
         }
         .sidebar-toggle-topbar {
           display: none;
         }
-        .main-content {
-          margin-left: 64px;
+        .mobile-menu-toggle {
+          display: none;
         }
-        :root {
-          --sidebar-w: 64px;
-          --sidebar-collapsed-w: 64px;
+        .main-content,
+        .main-content.sidebar-collapsed,
+        .sb-collapsed .main-content {
+          margin-left: 64px;
         }
         .search-box input {
           width: 160px;
         }
       }
-      @media (max-width: 992px) {
+      /* ===== MOBILE (<=768): sidebar off-canvas + hamburger ===== */
+      @media (max-width: 768px) {
         body,
         .app-layout {
           height: 100%;
@@ -1528,6 +1544,9 @@
         .sb-collapsed .main-content {
           margin-left: 0;
           width: 100%;
+        }
+        .sidebar-toggle-topbar {
+          display: none;
         }
         .mobile-menu-toggle {
           display: inline-flex;
@@ -1625,13 +1644,12 @@
         #editModal .modal-dialog {
           margin: 8px;
         }
-        #editModal .modal-header,
         #editModal .modal-footer {
           padding-left: 14px;
           padding-right: 14px;
         }
       }
-      @media (max-width: 576px) {
+      @media (max-width: 768px) {
         .topbar-badges {
           display: none;
         }
@@ -1649,5 +1667,156 @@
         body::before,
         .sidebar {
           transition: none;
+        }
+      }
+
+      /* ===== Responsive sizing: tablet (769-1024) ===== */
+      @media (min-width: 769px) and (max-width: 1024px) {
+        .topbar {
+          height: 60px;
+          padding: 12px 20px;
+        }
+        .topbar h1 {
+          font-size: 0.9rem;
+        }
+        .topbar h1 i {
+          font-size: 1.1rem;
+        }
+        .topbar-right {
+          gap: 12px;
+        }
+        .project-scope-select {
+          font-size: 0.76rem;
+          max-width: 200px;
+          padding: 7px 12px 7px 30px;
+        }
+        .topbar-badge {
+          font-size: 0.7rem;
+          padding: 4px 10px;
+        }
+        .content-area {
+          padding: 20px;
+        }
+        .sidebar-brand {
+          padding: 14px 12px;
+        }
+        .sidebar-brand .brand-icon {
+          width: 38px;
+          height: 38px;
+          font-size: 1.15rem;
+        }
+        .sidebar-nav .nav-item {
+          min-height: 46px;
+        }
+        .sidebar-nav .nav-item i {
+          font-size: 1.15rem;
+        }
+      }
+      /* ===== Responsive sizing: mobile (<=768) ===== */
+      @media (max-width: 768px) {
+        .topbar h1 {
+          font-size: 0.85rem;
+        }
+        .topbar h1 i {
+          font-size: 1rem;
+        }
+        .project-scope-select {
+          font-size: 0.74rem;
+        }
+        .content-area {
+          padding: 16px;
+        }
+        .sidebar {
+          padding-bottom: env(safe-area-inset-bottom, 0px);
+        }
+        .sidebar-nav {
+          overscroll-behavior: contain;
+        }
+      }
+      /* ===== Responsive sizing: small (<=480) ===== */
+      @media (max-width: 480px) {
+        .topbar h1 {
+          font-size: 0.8rem;
+        }
+        .page-update {
+          display: none;
+        }
+      }
+
+      /* Samakan tampilan tombol toggle (desktop & mobile) supaya konsisten. */
+      .mobile-menu-toggle {
+        border-radius: 9px;
+        font-size: 1rem;
+      }
+
+      /* ===== Topbar responsive tidy (2026-10) ===== */
+      /* Sembunyikan badge Exclude panjang di tablet & mobile. */
+      @media (max-width: 1024px) {
+        #topbarExcludeBadge {
+          display: none;
+        }
+      }
+      /* Tablet (769-1024): judul ellipsis, klaster boleh menyusut, badge dipotong. */
+      @media (min-width: 769px) and (max-width: 1024px) {
+        .topbar-left {
+          flex: 1 1 auto;
+          min-width: 0;
+        }
+        .topbar-right {
+          min-width: 0;
+        }
+        .topbar h1 {
+          min-width: 0;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .topbar-badges {
+          min-width: 0;
+          overflow: hidden;
+        }
+        .topbar-badge {
+          max-width: 160px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .project-scope-select {
+          max-width: 160px;
+        }
+      }
+      /* Mobile (<=768): tetap satu baris, judul ellipsis. */
+      @media (max-width: 768px) {
+        .topbar {
+          flex-wrap: nowrap;
+        }
+        .topbar-left {
+          flex: 1 1 auto;
+          min-width: 0;
+        }
+        .topbar-right {
+          flex: 0 1 auto;
+        }
+        .topbar h1 {
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+      }
+      /* Small (<=480): dua baris rapi. */
+      @media (max-width: 480px) {
+        .topbar {
+          flex-wrap: wrap;
+          row-gap: 8px;
+        }
+        .topbar-left {
+          flex: 1 1 100%;
+        }
+        .topbar-right {
+          flex: 1 1 100%;
+          justify-content: space-between;
+        }
+        .topbar-divider {
+          display: none;
         }
       }

@@ -378,6 +378,54 @@ table[data-enhance] tbody td,
   font-size: 0.85em;
 }
 
+/* Toolbar checkbox — host-injected via <table data-te-toolbar-after="...">.
+   Sits as a peer of the .te-btn controls and mirrors their metrics. */
+.te-toolbar-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--te-fg);
+  background: #ffffff;
+  border: 1px solid var(--te-border);
+  border-radius: 7px;
+  cursor: pointer;
+  min-height: 30px;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.te-toolbar-check:hover {
+  border-color: #c9ccd1;
+}
+
+/* The markup ships [hidden] so it can't flash in its raw spot before the
+   enhancer re-parents it. Author `display` would otherwise beat the UA rule. */
+.te-toolbar-check[hidden] {
+  display: none;
+}
+
+.te-toolbar-check input[type="checkbox"] {
+  margin: 0;
+  cursor: pointer;
+  accent-color: var(--te-accent);
+}
+
+/* Active state mirrors .te-btn.is-active. :has() degrades gracefully —
+   without support the checkbox still filters, only the tint is missing. */
+.te-toolbar-check:has(input:checked) {
+  background: var(--te-accent-soft);
+  border-color: #c4ddef;
+  color: var(--te-accent);
+}
+
+.te-toolbar-check input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--te-accent);
+  outline-offset: 1px;
+}
+
 /* ---------- pager ---------- */
 
 .te-pager {
@@ -638,9 +686,37 @@ table[data-enhance] tbody tr:hover td.col-sticky-right {
 
   /* Touch targets need room, even in compact mode. */
   .te-btn,
+  .te-toolbar-check,
   .te-page-btn,
   .te-page-num,
   .te-select {
     min-height: 34px;
+  }
+}
+
+/* ---------- small phones (<=480) ---------- */
+
+@media (max-width: 480px) {
+  .te-toolbar,
+  .te-pager {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 10px;
+  }
+
+  .te-toolbar > * {
+    min-width: 0;
+  }
+
+  .te-pager {
+    justify-content: center;
+  }
+
+  .te-btn,
+  .te-toolbar-check,
+  .te-page-btn,
+  .te-page-num,
+  .te-select {
+    min-height: 40px;
   }
 }

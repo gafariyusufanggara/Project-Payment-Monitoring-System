@@ -46,7 +46,7 @@ def build_dashboard_context(project_id=None, for_table=False):
         the table only needs rows + highlight sets + topbar counts.
     """
     data = db.read_data(project_id)
-    # Exclusion rules (Pengaturan): rows whose KATEGORI/rekanan is excluded
+    # Exclusion rules (Exclude Invoice): rows whose KATEGORI/rekanan is excluded
     # stay visible in tables but are dropped from every aggregation below.
     # TGL TERIMA (tanggal berkas lengkap) must be present — same scope as the
     # DPP/PPN laporan (_build_cum skips rows without TGL TERIMA). An invoice

@@ -43,7 +43,7 @@
         <h5 class="modal-title" id="dashVendorLabel">
           <i class="bi bi-receipt"></i>
           <span id="dashVendorName">Detail Invoice</span>
-          <span class="mm" id="dashVendorMeta"></span>
+          <span class="mm mm-cnt" id="dashVendorMeta" role="status" aria-live="polite"></span>
         </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
       </div>
@@ -52,7 +52,6 @@
           <div class="lp-mtable-controls">
             <label for="dashInvoiceSearch">Cari invoice, PO, atau deskripsi</label>
             <input type="search" id="dashInvoiceSearch" class="form-control form-control-sm" autocomplete="off" placeholder="Ketik untuk menyaring detail…" aria-controls="dashModalInvoices">
-            <span id="dashInvoiceCount" role="status" aria-live="polite"></span>
           </div>
           <section class="lp-current-totals" aria-label="Ringkasan">
             <div><span>Hutang DPP</span><strong id="dashTotalHutang">Rp 0</strong></div>
@@ -121,14 +120,13 @@
     if (!body) return;
     search.value = '';
     document.getElementById('dashVendorMeta').textContent =
-      '· ' + invoices.length + ' invoice';
+      invoices.length + ' invoice';
 
     if (!invoices.length) {
       body.innerHTML = '<tr class="em"><td colspan="13"><i class="bi bi-inbox"></i>Tidak ada data untuk ' + esc(rekanan) + '</td></tr>';
       if (tfoot) tfoot.hidden = true;
       document.getElementById('dashTotalHutang').textContent = 'Rp 0';
       document.getElementById('dashTotalBayar').textContent = 'Rp 0';
-      document.getElementById('dashInvoiceCount').textContent = '0 invoice';
       return;
     }
 
@@ -183,7 +181,7 @@
         row.hidden = q && !row.dataset.search.includes(q);
         if (!row.hidden) visible++;
       });
-      document.getElementById('dashInvoiceCount').textContent =
+      document.getElementById('dashVendorMeta').textContent =
         q ? `${visible} dari ${invoices.length} invoice` : `${invoices.length} invoice`;
     };
     search.oninput = filter;
@@ -259,6 +257,31 @@ const FILTER_DEFS = [
     { id: 'filterJatuhTempo',  group: 'Jatuh Tempo', labelOf: v => ({ overdue: 'Lewat JT', due: 'JT \u2264 30 hari', safe: 'Aman', unpaid_no_due: 'Tanpa JT' }[v] || v) },
 ];
 
+// ── Subtotal footer (mengikuti filter) ──
+// Jumlahkan kolom uang dari SEMUA baris yang lolos filter (lintas halaman), bukan
+// hanya halaman aktif. Kolom uang = <th> ber-kelas text-end; sel footer .dt-foot-val
+// dipetakan per posisi, jadi keduanya tetap sinkron meski kolom RETENSI ikut/tidak.
+function updateFootTotals() {
+    const table = document.getElementById('dataTable');
+    if (!table || !table.tFoot || !table.tHead) return;
+    const ths = table.tHead.rows[table.tHead.rows.length - 1].cells;
+    const moneyIdx = [];
+    Array.prototype.forEach.call(ths, (th, i) => {
+        if (th.classList.contains('text-end')) moneyIdx.push(i);
+    });
+    const sums = moneyIdx.map(() => 0);
+    table.tBodies[0].querySelectorAll('tr').forEach(tr => {
+        if (tr.dataset.filterPass === '0') return;
+        moneyIdx.forEach((ci, k) => {
+            const td = tr.cells[ci];
+            sums[k] += parseFloat(td && td.dataset.v) || 0;
+        });
+    });
+    table.tFoot.querySelectorAll('.dt-foot-val').forEach((td, k) => {
+        td.textContent = k < sums.length ? Math.round(sums[k]).toLocaleString('id-ID') : '';
+    });
+}
+
 function filterTable() {
     const q = (document.getElementById('searchInput')?.value || '').toLowerCase().trim();
     const dppFilter = document.getElementById('filterStatusDPP')?.value || '';
@@ -273,6 +296,8 @@ function filterTable() {
     const byTo = document.getElementById('bayarTo')?.value || '';
     const sisaMin = document.getElementById('sisaMin')?.value ?? '';
     const sisaMax = document.getElementById('sisaMax')?.value ?? '';
+    // Checkbox "Sembunyikan Dokumen Revisi" (di toolbar, sebelah tombol Kolom).
+    const hideRevisi = document.getElementById('filterRevisi')?.checked || false;
 
     // Epsilon to absorb float noise on money fields.
     const EPS = 0.5;
@@ -300,6 +325,10 @@ function filterTable() {
         const sisaDppRaw = parseFloat(tr.dataset.sisaDpp) || 0;
         const sisaMatch = inNumRange(tr.dataset.sisaDpp, sisaMin, sisaMax);
 
+        // "Sembunyikan Dokumen Revisi": revisi = TGL TERIMA (Tgl Berkas Lengkap)
+        // kosong — penanda yang sama dengan badge sidebar & halaman Status Dokumen.
+        const revisiMatch = !hideRevisi || tr.dataset.revisi !== '1';
+
         // Status bayar derived from sisa DPP + PPN.
         let bayarMatch = true;
         if (bayarFilter) {
@@ -325,7 +354,7 @@ function filterTable() {
         }
 
         const match = searchMatch && dppMatch && ppnMatch && catMatch && kbMatch
-            && blMatch && byMatch && sisaMatch && bayarMatch && jtMatch;
+            && blMatch && byMatch && sisaMatch && bayarMatch && jtMatch && revisiMatch;
         // Publish filter result; table-enhance.js paginates only passing rows.
         tr.dataset.filterPass = match ? '1' : '0';
         if (match) visible++;
@@ -350,6 +379,7 @@ function filterTable() {
     updateRangeLabels();
     updateFilterChips();
     updateCount(visible);
+    updateFootTotals();
 }
 
 // ── Live count ──
@@ -504,6 +534,9 @@ FILTER_DEFS.forEach(def => {
     document.getElementById(def.id)?.addEventListener('change', filterTable);
 });
 
+// Toolbar checkbox "Sembunyikan Dokumen Revisi" (sebelah tombol Kolom).
+document.getElementById('filterRevisi')?.addEventListener('change', filterTable);
+
 // "/" focuses the search box from anywhere on the page.
 document.addEventListener('keydown', e => {
     if (e.key === '/' && !/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) && !e.target.isContentEditable) {
@@ -526,6 +559,9 @@ document.getElementById('filterReset')?.addEventListener('click', function () {
         const el = document.getElementById(id);
         if (el) el.value = '';
     });
+    // Reset kembalikan checkbox revisi ke OFF (default: semua baris tampil).
+    const rv = document.getElementById('filterRevisi');
+    if (rv) rv.checked = false;
     updateRangeLabels();
     filterTable();
 });
@@ -744,6 +780,10 @@ document.querySelectorAll('.th-sort').forEach(th => {
         }
     });
 });
+
+// Subtotal footer: hitung sekali saat muat — filterTable() belum pernah jalan,
+// jadi baris awal belum punya data-filter-pass (= semua baris lolos filter).
+updateFootTotals();
 
 // === VIEW ROW (read-only detail) — shared implementation in base.html ===
 

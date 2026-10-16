@@ -68,6 +68,39 @@
   .ku-ignored .chip form { display: inline; margin: 0; }
   .ku-ignored .chip button { border: none; background: #e3e5e8; color: #4d5766; border-radius: 999px; width: 18px; height: 18px; line-height: 1; cursor: pointer; font-size: .65rem; display: inline-flex; align-items: center; justify-content: center; }
   .ku-ignored .chip button:hover { background: #b42318; color: #fff; }
+
+  /* ===== Tablet (<=1024) ===== */
+  @media (max-width: 1024px) {
+    .kpr-head { flex-wrap: wrap; }
+    .kpr-table thead th { padding: 9px 12px; }
+    .kpr-table tbody td { padding: 8px 12px; }
+  }
+
+  /* ===== Mobile (<=768) ===== */
+  @media (max-width: 768px) {
+    .kpr-wrap { gap: 12px; }
+    .kpr-tabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 2px; }
+    .kpr-tab { flex: 0 0 auto; padding: 9px 13px; }
+    .kpr-head { padding: 12px 14px; gap: 8px; }
+    .kpr-head h2 { font-size: .82rem; }
+    .kpr-card { border-radius: 14px; }
+    .kpr-scroll { max-height: none; }
+    .kpr-table { min-width: 620px; }
+    .kpr-table thead th,
+    .kpr-table tbody td { padding: 8px 10px; }
+    .kpr-empty { padding: 28px 16px; }
+    .ku-ignored .chip { max-width: 100%; overflow-wrap: anywhere; }
+  }
+
+  /* ===== Small mobile (<=480) ===== */
+  @media (max-width: 480px) {
+    .kpr-wrap .ds-btn { width: 100%; justify-content: center; }
+    .kpr-head { padding: 10px 12px; }
+    .kpr-table { font-size: .74rem; }
+    .kpr-table thead th { font-size: .66rem; letter-spacing: .4px; }
+    .kpr-tab { font-size: .74rem; padding: 8px 11px; }
+  }
+
 </style>
 
 <div class="kpr-wrap animate-in">

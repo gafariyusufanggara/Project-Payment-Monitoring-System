@@ -1,5 +1,5 @@
 """
-CONTROLLER — Pengaturan: exclusion rules (kategori / rekanan) dari perhitungan.
+CONTROLLER — Exclude Invoice: exclusion rules (kategori / rekanan) dari perhitungan.
 
 Rows yang cocok tetap tampil di tabel tapi diabaikan dashboard + semua laporan.
 """
@@ -13,8 +13,8 @@ from constants import (
 bp = Blueprint('settings', __name__)
 
 
-@bp.route('/pengaturan')
-def pengaturan():
+@bp.route('/exclude-invoice')
+def exclude_invoice():
     rekanan_db = sorted({(r.get('NAMA LEVELANSIR / REKANAN') or '').strip()
                          for r in db.read_data(None)
                          if (r.get('NAMA LEVELANSIR / REKANAN') or '').strip()})

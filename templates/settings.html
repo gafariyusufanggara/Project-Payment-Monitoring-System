@@ -1,5 +1,5 @@
-{% extends "base.html" %} {% block title %}Exclude Rekanan - Project Payment Monitoring System{% endblock %} {% block
-topbar_title %}Exclude Rekanan{% endblock %} {% block topbar_icon %}bi-slash-circle{% endblock %} {% block topbar_badges %}
+{% extends "base.html" %} {% block title %}Exclude Invoice - Project Payment Monitoring System{% endblock %} {% block
+topbar_title %}Exclude Invoice{% endblock %} {% block topbar_icon %}bi-slash-circle{% endblock %} {% block topbar_badges %}
 <span class="topbar-badge" id="topbarExcBadge" style="background: #eaf0f6; color: #16324f">
   <i class="bi bi-eye-slash"></i> <span id="topbarExcNum">{{ excluded_categories|length + excluded_rekanan|length }}</span>&nbsp;Excluded
 </span>
@@ -14,7 +14,7 @@ topbar_title %}Exclude Rekanan{% endblock %} {% block topbar_icon %}bi-slash-cir
   }
   .st-info i { color: #16324f; font-size: 1rem; margin-top: 1px; }
   .st-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
-  @media (max-width: 900px) { .st-grid { grid-template-columns: 1fr; } }
+  @media (max-width: 1024px) { .st-grid { grid-template-columns: 1fr; } }
   .st-card {
     background: #fff; border: 1px solid #e3e5e8; border-radius: 16px;
     box-shadow: 0 1px 3px rgba(51, 51, 51,.05); overflow: hidden;
@@ -81,9 +81,9 @@ topbar_title %}Exclude Rekanan{% endblock %} {% block topbar_icon %}bi-slash-cir
   <div class="st-info">
     <i class="bi bi-info-circle-fill"></i>
     <div>
-      Item yang dicentang <strong>tidak ikut dihitung</strong> di Dashboard dan semua Laporan
-      (DPP Bulanan/Mingguan, PPN, Jatuh Tempo). Barisnya tetap tampil di Data Invoice dengan
-      tanda <i class="bi bi-eye-slash"></i> — datanya tidak diubah.
+      Centang invoice (per kategori atau per levelansir/rekanan) yang <strong>tidak ikut dihitung</strong>
+      di Dashboard dan semua Laporan (DPP Bulanan/Mingguan, PPN, Jatuh Tempo). Barisnya tetap tampil
+      di Daftar Invoice dengan tanda <i class="bi bi-eye-slash"></i> — datanya tidak diubah.
     </div>
   </div>
 
@@ -116,13 +116,13 @@ topbar_title %}Exclude Rekanan{% endblock %} {% block topbar_icon %}bi-slash-cir
 
   <div class="st-grid">
 
-    <!-- ── Exclude Kategori ── -->
+    <!-- ── Exclude Invoice (Kategori) ── -->
     <div class="st-card">
       <div class="st-card__head">
         <div class="ico" style="background:#eaf0f6;color:#16324f"><i class="bi bi-tag"></i></div>
         <div>
-          <h5>Exclude Kategori</h5>
-          <small>Invoice dengan kategori ini diabaikan dari perhitungan</small>
+          <h5>Exclude Invoice (Kategori)</h5>
+          <small>Invoice dengan kategori ini diabaikan dari Dashboard &amp; Laporan</small>
         </div>
       </div>
       <div class="st-body">
@@ -144,13 +144,13 @@ topbar_title %}Exclude Rekanan{% endblock %} {% block topbar_icon %}bi-slash-cir
       </div>
     </div>
 
-    <!-- ── Exclude Rekanan ── -->
+    <!-- ── Exclude Invoice (Levelansir / Rekanan) ── -->
     <div class="st-card">
       <div class="st-card__head">
         <div class="ico" style="background:#ece4f7;color:#6a4fa3"><i class="bi bi-person-slash"></i></div>
         <div>
-          <h5>Exclude Levelansir / Rekanan</h5>
-          <small>Invoice dari rekanan ini diabaikan dari perhitungan</small>
+          <h5>Exclude Invoice (Levelansir / Rekanan)</h5>
+          <small>Invoice dari rekanan ini diabaikan dari Dashboard &amp; Laporan</small>
         </div>
       </div>
       <div class="st-body">
@@ -172,7 +172,7 @@ topbar_title %}Exclude Rekanan{% endblock %} {% block topbar_icon %}bi-slash-cir
         <div class="st-add">
           <input type="text" id="rekNew" placeholder="Tambah nama rekanan yang tidak ada di daftar..." aria-label="Nama rekanan baru" />
           <button type="button" class="ds-btn ds-btn--primary" id="rekAddBtn" style="height:34px;font-size:.75rem">
-            <i class="bi bi-plus-lg"></i>Exclude
+            <i class="bi bi-plus-lg"></i>Exclude Invoice
           </button>
         </div>
       </div>
@@ -240,7 +240,7 @@ topbar_title %}Exclude Rekanan{% endblock %} {% block topbar_icon %}bi-slash-cir
         : `"${body.name}" diaktifkan kembali.`);
     } catch (e) {
       input.checked = !input.checked; // rollback UI
-      Toast.err('Gagal menyimpan pengaturan.');
+      Toast.err('Gagal menyimpan pengaturan exclude.');
     } finally {
       input.disabled = false;
     }
@@ -264,7 +264,7 @@ topbar_title %}Exclude Rekanan{% endblock %} {% block topbar_icon %}bi-slash-cir
       syncSummary(type, name, false);
       Toast.ok(`"${name}" diaktifkan kembali.`);
     } catch (err) {
-      Toast.err('Gagal menyimpan pengaturan.');
+      Toast.err('Gagal menyimpan pengaturan exclude.');
     }
   });
 

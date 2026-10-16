@@ -698,6 +698,34 @@
     color: var(--dt-accent);
   }
 
+  /* ─── Table Footer: subtotal mengikuti filter ───
+     Baris menempel di bawah scroll container, tetapi selnya TIDAK ikut beku kiri
+     — label SUBTOTAL biasa ikut bergeser. z 15 = di atas kolom beku body (z 4/5)
+     supaya pita footer tidak tertutup kolom beku saat digeser horizontal. */
+  .dt-invoice .dt-table tfoot td {
+    position: sticky;
+    bottom: 0;
+    z-index: 15;
+    padding: 11px 10px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1.2;
+    white-space: nowrap;
+    background: var(--dt-bg-alt);
+    color: var(--dt-navy);
+    border-top: 2px solid var(--dt-navy);
+    border-bottom: none;
+    font-variant-numeric: tabular-nums;
+  }
+  .dt-invoice .dt-foot-lbl {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+    color: var(--dt-navy);
+  }
+
   /* ─── Table Body ─── */
   .dt-invoice .dt-table tbody td {
     padding: 7px 10px;
@@ -981,7 +1009,7 @@
     box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
   }
 
-  /* ─── Excluded Flag (Pengaturan) ─── */
+  /* ─── Excluded Flag (Exclude Invoice) ─── */
   .dt-invoice .excl-flag {
     display: inline-flex;
     align-items: center;
@@ -1092,7 +1120,7 @@
   }
 
   /* ─── Responsive ─── */
-  @media (max-width: 992px) {
+  @media (max-width: 1024px) {
     .dt-invoice .ft-top .search-box.ft-search {
       flex: 1 1 100%;
       max-width: none;
@@ -1107,7 +1135,7 @@
       flex: 1 1 calc(50% - 10px);
     }
   }
-  @media (max-width: 640px) {
+  @media (max-width: 768px) {
     .dt-invoice .ft-groups {
       flex-direction: column;
     }

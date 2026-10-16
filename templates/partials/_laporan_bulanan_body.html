@@ -134,11 +134,11 @@
             <td class="c-no">{{ loop.index }}</td>
             <td>
               {{ s.rekanan }} {% if s.count > 0 %}
-              <span class="inv-badge inv-badge-h"
+              <span class="inv-badge inv-badge-h" title="{{ s.count }} invoice masuk periode ini" aria-label="{{ s.count }} invoice masuk periode ini"
                 >{{ s.count }}</span
               >
               {% endif %} {% if s.pay_count > 0 %}
-              <span class="inv-badge inv-badge-p"
+              <span class="inv-badge inv-badge-p" title="{{ s.pay_count }} pembayaran periode ini" aria-label="{{ s.pay_count }} pembayaran periode ini"
                 >{{ s.pay_count }}</span
               >
               {% endif %}
