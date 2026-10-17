@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %} {% block title %}Laporan Jatuh Tempo - Project Payment Monitoring System{% endblock %} {% block topbar_title %}Rekap Jatuh Tempo{% endblock %}
+﻿{% extends "base.html" %} {% block title %}Jatuh Tempo - Project Payment Monitoring System{% endblock %} {% block topbar_title %}Jatuh Tempo{% endblock %}
 {% block topbar_icon %}bi-calendar-x{% endblock %} {% set all_rekanan = [] %} {% for r in report_rows %} {% for s in r.rekanan_list %} {%
 if s.rekanan not in all_rekanan %} {% set _ = all_rekanan.append(s.rekanan) %}
 {% endif %} {% endfor %} {% endfor %} {% block topbar_badges %}
@@ -9,7 +9,7 @@ if s.rekanan not in all_rekanan %} {% set _ = all_rekanan.append(s.rekanan) %}
   ><i class="bi bi-database"></i> {{ data_count }} data</span
 >
 <span class="topbar-badge tb-jt"
-  ><i class="bi bi-calendar-x"></i> {{ report_rows|length }} bulan</span
+  ><i class="bi bi-calendar-x"></i> {{ report_rows|length }} bulan JT</span
 >
 {% endblock %} {% block content %}
 {# laporan.css dimuat global di base.html <head> (cegah FOUC saat swap HTMX) #}
@@ -21,7 +21,7 @@ if s.rekanan not in all_rekanan %} {% set _ = all_rekanan.append(s.rekanan) %}
 
   <div class="lp-rail lp-rail--select lp-rail--single lp-rail--jt" id="topRail">
     <div class="lp-rail-group">
-      <label class="lp-rail-label" for="monthSel"><i class="bi bi-calendar3"></i> Periode</label>
+      <label class="lp-rail-label" for="monthSel"><i class="bi bi-calendar3"></i> Bulan Jatuh Tempo</label>
       <select id="monthSel" class="lp-sel" aria-label="Pilih bulan jatuh tempo">
         {% for r in report_rows %}
         <option value="{{ r.key }}" {% if r.key == current_month %}selected{% endif %}>{{ r.label }}</option>
@@ -30,9 +30,23 @@ if s.rekanan not in all_rekanan %} {% set _ = all_rekanan.append(s.rekanan) %}
     </div>
     <div class="lp-rail-group lp-rail-group--end">
       <span class="lp-rail-period" id="jtPeriodLabel">{% for r in report_rows %}{% if r.key == current_month %}{{ r.label }}{% endif %}{% endfor %}</span>
-      <button class="lp-btn lp-btn--primary" id="exportBtn" onclick="exportExcel(this)" title="Unduh laporan periode aktif ke Excel"><i class="bi bi-download"></i> Unduh Laporan</button>
+      <button class="lp-btn lp-btn--primary" id="exportBtn" onclick="exportExcel(this)" title="Unduh laporan bulan jatuh tempo aktif ke Excel"><i class="bi bi-download"></i> Unduh Laporan</button>
     </div>
   </div>
+
+  {#- Strip tunggakan lintas periode: total JTH sudah lewat di SEMUA bulan. -#}
+  {% set _now = now_key|default('9999-99') %}
+  {% set ov = namespace(val=0, cnt=0, months=[]) %}
+  {% for r in report_rows %}{% if r.overdue_sisa > 0 and r.key < _now %}{% set ov.val = ov.val + r.overdue_sisa %}{% set ov.cnt = ov.cnt + r.overdue_count %}{% set _ = ov.months.append(r) %}{% endif %}{% endfor %}
+  {% if ov.cnt > 0 %}
+  <div class="lp-jt-alert" role="note" title="Invoice belum lunas dengan JTH sudah lewat pada periode SEBELUM bulan berjalan">
+    <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+    <span class="lp-jt-alert__msg">Tunggakan periode lalu: <strong>{{ ov.val|money }}</strong> &middot; {{ ov.cnt }} invoice</span>
+    {% for m in ov.months %}
+    <button type="button" class="lp-jt-chip" onclick="selectMonth('{{ m.key }}')" title="{{ m.overdue_count }} invoice telat &middot; lompat ke {{ m.label }}">{{ m.label }} &middot; {{ m.overdue_count }}</button>
+    {% endfor %}
+  </div>
+  {% endif %}
 
   {% for r in report_rows %} {% set ns =
   namespace(tdpp=0,bdpp=0,sdpp=0,cnt=0) %}{% for s in r.rekanan_list %}{% set
@@ -46,7 +60,7 @@ if s.rekanan not in all_rekanan %} {% set _ = all_rekanan.append(s.rekanan) %}
   >
     <div class="lp-sisa-card lp-hero ds-kpi {% if ns.sdpp > 0 %}pos ds-kpi--err{% else %}zero ds-kpi--ok{% endif %}">
       <div class="lp-hero-main">
-        <span class="kpi-lbl ds-kpi__label"><i class="bi bi-wallet2"></i> Sisa Hutang DPP · {{ r.label }}</span>
+        <span class="kpi-lbl ds-kpi__label"><i class="bi bi-wallet2"></i> DPP Jatuh Tempo · {{ r.label }}</span>
         <span class="kpi-num ds-kpi__value">{{ ns.sdpp|money }}</span>
       </div>
       <div class="lp-hero-side">
@@ -55,6 +69,21 @@ if s.rekanan not in all_rekanan %} {% set _ = all_rekanan.append(s.rekanan) %}
         <span class="lp-hero-tot"><strong>{{ ns.bdpp|money }}</strong> bayar</span>
       </div>
     </div>
+
+    {% if ns.sdpp > 0 %}
+    <div class="lp-aging" role="list" aria-label="Umur hutang (aging) {{ r.label }}">
+      {% set ag = [('due_today', 'Jatuh Tempo Hari Ini', 'warn'),
+                   ('d1_30', 'Jatuh Tempo 1–30 Hari', 'pos'), ('d31_60', 'Jatuh Tempo 31–60 Hari', 'pos'),
+                   ('d61_90', 'Jatuh Tempo 61–90 Hari', 'pos'), ('d90plus', 'Jatuh Tempo &gt; 90 Hari', 'crit')] %}
+      {% for k, lbl, tone in ag %}
+      <div class="lp-aging__item lp-aging__item--{{ tone }}{% if r.aging_count[k] == 0 %} is-zero{% endif %}" role="listitem">
+        <span class="lp-aging__lbl">{{ lbl|safe }}</span>
+        <span class="lp-aging__val">{{ r.aging[k]|money }}</span>
+        <span class="lp-aging__cnt">{{ r.aging_count[k] }} inv</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
 
     <div class="lp-kpi-row lp-kpi-row--4">
       <div class="lp-kpi-cell ds-kpi ds-kpi--err h">
@@ -71,19 +100,25 @@ if s.rekanan not in all_rekanan %} {% set _ = all_rekanan.append(s.rekanan) %}
         </div>
         <div class="kpi-num ds-kpi__value">{{ ns.bdpp|money }}</div>
       </div>
-      <div class="lp-kpi-cell ds-kpi {% if ns.sdpp > 0 %}ds-kpi--err{% else %}ds-kpi--ok{% endif %} h">
+      <div class="lp-kpi-cell ds-kpi ds-kpi--ok h">
         <div class="kpi-top">
-          <span class="kpi-lbl ds-kpi__label">Sisa DPP</span>
-          <div class="kpi-icon-wrap" aria-hidden="true"><i class="bi bi-wallet2"></i></div>
+          <span class="kpi-lbl ds-kpi__label">Total Belum Jatuh Tempo</span>
+          <div class="kpi-icon-wrap" aria-hidden="true"><i class="bi bi-hourglass-split"></i></div>
         </div>
-        <div class="kpi-num ds-kpi__value">{{ ns.sdpp|money }}</div>
+        <div class="kpi-val">
+          <div class="kpi-num ds-kpi__value">{{ r.aging['belum_jt']|money }}</div>
+          <div class="kpi-sub">{{ r.aging_count['belum_jt'] }} inv</div>
+        </div>
       </div>
       <div class="lp-kpi-cell ds-kpi ds-kpi--warn">
         <div class="kpi-top">
-          <span class="kpi-lbl ds-kpi__label">Invoice JT</span>
+          <span class="kpi-lbl ds-kpi__label">Total Sudah Jatuh Tempo</span>
           <div class="kpi-icon-wrap" aria-hidden="true"><i class="bi bi-receipt"></i></div>
         </div>
-        <div class="kpi-num ds-kpi__value">{{ ns.cnt }}</div>
+        <div class="kpi-val">
+          <div class="kpi-num ds-kpi__value">{{ r.overdue_sisa|money }}</div>
+          <div class="kpi-sub">{{ r.overdue_count }} inv</div>
+        </div>
       </div>
     </div>
 
@@ -93,7 +128,7 @@ if s.rekanan not in all_rekanan %} {% set _ = all_rekanan.append(s.rekanan) %}
           <i class="bi bi-calendar-x"></i>
           Ringkasan Levelansir
           <span class="tag">{{ r.rekanan_list|length }} rekanan</span>
-          <span class="tag teal">{{ ns.cnt }} Invoice</span>
+          <span class="tag teal">{{ ns.cnt }} Invoice JT</span>
         </h4>
 
       </div>
@@ -103,11 +138,12 @@ if s.rekanan not in all_rekanan %} {% set _ = all_rekanan.append(s.rekanan) %}
             <tr>
               <th class="grp-no w-no" scope="col">No.</th>
               <th class="mw-180" scope="col">Levelansir</th>
-                            <th class="grp-h mw-65" scope="col" title="Hanya invoice dengan Sisa DPP > 0">Invoice JT</th>
+                            <th class="grp-h mw-65" scope="col" title="Hanya invoice dengan SISA HUTANG DPP > 0">Invoice JT</th>
+              <th class="mw-95" scope="col" title="Tanggal jatuh tempo unpaid tertua per rekanan">TGL JT TERTUA</th>
               <th class="grp-h mw-115" scope="col">Total Hutang DPP</th>
               <th class="grp-h mw-115" scope="col">Total Bayar DPP</th>
-              <th class="grp-sisa mw-85" scope="col">Sisa DPP</th>
-              <th class="mw-80" scope="col">Status</th>
+              <th class="grp-sisa mw-85" scope="col">SISA HUTANG DPP</th>
+              <th class="mw-80" scope="col">STATUS JT</th>
             </tr>
           </thead>
           <tbody>
@@ -122,6 +158,7 @@ if s.rekanan not in all_rekanan %} {% set _ = all_rekanan.append(s.rekanan) %}
               <td class="c-no">{{ loop.index }}</td>
               <td class="c-rekan">{{ s.rekanan }}</td>
               <td class="c-count">{{ s.count }}</td>
+              <td class="c-jt">{{ s.jt_terdekat or '—' }}</td>
               <td class="c-h">{{ s.total_dpp|money }}</td>
               <td class="c-p">{{ s.bayar_dpp|money }}</td>
               <td class="{{ 'c-sisa-pos' if s.sisa_dpp > 0 else 'c-sisa-zero' }}">{{ s.sisa_dpp|money }}</td>
@@ -141,6 +178,7 @@ if s.rekanan not in all_rekanan %} {% set _ = all_rekanan.append(s.rekanan) %}
               <td class="c-no"></td>
               <td>TOTAL</td>
               <td class="c-count">{{ t.count }}</td>
+              <td class="c-jt"></td>
               <td class="c-h">{{ t.total_dpp|money }}</td>
               <td class="c-p">{{ t.bayar_dpp|money }}</td>
               <td class="{{ 'c-sisa-pos' if t.sisa_dpp > 0 else 'c-sisa-zero' }}">{{ t.sisa_dpp|money }}</td>
@@ -196,8 +234,8 @@ if s.rekanan not in all_rekanan %} {% set _ = all_rekanan.append(s.rekanan) %}
                 <th scope="col" class="ar m-ppn">PPH</th>
                 <th scope="col" class="m-bayar-tgl">Tgl Bayar</th>
                 <th scope="col" class="ar m-bayar">Bayar DPP</th>
-                <th scope="col" class="ar m-sisa">Sisa DPP</th>
-                <th scope="col" class="m-status">Status</th>
+                <th scope="col" class="ar m-sisa">SISA HUTANG DPP</th>
+                <th scope="col" class="m-status">STATUS JT</th>
               </tr>
             </thead>
             <tbody id="modalInvoices">
@@ -348,6 +386,7 @@ function showDetail(monthKey, rekanan, rowEl) {
 // Expose fungsi ke window (dipakai attribut inline onclick).
 window.exportExcel = exportExcel;
 window.showDetail = showDetail;
+window.selectMonth = selectMonth;
 
 // Re-init pada full load & setiap HTMX swap.
 if (window.onPageReady) onPageReady(bindMonthSel);

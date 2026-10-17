@@ -1131,10 +1131,18 @@ def build_jatuh_tempo_data(project_id=None):
 
     project_id: optional project filter forwarded to db.read_data.
     Returns (report_rows, data_count) where each report row is:
-        { 'key': 'YYYY-MM', 'label': 'Jan 2026', 'rekanan_list': [...] }
+        { 'key': 'YYYY-MM', 'label': 'Jan 2026', 'rekanan_list': [...],
+          'aging': {...}, 'aging_count': {...}, 'overdue_sisa': int, 'overdue_count': int }
 
     Each rekanan entry:
-        { 'rekanan': str, 'invoices': [...], 'total': int, 'count': int }
+        { 'rekanan': str, 'invoices': [...], 'total': int, 'count': int,
+          'total_dpp': int, 'bayar_dpp': int, 'sisa_dpp': int, 'jt_terdekat': str }
+
+    Sisa convention (per-invoice net clamp): one invoice = one debt (nilai hutang
+    dari baris pertama), SEMUA pembayaran lintas baris dijumlah, lalu sisa tiap
+    invoice = max(0, harga - Σbayar). Sisa rekanan/bulan = Σ sisa invoice, jadi
+    overpay satu invoice tidak menutupi hutang invoice lain. aging/overdue
+    diturunkan dari nilai invoice yang sama → KPI/hero/footer/aging/modal konsisten.
     """
     month_names = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
                    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
@@ -1144,95 +1152,137 @@ def build_jatuh_tempo_data(project_id=None):
     today = date.today()
     valid_count = 0
 
-    # Group by JTH TEMPO month → rekanan → invoices
-    jt_months = defaultdict(lambda: defaultdict(list))
-    seen_inv = set()  # (rekan, invoice) — GLOBAL dedup: one invoice = one debt
-
+    # Pass 1: aggregate physical rows into invoice-level groups.
+    # "Satu invoice = satu hutang": nilai hutang diambil dari baris pertama,
+    # sedangkan SEMUA pembayaran (termasuk baris cicilan/duplikat) dijumlah.
+    # Sisa per invoice = max(0, harga - Σbayar): overpay satu invoice TIDAK
+    # menutupi hutang invoice lain (per-invoice net clamp).
+    groups = {}
+    order = []
+    row_seq = 0
     for row in data:
-        jth = row.get('JTH TEMPO')
-        if not jth:
+        row_seq += 1
+        rekan = (row.get('NAMA LEVELANSIR / REKANAN') or 'Unknown').strip() or 'Unknown'
+        inv_no = effective_invoice(row)
+        gkey = (rekan, inv_no) if inv_no else ('__row__', row_seq)
+
+        jth_raw = row.get('JTH TEMPO')
+        try:
+            jth_ok = bool(jth_raw) and datetime.strptime(str(jth_raw), '%Y-%m-%d') is not None
+        except (ValueError, TypeError):
+            jth_ok = False
+        if jth_ok:
+            valid_count += 1
+
+        if gkey not in groups:
+            groups[gkey] = {
+                'rekan': rekan,
+                'inv_no': inv_no,
+                'inv_display': row.get('NO INVOICE') or '-',
+                'jth': '',
+                'seen': False,
+                'harga_excl': 0.0, 'total': 0.0, 'ppn': 0.0, 'pot_pph': 0.0,
+                'bayar_dpp': 0.0, 'bayar_ppn': 0.0,
+                'tgl_bayar_dpp': '', 'tgl_bayar_ppn': '',
+                'po': '-', 'tgl_inv': '', 'tgl_berkas': '',
+                'deskripsi': '-', 'kode_biaya': '-',
+                'blm_jatuh_tempo': 0.0, 'd1_30': 0.0, 'd31_60': 0.0,
+                'd61_90': 0.0, 'd90plus': 0.0,
+            }
+            order.append(gkey)
+        g = groups[gkey]
+
+        if jth_ok and not g['jth']:
+            g['jth'] = str(jth_raw)
+
+        # Debt fields: hanya dari baris pertama (dedup 1 invoice = 1 hutang)
+        if not g['seen']:
+            g['seen'] = True
+            g['harga_excl'] = safe_float(row.get('HARGA (EXLD)'))
+            g['total'] = safe_float(row.get('TOTAL (INCLD)'))
+            g['ppn'] = safe_float(row.get('PPN'))
+            g['pot_pph'] = safe_float(row.get('POT. PPH'))
+            g['po'] = (row.get('NO PO / KONTRAK') or '-').strip() or '-'
+            g['tgl_inv'] = str(row.get('TGL INV', '') or '')
+            g['tgl_berkas'] = str(row.get('TGL TERIMA', '') or '')
+            g['deskripsi'] = row.get('DESKRIPSI') or '-'
+            g['kode_biaya'] = row.get('KODE BIAYA2') or '-'
+            g['blm_jatuh_tempo'] = safe_float(row.get('BLM JATUH TEMPO'))
+            g['d1_30'] = safe_float(row.get('1-30 HARI'))
+            g['d31_60'] = safe_float(row.get('31-60 HARI'))
+            g['d61_90'] = safe_float(row.get('61-90 HARI'))
+            g['d90plus'] = safe_float(row.get('LEBIH 90 HARI'))
+
+        # Payments: dijumlah lintas baris (cicilan / baris duplikat)
+        g['bayar_dpp'] += safe_float(row.get('PEMBAYARAN DPP'))
+        g['bayar_ppn'] += safe_float(row.get('PEMBAYARAN PPN'))
+        tb = str(row.get('TGL BAYAR DPP', '') or '')
+        if tb > g['tgl_bayar_dpp']:
+            g['tgl_bayar_dpp'] = tb
+        tbp = str(row.get('TGL BAYAR PPN', '') or '')
+        if tbp > g['tgl_bayar_ppn']:
+            g['tgl_bayar_ppn'] = tbp
+
+    # Pass 2: place each invoice group into its JTH TEMPO month → rekanan.
+    jt_months = defaultdict(lambda: defaultdict(list))
+    for gkey in order:
+        g = groups[gkey]
+        if not g['jth']:
             continue
         try:
-            dt = datetime.strptime(str(jth), '%Y-%m-%d')
-            mk = dt.strftime('%Y-%m')
+            jt_dt = datetime.strptime(str(g['jth']), '%Y-%m-%d').date()
         except (ValueError, TypeError):
             continue
-        valid_count += 1
+        mk = jt_dt.strftime('%Y-%m')
 
-        rekan = (row.get('NAMA LEVELANSIR / REKANAN') or 'Unknown').strip()
-        if not rekan:
-            rekan = 'Unknown'
-
-        po = (row.get('NO PO / KONTRAK') or '-').strip()
-        inv_no = effective_invoice(row)
-        inv_key = (rekan, inv_no) if inv_no else None
-
-        # Dedup debt values globally by (rekan, invoice) so debt counted once
-        if inv_key and inv_key in seen_inv:
-            total = 0
-            harga_excl = 0
-            pot_pph = 0
-            ppn = 0
-        else:
-            if inv_key:
-                seen_inv.add(inv_key)
-            total = safe_float(row.get('TOTAL (INCLD)'))
-            harga_excl = safe_float(row.get('HARGA (EXLD)'))
-            pot_pph = safe_float(row.get('POT. PPH'))
-            ppn = safe_float(row.get('PPN'))
-
-        dp = safe_float(row.get('PEMBAYARAN DPP'))
-        ppn_pay = safe_float(row.get('PEMBAYARAN PPN'))
-        # Dynamic sisa per invoice (not relying on static DB calc)
-        sisa_dpp = round(max(0, harga_excl - dp))
-        sisa_ppn = round(max(0, ppn - ppn_pay))
+        harga_excl = g['harga_excl']
+        dp = g['bayar_dpp']
+        # Per-invoice net clamp + half-up (Excel style) seperti constants._calc
+        sisa_dpp = int(max(0, harga_excl - dp) + 0.5)
+        sisa_ppn = int(max(0, g['ppn'] - g['bayar_ppn']) + 0.5)
 
         # Overdue days: today - JTH TEMPO (positive = overdue)
-        hari_lebih = 0
-        try:
-            jt_dt = datetime.strptime(str(jth), '%Y-%m-%d').date()
-            if sisa_dpp > 0:
-                # Still owes → overdue from JTH TEMPO until today
-                hari_lebih = (today - jt_dt).days
-            else:
-                # Fully paid → overdue from JTH TEMPO until payment date
-                tgl_bayar = row.get('TGL BAYAR DPP', '')
-                if tgl_bayar:
-                    bayar_dt = datetime.strptime(str(tgl_bayar), '%Y-%m-%d').date()
-                    hari_lebih = (bayar_dt - jt_dt).days
-                else:
+        if sisa_dpp > 0:
+            hari_lebih = (today - jt_dt).days
+        else:
+            tb = g['tgl_bayar_dpp']
+            if tb:
+                try:
+                    hari_lebih = (datetime.strptime(str(tb), '%Y-%m-%d').date() - jt_dt).days
+                except (ValueError, TypeError):
                     hari_lebih = (today - jt_dt).days
-        except (ValueError, TypeError):
-            pass
+            else:
+                hari_lebih = (today - jt_dt).days
 
-        jt_months[mk][rekan].append({
-            'invoice': row.get('NO INVOICE') or '-',
-            'po': po,
-            'tgl_inv': str(row.get('TGL INV', '')),
-            'tgl_berkas': str(row.get('TGL TERIMA', '')),
-            'jth_tempo': str(row.get('JTH TEMPO', '')),
-            'deskripsi': row.get('DESKRIPSI') or '-',
-            'kode_biaya': row.get('KODE BIAYA2') or '-',
-            'total': total,
+        status_label, status_key = _jt_status(hari_lebih, sisa_dpp)
+        jt_months[mk][g['rekan']].append({
+            'invoice': g['inv_display'],
+            'po': g['po'],
+            'tgl_inv': g['tgl_inv'],
+            'tgl_berkas': g['tgl_berkas'],
+            'jth_tempo': g['jth'],
+            'deskripsi': g['deskripsi'],
+            'kode_biaya': g['kode_biaya'],
+            'total': g['total'],
             'harga_excl': harga_excl,
-            'ppn': ppn,
-            'pot_pph': pot_pph,
+            'ppn': g['ppn'],
+            'pot_pph': g['pot_pph'],
             'bayar_dpp': dp,
-            'bayar_ppn': ppn_pay,
+            'bayar_ppn': g['bayar_ppn'],
             # Total incl. PPN minus both payments (dedup-safe: parts are local)
-            'sisa': round(total + ppn - dp - ppn_pay),
+            'sisa': int(g['total'] + g['ppn'] - dp - g['bayar_ppn'] + 0.5),
             'sisa_dpp': sisa_dpp,
             'sisa_ppn': sisa_ppn,
             'hari_lebih': hari_lebih,
-            'status_label': _jt_status(hari_lebih, sisa_dpp)[0],
-            'status_key': _jt_status(hari_lebih, sisa_dpp)[1],
-            'tgl_bayar_dpp': str(row.get('TGL BAYAR DPP', '')),
-            'tgl_bayar_ppn': str(row.get('TGL BAYAR PPN', '')),
-            'blm_jatuh_tempo': safe_float(row.get('BLM JATUH TEMPO')),
-            'd1_30': safe_float(row.get('1-30 HARI')),
-            'd31_60': safe_float(row.get('31-60 HARI')),
-            'd61_90': safe_float(row.get('61-90 HARI')),
-            'd90plus': safe_float(row.get('LEBIH 90 HARI')),
+            'status_label': status_label,
+            'status_key': status_key,
+            'tgl_bayar_dpp': g['tgl_bayar_dpp'],
+            'tgl_bayar_ppn': g['tgl_bayar_ppn'],
+            'blm_jatuh_tempo': g['blm_jatuh_tempo'],
+            'd1_30': g['d1_30'],
+            'd31_60': g['d31_60'],
+            'd61_90': g['d61_90'],
+            'd90plus': g['d90plus'],
         })
 
     all_months = sorted(jt_months.keys())
@@ -1247,7 +1297,9 @@ def build_jatuh_tempo_data(project_id=None):
             invs = jt_months[mk][rekan]
             rekan_total_dpp = sum(inv['harga_excl'] for inv in invs)
             rekan_bayar_dpp = sum(inv['bayar_dpp'] for inv in invs)
-            rekan_sisa_dpp = rekan_total_dpp - rekan_bayar_dpp
+            # Per-invoice net clamp: jumlahkan sisa tiap invoice. Overpay satu
+            # invoice TIDAK boleh menutupi hutang invoice lain (definisi 2).
+            rekan_sisa_dpp = sum(inv['sisa_dpp'] for inv in invs)
             rekan_total = sum(inv['total'] for inv in invs)
 
             # STATUS from oldest unpaid invoice still outstanding.
@@ -1260,7 +1312,7 @@ def build_jatuh_tempo_data(project_id=None):
             else:
                 paid_late = [inv['hari_lebih'] for inv in invs if inv['hari_lebih'] > 0]
                 status_hari = max(paid_late) if paid_late else 0
-            sisa_vendor = max(0, rekan_sisa_dpp)  # clamp: overpayment must not hide unpaid debt
+            sisa_vendor = rekan_sisa_dpp  # per-invoice net clamp → sudah ≥ 0
             status_label, status_key = _jt_status(status_hari, sisa_vendor)
 
             rekanan_list.append({
@@ -1271,15 +1323,50 @@ def build_jatuh_tempo_data(project_id=None):
                 'bayar_dpp': rekan_bayar_dpp,
                 'sisa_dpp': sisa_vendor,
                 'count': len(unpaid),
+                'jt_terdekat': oldest['jth_tempo'] if unpaid else '',
                 'status_hari': status_hari,
                 'status_label': status_label,
                 'status_key': status_key,
             })
 
+        # Aging & overdue ringkas (bulan ini): hanya invoice belum lunas.
+        # Bucket diturunkan dari hari_lebih (dinamis) agar konsisten dgn status.
+        aging = {'belum_jt': 0, 'due_today': 0, 'd1_30': 0,
+                 'd31_60': 0, 'd61_90': 0, 'd90plus': 0}
+        aging_count = dict.fromkeys(aging, 0)
+        overdue_sisa = 0
+        overdue_count = 0
+        for s in rekanan_list:
+            for inv in s['invoices']:
+                if inv['sisa_dpp'] <= 0:
+                    continue
+                h = inv['hari_lebih']
+                if h < 0:
+                    b = 'belum_jt'
+                elif h == 0:
+                    b = 'due_today'
+                elif h <= 30:
+                    b = 'd1_30'
+                elif h <= 60:
+                    b = 'd31_60'
+                elif h <= 90:
+                    b = 'd61_90'
+                else:
+                    b = 'd90plus'
+                aging[b] += inv['sisa_dpp']
+                aging_count[b] += 1
+                if h > 0:
+                    overdue_sisa += inv['sisa_dpp']
+                    overdue_count += 1
+
         report_rows.append({
             'key': mk,
             'label': label,
             'rekanan_list': rekanan_list,
+            'aging': aging,
+            'aging_count': aging_count,
+            'overdue_sisa': overdue_sisa,
+            'overdue_count': overdue_count,
         })
 
     return report_rows, valid_count

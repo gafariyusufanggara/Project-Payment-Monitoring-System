@@ -166,14 +166,14 @@ def build_jt_excel(month_key=None, project_id=None):
     ws.merge_range(hr, 2, hr, 6, 'Data Invoice', hdr_fmt)
     ws.merge_range(hr, 7, hr, 9, 'Nilai', hdr_fmt)
     ws.merge_range(hr, 10, hr, 11, 'Pembayaran DPP', hdr_fmt)
-    ws.merge_range(hr, 12, hr+1, 12, 'Sisa Hutang DPP', hdr_fmt)
-    ws.merge_range(hr, 13, hr+1, 13, 'Status', hdr_fmt)
+    ws.merge_range(hr, 12, hr+1, 12, 'SISA HUTANG DPP', hdr_fmt)
+    ws.merge_range(hr, 13, hr+1, 13, 'STATUS JT', hdr_fmt)
     ws.set_row(hr, 16)
     row += 1
 
     leaf = ['Tgl Berkas', 'No Invoice', 'PO / Kontrak', 'Jth Tempo', 'Deskripsi',
             'Hutang DPP', 'PPN', 'PPH',
-            'Tgl Bayar DPP', 'Bayar DPP', 'Sisa Hutang DPP', 'Status']
+            'Tgl Bayar DPP', 'Bayar DPP', 'SISA HUTANG DPP', 'STATUS JT']
     for i, lab in enumerate(leaf):
         ws.write(row, 2 + i, lab, hdr_fmt)
     ws.set_row(row, 20)

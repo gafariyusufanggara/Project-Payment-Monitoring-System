@@ -148,7 +148,8 @@ def laporan_jatuh_tempo():
     return render_template('laporan_jatuh_tempo.html',
                            report_rows=report_rows,
                            data_count=data_count,
-                           current_month=current_month)
+                           current_month=current_month,
+                           now_key=now_key)
 
 
 @bp.route('/laporan-ppn')
