@@ -2,11 +2,6 @@
 {% block title %}Levelansir / Rekanan Retensi - Project Payment Monitoring System{% endblock %}
 {% block topbar_title %}Retensi{% endblock %}
 {% block topbar_icon %}bi-person-lock{% endblock %}
-{% block topbar_badges %}
-<span class="topbar-badge tb-rekanan"><i class="bi bi-people"></i> {{ total_levelansir }} Levelansir</span>
-<span class="topbar-badge tb-total"><i class="bi bi-file-earmark"></i> {{ total_invoices }} Invoice</span>
-<span class="topbar-badge tb-nominal"><i class="bi bi-cash-stack"></i> {{ total_retensi|money }}</span>
-{% endblock %}
 
 {% block content %}
 <!--
@@ -20,11 +15,6 @@
 -->
 {% include "partials/_search_box.html" %}
 <style>
-  /* topbar badge: tint konsisten dgn page lain (pola document_status.html / verifikasi.html). */
-  .tb-rekanan { background: #eaf0f6; color: #16324f; }
-  .tb-total { background: #eaf0f6; color: #16324f; }
-  .tb-nominal { background: #fdf6d8; color: #8a6d00; }
-
   .cic-wrap { display: flex; flex-direction: column; gap: 16px; max-width: 1200px; margin: 0 auto; }
   .cic-sub { margin: 2px 0 0; font-size: .78rem; color: #667080; }
   .cic-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
@@ -63,7 +53,7 @@
   .ds-badge-amber { background: #fdf6d8; color: #8a6d00; }
   .ds-badge-gray { background: #eef0f2; color: #4d5766; }
   .cic-body { overflow-x: auto; }
-  .cic-table { width: 100%; font-size: .78rem; border-collapse: separate; border-spacing: 0; min-width: 760px; }
+  .cic-table { width: 100%; font-size: .78rem; border-collapse: separate; border-spacing: 0; min-width: 960px; }
   .cic-table thead th {
     background: #f7f8f9; color: #4d5766; font-size: .7rem; font-weight: 700;
     text-transform: uppercase; letter-spacing: .6px; padding: 10px 14px;
@@ -79,6 +69,14 @@
   }
   .cic-table .cell-dim { font-family: "JetBrains Mono", monospace; font-size: .75rem; color: #4d5766; font-variant-numeric: tabular-nums; }
   .cic-table .cell-desc { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cic-table .cell-invno { max-width: 140px; }
+  .cic-table .cell-po { max-width: 160px; }
+  .cic-rekanan.cx-on,
+  .cic-table [data-full].cx-on { cursor: pointer; }
+  .cic-rekanan.cx-on:hover,
+  .cic-table [data-full].cx-on:hover { text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 2px; }
+  .cic-rekanan.cx-on:focus-visible,
+  .cic-table [data-full].cx-on:focus-visible { outline: 2px solid #005691; outline-offset: 2px; border-radius: 4px; }
   ::selection { background: #eaf0f6; }
   @media (max-width: 1024px) { .cic-kpis { grid-template-columns: repeat(2, 1fr); } }
   @media (max-width: 768px) {
@@ -91,30 +89,35 @@
 </style>
 
 <div class="cic-wrap animate-in">
+  {% set scope = namespace(label='Semua Proyek') %}
+  {% for pid, label in project_list %}
+    {% if active_project_id|string == pid|string %}{% set scope.label = label %}{% endif %}
+  {% endfor %}
 
   <div class="cic-kpis">
-    <div class="ds-kpi ds-kpi--compact" tabindex="0">
-      <div class="kpi-ico kpi-ico--amber"><i class="bi bi-people"></i></div>
-      <div><div class="ds-kpi__label">Total Levelansir</div><div class="ds-kpi__value">{{ total_levelansir }}</div></div>
-    </div>
-    <div class="ds-kpi ds-kpi--compact" tabindex="0">
-      <div class="kpi-ico kpi-ico--blue"><i class="bi bi-file-earmark"></i></div>
-      <div><div class="ds-kpi__label">Total Invoice</div><div class="ds-kpi__value">{{ total_invoices }}</div></div>
-    </div>
     <div class="ds-kpi ds-kpi--compact ds-kpi--err" tabindex="0">
       <div class="kpi-ico kpi-ico--rose"><i class="bi bi-shield-lock"></i></div>
       <div><div class="ds-kpi__label">Total Retensi</div><div class="ds-kpi__value">{{ total_retensi|money }}</div></div>
     </div>
     <div class="ds-kpi ds-kpi--compact ds-kpi--ok" tabindex="0">
-      <div class="kpi-ico kpi-ico--green"><i class="bi bi-calculator"></i></div>
-      <div><div class="ds-kpi__label">Setelah Potongan</div><div class="ds-kpi__value">{{ total_setelah_retensi|money }}</div></div>
+      <div class="kpi-ico kpi-ico--green"><i class="bi bi-check2-circle"></i></div>
+      <div><div class="ds-kpi__label">Retensi Cair</div><div class="ds-kpi__value">{{ total_cair|money }}</div></div>
+    </div>
+    <div class="ds-kpi ds-kpi--compact" tabindex="0">
+      <div class="kpi-ico kpi-ico--amber"><i class="bi bi-hourglass-split"></i></div>
+      <div><div class="ds-kpi__label">Retensi Belum Cair</div><div class="ds-kpi__value">{{ total_belum_cair|money }}</div></div>
+    </div>
+    <div class="ds-kpi ds-kpi--compact" tabindex="0">
+      <div class="kpi-ico kpi-ico--blue"><i class="bi bi-calculator"></i></div>
+      <div><div class="ds-kpi__label">DPP Setelah Potongan</div><div class="ds-kpi__value">{{ total_setelah_retensi|money }}</div></div>
     </div>
   </div>
+  <p class="cic-sub">Retensi DPP (belum termasuk PPN) · {{ scope.label }}. Status dihitung dari sisa DPP: retensi dianggap bagian terakhir yang dibayar.</p>
 
   <div class="cic-toolbar">
     <div class="ds-search ft-search">
       <i class="bi bi-search"></i>
-      <input type="text" id="lrSearch" placeholder="Cari rekanan..." oninput="filterCards()" aria-label="Cari rekanan" />
+      <input type="text" id="lrSearch" placeholder="Cari rekanan, invoice, PO, deskripsi, status..." oninput="filterCards()" aria-label="Cari rekanan, invoice, PO, deskripsi, atau status retensi" />
       <button type="button" class="ft-search-clear" aria-label="Bersihkan pencarian" hidden>
         <i class="bi bi-x-lg"></i>
       </button>
@@ -125,14 +128,15 @@
 
   {% if levelansir_list %}
     {% for lv in levelansir_list %}
-    <section class="cic-group" data-name="{{ lv.nama|lower }}">
+    <section class="cic-group" data-name="{{ lv.nama|lower }}" data-search="{{ lv.search_text|lower }}">
       <div class="cic-head" role="button" tabindex="0" aria-expanded="true"
         onclick="this.classList.toggle('collapsed');this.setAttribute('aria-expanded', !this.classList.contains('collapsed'));this.parentElement.querySelector('.cic-body').classList.toggle('d-none');"
-        onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
+        onkeydown="if(event.target.closest('[data-full].cx-on'))return;if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
         <i class="bi bi-chevron-down cic-chevron" aria-hidden="true"></i>
-        <span class="cic-rekanan">{{ lv.nama }}</span>
+        <span class="cic-rekanan" data-full="{{ lv.nama }}" title="{{ lv.nama }}">{{ lv.nama }}</span>
         <span class="cic-count-pill">{{ lv.jumlah_invoice }}&times; invoice</span>
-        <span class="ds-badge ds-badge-amber">Retensi {{ lv.total_retensi|money }}</span>
+        <span class="ds-badge ds-badge-amber" title="Cair {{ lv.total_cair|money }} · Sisa {{ lv.total_sisa_retensi|money }}">Retensi {{ lv.total_retensi|money }}</span>
+        <span class="ds-badge {% if lv.status_retensi == 'Lunas' %}ds-badge-green{% elif lv.status_retensi == 'Cair Sebagian' %}ds-badge-amber{% elif lv.status_retensi == 'Ditahan' %}ds-badge-gray{% else %}ds-badge-red{% endif %}">{{ lv.status_retensi }}</span>
       </div>
       <div class="cic-body">
         <table class="cic-table">
@@ -140,31 +144,35 @@
             <tr>
               <th>No. Invoice</th>
               <th>No. PO / Kontrak</th>
-              <th>Kode Biaya</th>
               <th>Deskripsi</th>
-              <th class="num">Harga (Exld)</th>
+              <th class="num">Nilai DPP</th>
               <th class="num">Pot. Retensi</th>
-              <th class="num">Total</th>
-              <th>Status DPP</th>
+              <th class="num" title="11% × (Nilai DPP − Pot. Retensi)">Nilai PPN</th>
+              <th class="num">DPP Setelah Retensi</th>
+              <th class="num">Sisa Retensi</th>
+              <th>Status Retensi</th>
             </tr>
           </thead>
           <tbody>
             {% for inv in lv.invoices %}
             <tr>
-              <td class="cell-dim">{{ inv.no_invoice or '-' }}</td>
-              <td>{{ inv.no_po or '-' }}</td>
-              <td>{{ inv.kode_biaya or '-' }}</td>
-              <td class="cell-desc" title="{{ inv.deskripsi }}">{{ inv.deskripsi or '-' }}</td>
+              <td class="cell-dim"><div class="cell-desc cell-invno" data-full="{{ inv.no_invoice or '' }}" title="{{ inv.no_invoice or '' }}">{{ inv.no_invoice or '-' }}</div></td>
+              <td class="cell-dim"><div class="cell-desc cell-po" data-full="{{ inv.no_po or '' }}" title="{{ inv.no_po or '' }}">{{ inv.no_po or '-' }}</div></td>
+              <td class="cell-desc" data-full="{{ inv.deskripsi }}" title="{{ inv.deskripsi }}">{{ inv.deskripsi or '-' }}</td>
               <td class="cell-money">{{ inv.harga_exld|money if inv.harga_exld else '-' }}</td>
               <td class="cell-money">{{ inv.nilai_retensi|money }}</td>
+              <td class="cell-money">{{ inv.nilai_ppn|money }}</td>
               <td class="cell-money">{{ inv.total|money }}</td>
+              <td class="cell-money">{{ inv.sisa_retensi|money }}</td>
               <td>
-                {% if inv.status_dpp == 'Lunas' %}
-                <span class="ds-badge ds-badge-green">Lunas</span>
-                {% elif inv.status_dpp %}
-                <span class="ds-badge ds-badge-amber">{{ inv.status_dpp }}</span>
+                {% if inv.status_retensi == 'Lunas' %}
+                <span class="ds-badge ds-badge-green" title="Sisa retensi {{ inv.sisa_retensi|money }}">Lunas</span>
+                {% elif inv.status_retensi == 'Ditahan' %}
+                <span class="ds-badge ds-badge-gray" title="DPP net sudah dibayar; retensi {{ inv.sisa_retensi|money }} masih ditahan">Ditahan</span>
+                {% elif inv.status_retensi == 'Cair Sebagian' %}
+                <span class="ds-badge ds-badge-amber" title="Sisa retensi {{ inv.sisa_retensi|money }}">Cair Sebagian</span>
                 {% else %}
-                <span class="ds-badge ds-badge-gray">-</span>
+                <span class="ds-badge ds-badge-red" title="Sisa DPP {{ (inv.harga_exld - inv.bayar_dpp)|money }}; retensi belum cair">Belum Dibayar</span>
                 {% endif %}
               </td>
             </tr>
@@ -185,13 +193,19 @@
 
 <script>
 function filterCards() {
-  var q = document.getElementById('lrSearch').value.toLowerCase();
+  var q = document.getElementById('lrSearch').value.trim().toLowerCase();
   var cards = document.querySelectorAll('.cic-group');
   var shown = 0;
   cards.forEach(function(c) {
-    var name = c.getAttribute('data-name') || '';
-    var hit = name.indexOf(q) !== -1;
+    var hay = (c.getAttribute('data-search') || c.getAttribute('data-name') || '').toLowerCase();
+    var hit = hay.indexOf(q) !== -1;
     c.style.display = hit ? '' : 'none';
+    if (hit && q) {
+      var head = c.querySelector('.cic-head');
+      var body = c.querySelector('.cic-body');
+      if (head) { head.classList.remove('collapsed'); head.setAttribute('aria-expanded', 'true'); }
+      if (body) body.classList.remove('d-none');
+    }
     if (hit) shown++;
   });
   var el = document.getElementById('lrCount');

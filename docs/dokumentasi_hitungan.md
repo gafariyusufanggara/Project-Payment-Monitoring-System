@@ -204,3 +204,35 @@ tercatat, maka `sd_bayar > sd_hutang` → sisa menjadi negatif → dipotong
 - Pembayaran DPP dan PPN dilacak terpisah karena tanggal bayarnya bisa berbeda.
 - Sisa DPP dan sisa PPN tidak bisa langsung dijumlah karena PPN dihitung dari DPP.
 - Kolom `SISA HUTANG DPP` dan `SISA HUTANG PPN` di database sudah **tidak dipakai lagi** untuk laporan. Hanya kolom `SISA HUTANG (INCLD PPN)` yang masih digunakan untuk field `sisa` (total sisa include PPN) sebagai fallback.
+
+---
+
+## 9. Status Retensi (turunan, bukan input manual)
+
+Excel hanya mencatat `PEMBAYARAN DPP`; tidak ada kolom pembayaran retensi
+terpisah. Status retensi karena itu diturunkan dari sisa DPP dengan asumsi
+**retensi adalah bagian terakhir dari DPP yang dibayar** (lihat
+[`status_retensi()`](constants.py:336)):
+
+```python
+sisa_dpp     = max(0, HARGA (EXLD) - PEMBAYARAN DPP)
+sisa_retensi = min(POT. RETENSI, sisa_dpp)
+retensi_cair = POT. RETENSI - sisa_retensi
+```
+
+| Kondisi | Status | Arti |
+|---|---|---|
+| `sisa_dpp <= Rp 1` | **Lunas** | DPP dibayar penuh; retensi sudah dicairkan |
+| `sisa_dpp > POT. RETENSI + Rp 1` | **Belum Dibayar** | DPP neto belum lunas; retensi belum masuk tahap cair |
+| `sisa_dpp ≈ POT. RETENSI` | **Ditahan** | DPP neto sudah dibayar; retensi masih ditahan |
+| `0 < sisa_dpp < POT. RETENSI` | **Cair Sebagian** | Sebagian retensi sudah dicairkan |
+
+Konsekuensi: bila nanti Excel menambahkan kolom pembayaran retensi, rumus ini
+harus diganti agar memakai kolom tersebut — bukan lagi proxy dari DPP.
+
+**Nilai PPN (halaman Retensi):**
+
+```python
+nilai_ppn = max(0, HARGA (EXLD) - POT. RETENSI) * 11%
+```
+

@@ -5,11 +5,13 @@ Thin layer: pulls data from services (model), passes to templates (view).
 """
 from flask import Blueprint, render_template, request, redirect, url_for, jsonify, flash
 
+import re
+
 import db
 import db_audit
 from constants import (
     COLUMNS, FORM_FIELDS, DATE_FIELDS, NUMERIC_FIELDS,
-    CATEGORIES, STATUS_DPP, STATUS_PPN, KODE_BIAYA,
+    CATEGORIES, STATUS_DPP, STATUS_PPN, KODE_BIAYA, MONTH_NAMES,
     save_categories, calc_sisa, round_currency, CURRENCY_FIELDS,
 )
 from services.dashboard import build_dashboard_context
@@ -57,6 +59,15 @@ def data_hutang():
     # row tint in the Data Invoice table. Replaces the old overdue (red) tint.
     from services.verification import get_row_levels
     verif_row_levels = get_row_levels(pid)
+    # Bulan Jatuh Tempo yang benar-benar ada di data (opsi filter, label sama
+    # dengan page Jatuh Tempo: 'Oktober 2026').
+    jt_month_options = [
+        (k, f'{MONTH_NAMES[int(k[5:7])]} {k[:4]}')
+        for k in sorted({
+            (r.get('JTH TEMPO') or '')[:7] for r in rows
+            if re.match(r'^\d{4}-\d{2}$', (r.get('JTH TEMPO') or '')[:7])
+        })
+    ]
     ctx.update(
         tab='tabData',
         categories=all_cats,
@@ -69,6 +80,7 @@ def data_hutang():
         numeric_fields=NUMERIC_FIELDS,
         kode_biaya_list=KODE_BIAYA,
         has_retensi=has_retensi,
+        jt_month_options=jt_month_options,
     )
     return render_template('index.html', **ctx)
 
@@ -103,8 +115,10 @@ def edit_form(row_idx):
     row_data = next((r for r in data if r.get('_row') == row_idx), None)
     if row_data is None:
         return jsonify({'error': 'Row not found'}), 404
-    # Round currency fields so the form shows whole Rupiah values.
-    # Prevents false audit diffs when user saves without changes.
+    # Form edit = lapisan TAMPIL: kirim nominal yang sudah dibulatkan (rupiah
+    # utuh) supaya user melihat angka bersih. Nilai MENTAH di DB tidak diubah;
+    # endpoint POST /edit mempertahankan nilai mentah bila user tidak mengubah
+    # angkanya (lihat pengaman CURRENCY_FIELDS di sana).
     round_currency(row_data)
     return jsonify(row_data)
 
@@ -131,11 +145,20 @@ def edit(row_idx):
     # Apply only the fields the form can edit (FORM_FIELDS).
     for field in FORM_FIELDS:
         if field in request.form:
-            snapshot[field] = request.form.get(field, '').strip()
-
-    # Round currency fields to match DB values (prevents false audit diffs
-    # when calc_sisa recalculates rounded amounts vs stored decimals).
-    round_currency(snapshot)
+            posted = request.form.get(field, '').strip()
+            snapshot[field] = posted
+            # Nominal: form menampilkan angka BULAT (hasil pembulatan tampil),
+            # sedangkan DB menyimpan nilai MENTAH. Bila user tidak mengubah
+            # angkanya (yang terkirim == tampilan bulat dari nilai mentah),
+            # pertahankan nilai mentah asli agar tidak terjadi pembulatan
+            # berlapis yang menggeser nominal.
+            if field in CURRENCY_FIELDS and posted != '':
+                raw = row.get(field)
+                try:
+                    if posted == str(int(float(raw or 0) + (0.5 if float(raw or 0) >= 0 else -0.5))):
+                        snapshot[field] = raw if raw is not None else ''
+                except (ValueError, TypeError):
+                    pass
 
     # Recompute auto fields from the (possibly edited) values.
     calc_sisa(snapshot)
@@ -146,11 +169,7 @@ def edit(row_idx):
     # true pre-edit baseline, even after the main DB is re-imported.
     sid = db_audit.save_snapshot(row_idx, snapshot, original_row=row)
 
-    # Round original row for comparison — DB may store decimals
-    # (e.g. 132653.06) while snapshot is already rounded (132653).
-    orig_for_log = {c: row.get(c, '') for c in COLUMNS}
-    round_currency(orig_for_log)
-    db_audit.log_changes(row_idx, orig_for_log, snapshot)
+    db_audit.log_changes(row_idx, row, snapshot)
 
     if sid:
         flash('Data berhasil diedit! Salinan tersimpan di DB Audit (DB utama tidak diubah).', 'success')
@@ -234,6 +253,7 @@ def levelansir_retensi():
     pid = get_read_filter()
     levelansir_list = db.get_levelansir_retensi(pid)
     total_retensi = sum(lv['total_retensi'] for lv in levelansir_list)
+    total_cair = sum(lv['total_cair'] for lv in levelansir_list)
     total_invoices = sum(lv['jumlah_invoice'] for lv in levelansir_list)
     total_setelah_retensi = sum(
         inv.get('total', 0)
@@ -244,6 +264,8 @@ def levelansir_retensi():
         'levelansir_retensi.html',
         levelansir_list=levelansir_list,
         total_retensi=total_retensi,
+        total_cair=total_cair,
+        total_belum_cair=total_retensi - total_cair,
         total_setelah_retensi=total_setelah_retensi,
         total_levelansir=len(levelansir_list),
         total_invoices=total_invoices,

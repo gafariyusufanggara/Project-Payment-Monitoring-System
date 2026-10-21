@@ -363,6 +363,13 @@ flowchart LR
 | SISA PPN | `sum(SISA HUTANG PPN)` dari baris deduped |
 | % Lunas DPP | `total_bayar_dpp / total_harga_excl * 100` |
 
+**Catatan pembulatan**: seluruh nominal disimpan mentah (desimal asli formula
+Excel) dan dibulatkan **sekali** saat ditampilkan, sehingga total =
+`ROUND(Σ mentah)` — bukan `Σ ROUND(per baris)`. KPI karena itu bisa berbeda
+Rp 1–2 dari Excel yang membulatkan per baris (contoh rekap 20 Okt 2026: web
+`1.288.360.311` vs Excel `1.288.360.310`; drift 25 baris berdesimal). Dijaga
+oleh `smoke_ppn_kpi_rounding_check.py`.
+
 ### 5.2 Laporan Bulanan (`/laporan-bulanan`)
 
 **Service**: [`services/laporan.py:build_laporan_data()`](services/laporan.py:172)

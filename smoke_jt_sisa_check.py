@@ -91,4 +91,15 @@ assert _ov_cnt == _ov_exp, f"overdue_count != jumlah invoice telat ({_ov_cnt}/{_
 _nmonths = sum(1 for r in _past if r['overdue_sisa'] > 0)
 print(f"[4] strip tunggakan periode lalu: {_ov_total} · {_ov_cnt} invoice di {_nmonths} bulan OK")
 
+# [5] Warna status JT: belum lunas telat = merah, LUNAS telat = orange.
+_css = (_P(__file__).with_name('static') / 'css' / 'laporan.css').read_text(encoding='utf-8')
+assert "s.status_key == 'paid_late' %}c-late" in _tpl, "paid_late harus pakai kelas c-late"
+assert "s.status_key == 'paid_late' %}c-over" not in _tpl, "paid_late masih merah (c-over)"
+assert '.lp-tbl tbody tr.selected td.c-late { color: #a16207' in _css, "kelas .c-late (kuning) belum ada"
+assert '.lp-mtbl tbody td.st-paid_late { color: #a16207' in _css, "st-paid_late harus kuning, bukan merah"
+import services.jt_excel as _jt  # noqa: E402
+assert _jt._status_fmt('overdue', 'RED', 'YELLOW', 'GREEN', 'N') == 'RED'
+assert _jt._status_fmt('paid_late', 'RED', 'YELLOW', 'GREEN', 'N') == 'YELLOW'
+print("[5] status JT: overdue=merah, paid_late=kuning, due_today=biru (web + CSS + Excel) OK")
+
 print("\nALL CHECKS PASSED")

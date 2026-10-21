@@ -112,10 +112,35 @@
                 </button>
               </div>
             </div>
+            <div class="dd-filter dd-range" id="ddBayarPpn">
+              <button class="dd-toggle" type="button" aria-haspopup="true" aria-expanded="false">
+                <i class="bi bi-receipt" style="font-size: 0.78rem"></i>
+                <span class="dd-toggle-label">Tgl. Bayar PPN</span>
+                <i class="bi bi-chevron-down"></i>
+              </button>
+              <div class="dd-panel dd-panel--range">
+                <div class="dd-range-head">Rentang Tgl. Bayar PPN</div>
+                <label class="dd-range-field">Dari
+                  <input type="date" id="bayarPpnFrom" aria-label="Tgl. Bayar PPN dari tanggal" />
+                </label>
+                <label class="dd-range-field">Sampai
+                  <input type="date" id="bayarPpnTo" aria-label="Tgl. Bayar PPN sampai tanggal" />
+                </label>
+                <button type="button" class="dd-range-clear" id="bayarPpnClear">
+                  <i class="bi bi-x-circle"></i> Hapus rentang
+                </button>
+              </div>
+            </div>
           </div>
 
           <div class="ft-cluster">
             <span class="ft-cluster-label"><i class="bi bi-hourglass-split"></i> Jatuh Tempo</span>
+            <select class="filter-select" id="filterJtMonth" aria-label="Filter bulan jatuh tempo">
+              <option value="">JT: Semua Bulan</option>
+              {% for k, lbl in jt_month_options %}
+              <option value="{{ k }}">{{ lbl }}</option>
+              {% endfor %}
+            </select>
             <select class="filter-select" id="filterJatuhTempo" aria-label="Filter jatuh tempo">
               <option value="">JT: Semua</option>
               <option value="overdue">Lewat Jatuh Tempo</option>
@@ -126,11 +151,11 @@
           </div>
 
           <div class="ft-cluster">
-            <span class="ft-cluster-label"><i class="bi bi-cash-coin"></i> Sisa Hutang DPP</span>
+            <span class="ft-cluster-label"><i class="bi bi-cash-coin"></i> Sisa Hutang</span>
             <div class="dd-filter dd-range" id="ddSisa">
               <button class="dd-toggle" type="button" aria-haspopup="true" aria-expanded="false">
                 <i class="bi bi-sliders" style="font-size: 0.78rem"></i>
-                <span class="dd-toggle-label">Rentang Nilai</span>
+                <span class="dd-toggle-label">DPP</span>
                 <i class="bi bi-chevron-down"></i>
               </button>
               <div class="dd-panel dd-panel--range">
@@ -146,6 +171,29 @@
                   <button type="button" data-sisa-min="" data-sisa-max="0">Lunas</button>
                 </div>
                 <button type="button" class="dd-range-clear" id="sisaClear">
+                  <i class="bi bi-x-circle"></i> Hapus rentang
+                </button>
+              </div>
+            </div>
+            <div class="dd-filter dd-range" id="ddSisaPpn">
+              <button class="dd-toggle" type="button" aria-haspopup="true" aria-expanded="false">
+                <i class="bi bi-receipt-cutoff" style="font-size: 0.78rem"></i>
+                <span class="dd-toggle-label">PPN</span>
+                <i class="bi bi-chevron-down"></i>
+              </button>
+              <div class="dd-panel dd-panel--range">
+                <div class="dd-range-head">Rentang Sisa Hutang PPN</div>
+                <label class="dd-range-field">Min
+                  <input type="number" id="sisaPpnMin" min="0" step="any" inputmode="numeric" placeholder="0" aria-label="Sisa hutang PPN minimum" />
+                </label>
+                <label class="dd-range-field">Maks
+                  <input type="number" id="sisaPpnMax" min="0" step="any" inputmode="numeric" placeholder="Tak terbatas" aria-label="Sisa hutang PPN maksimum" />
+                </label>
+                <div class="dd-range-quick">
+                  <button type="button" data-sisa-ppn-min="1">Ada sisa</button>
+                  <button type="button" data-sisa-ppn-min="" data-sisa-ppn-max="0">Lunas</button>
+                </div>
+                <button type="button" class="dd-range-clear" id="sisaPpnClear">
                   <i class="bi bi-x-circle"></i> Hapus rentang
                 </button>
               </div>
@@ -247,7 +295,7 @@
             data-status-ppn="{{ row['STATUS TERHADAP PPN'] }}"
             data-kategori="{{ row['KATEGORI'] }}"
             data-kode-biaya="{{ (row['KODE BIAYA'] or row['KODE BIAYA2'] or '')[:3] }}"
-            data-tgl-berkas="{{ row['TGL TERIMA BERKAS'] }}"
+            data-tgl-berkas="{{ row['TGL TERIMA'] }}"
             data-tgl-bayar-dpp="{{ row['TGL BAYAR DPP'] }}"
             data-tgl-bayar-ppn="{{ row['TGL BAYAR PPN'] }}"
             data-tgl-jth-tempo="{{ row['JTH TEMPO'] }}"
@@ -283,14 +331,14 @@
                 {{ row['DESKRIPSI'] or '' }}
               </div>
             </td>
-            <td class="cell-date" data-type="date" data-v="{{ row['TGL TERIMA BERKAS'] }}">{{ row['TGL TERIMA BERKAS'] }}</td>
+            <td class="cell-date" data-type="date" data-v="{{ row['TGL TERIMA'] or '' }}">{{ row['TGL TERIMA'] or '-' }}</td>
             <td class="cell-inv-internal" data-type="text" data-v="{{ row['NO INVOICE INTERNAL'] or '' }}" data-full="{{ row['NO INVOICE INTERNAL'] or '' }}">
               {{ row['NO INVOICE INTERNAL'] or '-' }}
             </td>
             <td class="cell-invoice" data-type="text" data-v="{{ row['NO INVOICE'] or '' }}" data-full="{{ row['NO INVOICE'] or '' }}">{{ row['NO INVOICE'] or '-' }}</td>
             <td class="cell-po" data-type="text" data-v="{{ row['NO PO / KONTRAK'] or '' }}" data-full="{{ row['NO PO / KONTRAK'] or '' }}">{{ row['NO PO / KONTRAK'] or '-' }}</td>
             <td class="cell-date" data-type="date" data-v="{{ row['TGL INV'] or '' }}">{{ row['TGL INV'] or '-' }}</td>
-            <td class="cell-date" data-type="date" data-v="{{ row['TGL TERIMA'] or '' }}">{{ row['TGL TERIMA'] or '-' }}</td>
+            <td class="cell-date" data-type="date" data-v="{{ row['TGL TERIMA BERKAS'] }}">{{ row['TGL TERIMA BERKAS'] }}</td>
             <td class="cell-faktur" data-type="text" data-v="{{ row['NO SERI FAKTUR PAJAK'] if (row['NO SERI FAKTUR PAJAK'] or '').strip() not in ('', '0') else '' }}" data-full="{{ row['NO SERI FAKTUR PAJAK'] if (row['NO SERI FAKTUR PAJAK'] or '').strip() not in ('', '0') else '' }}">
               {{ row['NO SERI FAKTUR PAJAK'] if (row['NO SERI FAKTUR PAJAK'] or '').strip() not in ('', '0') else '-' }}
             </td>

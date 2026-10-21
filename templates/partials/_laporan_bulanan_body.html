@@ -9,7 +9,7 @@
 
   <!-- ═══ HERO SISA ═══ -->
   <div
-    class="lp-sisa-card lp-hero ds-kpi {% if k.sisa_dpp > 0 %}pos ds-kpi--err{% else %}zero ds-kpi--ok{% endif %}"
+    class="lp-sisa-card lp-hero ds-kpi {% if k.sisa_dpp|has_sisa %}pos ds-kpi--err{% else %}zero ds-kpi--ok{% endif %}"
   >
     <div class="lp-hero-main">
       <span class="kpi-lbl ds-kpi__label"
@@ -150,7 +150,7 @@
             <td class="c-p">{{ s.saat_ini_bayar|money }}</td>
             <td class="c-p">{{ s.sd_bayar|money }}</td>
             <td
-              class="{{ 'c-sisa-pos' if s.sisa_dpp > 0 else 'c-sisa-zero' }}"
+              class="{{ 'c-sisa-pos' if s.sisa_dpp|has_sisa else 'c-sisa-zero' }}"
             >
               {{ s.sisa_dpp|money }}
             </td>

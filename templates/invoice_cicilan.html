@@ -122,7 +122,7 @@
       <div class="kpi-ico kpi-ico--green"><i class="bi bi-cash"></i></div>
       <div><div class="ds-kpi__label">Terbayar DPP</div><div class="ds-kpi__value {{ 'cic-val-xs' if total_bayar|money|length > 17 else ('cic-val-sm' if total_bayar|money|length > 12 else '') }}">{{ total_bayar|money }}</div></div>
     </div>
-    <div class="ds-kpi ds-kpi--compact{% if total_sisa > 0 %} ds-kpi--err{% endif %}" tabindex="0">
+    <div class="ds-kpi ds-kpi--compact{% if total_sisa|has_sisa %} ds-kpi--err{% endif %}" tabindex="0">
       <div class="kpi-ico kpi-ico--rose"><i class="bi bi-exclamation-circle"></i></div>
       <div><div class="ds-kpi__label">Sisa DPP</div><div class="ds-kpi__value {{ 'cic-val-xs' if total_sisa|money|length > 17 else ('cic-val-sm' if total_sisa|money|length > 12 else '') }}">{{ total_sisa|money }}</div></div>
     </div>
@@ -152,14 +152,14 @@
         <span class="cic-inv">{{ g.invoice }}</span>
         {% if g.invoice_internal %}<span class="cic-internal">{{ g.invoice_internal }}</span>{% endif %}
         <span class="cic-count-pill">{{ g.row_count }}&times; cicilan</span>
-        {% if g.sisa_dpp > 0 %}
+        {% if g.sisa_dpp|has_sisa %}
         <span class="ds-badge ds-badge-red">Sisa {{ g.sisa_dpp|money }}</span>
         {% else %}
         <span class="ds-badge ds-badge-green">Lunas</span>
         {% endif %}
       </div>
       <div class="cic-prog" role="progressbar" aria-valuenow="{{ '%.1f'|format(pct) }}" aria-valuemin="0" aria-valuemax="100" aria-label="Progres bayar {{ g.invoice }}">
-        <span class="{% if g.sisa_dpp <= 0 %}done{% endif %}" style="width:{{ pct if pct <= 100 else 100 }}%"></span>
+        <span class="{% if not (g.sisa_dpp|has_sisa) %}done{% endif %}" style="width:{{ pct if pct <= 100 else 100 }}%"></span>
       </div>
       <div class="cic-body">
         <table class="cic-table">

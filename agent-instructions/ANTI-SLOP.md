@@ -1,33 +1,27 @@
-# Anti-Slop Policy
+# Anti-Slop
 
-## Objective
-Prevent unnecessary verbosity, speculative architecture, unrelated refactoring,
-duplicate abstractions, dependency inflation, cosmetic churn, debug residue,
-and unverified claims.
+Prevent: verbosity, speculative architecture, unrelated refactors, duplicate abstractions,
+dependency inflation, cosmetic churn, debug residue, unverified claims.
 
 ## Rules
 1. Solve the requested problem, not a larger hypothetical one.
-2. Search existing patterns before inventing alternatives.
-3. Prefer the smallest correct change.
-4. Do not add complexity merely because it is cleaner, more scalable, future-proof,
-   or might be useful later.
-5. Record unrelated issues rather than silently fixing them.
-6. Review the actual final diff; intent is not evidence.
+2. Search for existing patterns/utilities before writing new ones.
+3. Smallest correct change.
+4. No complexity "because it is cleaner / scalable / future-proof".
+5. Record unrelated issues; don't silently fix them.
+6. Review the actual diff; intent is not evidence.
 
-## Complexity Test
-Before adding a dependency, abstraction, layer, pattern, or service:
-- Is it required by acceptance criteria?
-- Does an existing solution already exist?
-- Can the requirement be solved more simply?
-- Is the added complexity justified now?
-- Is it in scope?
-- How will it be verified?
+## Complexity Gate (before adding a dependency, abstraction, layer, service)
+Required by acceptance criteria? Existing solution? Simpler way? Justified now? In scope?
+How will it be verified? Any "no" → don't add it.
+
+## Final Diff Review (cheap)
+1. `git status -s` and `git diff --stat` in the sandbox.
+2. Every changed file must map to the requirement.
+3. Scan diff (in sandbox) for debug prints, TODOs, commented code, secrets, formatting-only hunks.
+4. Remove anything unrelated.
 
 ## Never
-- disable tests/lint/type checks to make work appear successful
-- use broad replacements when semantic editing is safer
-- add speculative extensibility
-- introduce formatting churn unrelated to the task
-- hide failures or uncertainty
-
-Before DONE, verify requirement, scope, changed files, complexity, evidence, and limitations.
+- Disable tests/lint/type checks to look green.
+- Broad replacements when targeted edits are safer.
+- Hide failures or uncertainty.

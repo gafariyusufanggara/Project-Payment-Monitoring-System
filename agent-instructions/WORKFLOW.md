@@ -1,42 +1,27 @@
-# Agent Workflow
+# Workflow
 
-## REQUEST
-Translate the user's request into the actual task. Do not enlarge it.
+## Task Sizing (decides ceremony and tool budget)
+| Size | Example | Process | Exploration budget |
+|---|---|---|---|
+| S | typo, label, one-function fix | inspect → edit → verify | ≤ 3 calls |
+| M | feature/bug in 1–3 files | intent → search → short plan → edit → targeted verify | ≤ 8 calls |
+| L | cross-module, schema/API, high-risk | intent (+Matt) → `graphify query` → plan → edit → stronger verify | ≤ 15 calls, then re-plan |
 
-## INTENT
-Establish problem, affected user/system, expected behavior, acceptance criteria,
-constraints, non-goals, and uncertain assumptions.
+## Plan Template (M/L only, ≤ 8 lines)
+- Goal / acceptance criteria
+- Non-goals
+- Affected files/symbols (expected change surface)
+- Tools to use and why
+- Risks
+- Verification commands
 
-Use Matt Pocock skills when ambiguity materially affects correctness. Never invent
-business rules or missing project decisions.
+Skip the plan if it adds no decision value (S tasks).
 
-## CONTEXT
-Inspect the smallest relevant evidence set. Prefer project instructions,
-product/PRD docs, architecture/design/IA/ADR docs, implementation, tests, and CI.
-Use Graphify when structural impact is uncertain.
-
-Classify findings:
-- FACT — directly observed
-- INFERENCE — reasoned but unconfirmed
-- DECISION — explicitly chosen
-
-## PLAN
-For normal or larger work, make a concise plan containing goal, acceptance criteria,
-non-goals, affected modules/symbols, expected change surface, tools, risks, and verification.
-
-Do not create planning ceremony that adds no decision value.
-
-## IMPLEMENT
-Make the smallest coherent change. Preserve existing behavior unless the requirement changes it.
-Prefer semantic edits and established project patterns.
-
-## VERIFY
-Run the smallest verification set that can reasonably establish the acceptance criteria.
-Escalate only when evidence is insufficient.
-
-## ANTI-SLOP REVIEW
-Inspect the final diff/status for unrelated changes, unnecessary abstractions/dependencies,
-duplicate logic, debug artifacts, and unverified claims.
-
-## DONE
-Declare completion only when the evidence supports the claims being made.
+## Rules
+- Translate the request into the actual task; do not enlarge it.
+- Preserve existing behavior unless the requirement changes it.
+- Prefer targeted edits and established patterns.
+- If scope or budget is exceeded: stop, explain, update the plan.
+- After VERIFY and REVIEW, if source files changed: `graphify update .` (once), then DONE.
+- Non-trivial work: before finishing, index a ≤ 10 line handoff
+  (decisions, constraints, open issues) with `ctx_index` if not auto-captured.

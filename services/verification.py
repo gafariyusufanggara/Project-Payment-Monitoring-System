@@ -165,7 +165,7 @@ def check_row(row, duplicate_names=None, duplicate_row_ids=None,
     # COMPLETION: TGL TERIMA BERKAS LENGKAP kosong (berkas fisik belum lengkap)
     if _is_blank(row.get(_COL_TGL_BERKAS_LENGKAP)):
         completion = True
-        reasons.append('Tgl Terima kosong')
+        reasons.append('Tgl Berkas Lengkap kosong')
 
     # COMPLETION: NO BUKTI BAYAR DPP mengandung "uang pinjaman" (dokumen belum dibukukan)
     if is_pinjaman:

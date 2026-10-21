@@ -18,14 +18,16 @@ def _parse_date_safe(val):
         return None
 
 
-def _status_fmt(key, overdue_fmt, ok_fmt, neutral_fmt):
+def _status_fmt(key, overdue_fmt, late_fmt, ok_fmt, neutral_fmt):
     """Map server-computed status_key to Excel cell format.
 
     Keys come from _jt_status in services/laporan.py:
-      overdue/paid_late → red; paid_ok → green; due_today/not_due → neutral.
+      overdue → red; paid_late → yellow; paid_ok → green; due_today/not_due → neutral.
     """
-    if key in ('overdue', 'paid_late'):
+    if key == 'overdue':
         return overdue_fmt
+    if key == 'paid_late':
+        return late_fmt
     if key == 'paid_ok':
         return ok_fmt
     return neutral_fmt
@@ -132,7 +134,7 @@ def build_jt_excel(month_key=None, project_id=None):
 
     status_bands = {
         'overdue': _status_band('#fef2f2'),   # red tint — telat
-        'paid_late': _status_band('#fff7ed'), # orange tint — lunas telat
+        'paid_late': _status_band('#fefce8'), # yellow tint — lunas telat
         'due_today': _status_band('#fffbeb'), # amber tint — JT hari ini
         'paid_ok': _status_band('#f0fdf4'),   # green tint — lunas tepat
     }
@@ -140,6 +142,9 @@ def build_jt_excel(month_key=None, project_id=None):
     status_overdue_fmt = wb.add_format({'font_size': 9, 'border': 1, 'font_color': '#dc2626',
                                         'bold': True, 'valign': 'vcenter', 'align': 'center',
                                         'bg_color': '#fef2f2'})
+    status_late_fmt = wb.add_format({'font_size': 9, 'border': 1, 'font_color': '#a16207',
+                                     'bold': True, 'valign': 'vcenter', 'align': 'center',
+                                     'bg_color': '#fefce8'})
     status_ok_fmt = wb.add_format({'font_size': 9, 'border': 1, 'font_color': '#10b981',
                                     'bold': True, 'valign': 'vcenter', 'align': 'center',
                                     'bg_color': '#f0fdf4'})
@@ -228,7 +233,8 @@ def build_jt_excel(month_key=None, project_id=None):
             inv_jt_str = inv_jt.strftime('%d/%m/%Y') if inv_jt else ''
 
             status_str = inv.get('status_label', 'Tepat')
-            status_f = _status_fmt(inv.get('status_key', ''), status_overdue_fmt, status_ok_fmt, cell_l_fmt)
+            status_f = _status_fmt(inv.get('status_key', ''), status_overdue_fmt,
+                                   status_late_fmt, status_ok_fmt, cell_l_fmt)
 
             ws.write(row, 0, '', cell_fmt)
             ws.write(row, 1, '', cell_fmt)

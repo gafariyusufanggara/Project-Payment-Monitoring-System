@@ -62,7 +62,7 @@
           <table class="lp-mtbl">
             <thead>
               <tr>
-                <th scope="col" class="m-tgl">Tgl Berkas</th>
+                <th scope="col" class="m-tgl">Tgl Berkas Lengkap</th>
                 <th scope="col" class="m-tgl">Tgl Inv</th>
                 <th scope="col" class="m-inv">Invoice</th>
                 <th scope="col" class="m-po">PO / Kontrak</th>
@@ -139,7 +139,7 @@
       tRet += Number(inv.retensi) || 0;
       tB += Number(inv.bayar_dpp) || 0;
       tS += sisa;
-      const sisaClass = sisa > 0 ? 'sn' : 'sz';
+      const sisaClass = sisa > 1 ? 'sn' : 'sz';  // SISA_EPS (Rp 1)
       const cx = (window.CellExpand && CellExpand.td)
         ? CellExpand.td
         : ((t, c) => '<td class="' + c + '">' + esc(t) + '</td>');
@@ -254,6 +254,7 @@ const FILTER_DEFS = [
     { id: 'filterStatusBayar', group: 'Status', labelOf: v => ({ lunas: 'Lunas', sebagian: 'Sebagian', belum: 'Belum' }[v] || v) },
     { id: 'filterKategori',    group: 'Kategori' },
     { id: 'filterKodeBiaya',   group: 'Kode Biaya' },
+    { id: 'filterJtMonth',     group: 'Bulan JT', labelOf: v => (document.querySelector(`#filterJtMonth option[value="${v}"]`)?.textContent || v).trim() },
     { id: 'filterJatuhTempo',  group: 'Jatuh Tempo', labelOf: v => ({ overdue: 'Lewat JT', due: 'JT \u2264 30 hari', safe: 'Aman', unpaid_no_due: 'Tanpa JT' }[v] || v) },
 ];
 
@@ -261,6 +262,9 @@ const FILTER_DEFS = [
 // Jumlahkan kolom uang dari SEMUA baris yang lolos filter (lintas halaman), bukan
 // hanya halaman aktif. Kolom uang = <th> ber-kelas text-end; sel footer .dt-foot-val
 // dipetakan per posisi, jadi keduanya tetap sinkron meski kolom RETENSI ikut/tidak.
+// Nilai yang disimpan DB adalah MENTAH (source of truth = Excel). Footer
+// menjumlahkan nilai mentah itu (sama seperti SUM() Excel) lalu membulatkan
+// TOTAL-nya sekali (round-half-away) — bukan membulatkan per baris.
 function updateFootTotals() {
     const table = document.getElementById('dataTable');
     if (!table || !table.tFoot || !table.tHead) return;
@@ -274,11 +278,13 @@ function updateFootTotals() {
         if (tr.dataset.filterPass === '0') return;
         moneyIdx.forEach((ci, k) => {
             const td = tr.cells[ci];
-            sums[k] += parseFloat(td && td.dataset.v) || 0;
+            const v = parseFloat(td && td.dataset.v) || 0;
+            sums[k] += v;
         });
     });
     table.tFoot.querySelectorAll('.dt-foot-val').forEach((td, k) => {
-        td.textContent = k < sums.length ? Math.round(sums[k]).toLocaleString('id-ID') : '';
+        const t = k < sums.length ? (sums[k] >= 0 ? Math.round(sums[k]) : -Math.round(-sums[k])) : 0;
+        td.textContent = k < sums.length ? t.toLocaleString('id-ID') : '';
     });
 }
 
@@ -290,12 +296,17 @@ function filterTable() {
     const kbFilter = document.getElementById('filterKodeBiaya')?.value || '';
     const bayarFilter = document.getElementById('filterStatusBayar')?.value || '';
     const jtFilter = document.getElementById('filterJatuhTempo')?.value || '';
+    const jtMonth = document.getElementById('filterJtMonth')?.value || '';
     const blFrom = document.getElementById('berkasFrom')?.value || '';
     const blTo = document.getElementById('berkasTo')?.value || '';
     const byFrom = document.getElementById('bayarFrom')?.value || '';
     const byTo = document.getElementById('bayarTo')?.value || '';
+    const bpFrom = document.getElementById('bayarPpnFrom')?.value || '';
+    const bpTo = document.getElementById('bayarPpnTo')?.value || '';
     const sisaMin = document.getElementById('sisaMin')?.value ?? '';
     const sisaMax = document.getElementById('sisaMax')?.value ?? '';
+    const sisaPpnMin = document.getElementById('sisaPpnMin')?.value ?? '';
+    const sisaPpnMax = document.getElementById('sisaPpnMax')?.value ?? '';
     // Checkbox "Sembunyikan Dokumen Revisi" (di toolbar, sebelah tombol Kolom).
     const hideRevisi = document.getElementById('filterRevisi')?.checked || false;
 
@@ -321,9 +332,12 @@ function filterTable() {
         const blMatch = inRange(bl, blFrom, blTo);
         const by = tr.dataset.tglBayarDpp || '';
         const byMatch = inRange(by, byFrom, byTo);
+        const bp = tr.dataset.tglBayarPpn || '';
+        const bpMatch = inRange(bp, bpFrom, bpTo);
 
         const sisaDppRaw = parseFloat(tr.dataset.sisaDpp) || 0;
         const sisaMatch = inNumRange(tr.dataset.sisaDpp, sisaMin, sisaMax);
+        const sisaPpnMatch = inNumRange(tr.dataset.sisaPpn, sisaPpnMin, sisaPpnMax);
 
         // "Sembunyikan Dokumen Revisi": revisi = TGL TERIMA (Tgl Berkas Lengkap)
         // kosong — penanda yang sama dengan badge sidebar & halaman Status Dokumen.
@@ -341,8 +355,7 @@ function filterTable() {
         }
 
         // Jatuh tempo derived from JTH TEMPO + payment state.
-        let jtMatch = true;
-        if (jtFilter) {
+        let jtMatch = true;        if (jtFilter) {
             const sisaPpn = parseFloat(tr.dataset.sisaPpn) || 0;
             const belumLunas = (sisaDppRaw > EPS) || (sisaPpn > EPS);
             const jt = tr.dataset.tglJthTempo || '';
@@ -353,8 +366,13 @@ function filterTable() {
             else if (jtFilter === 'safe') jtMatch = !belumLunas || (hasJt && jt > in30Str);
         }
 
+        // Bulan jatuh tempo (YYYY-MM) — opsi sama dengan page Jatuh Tempo.
+        const jtMonthMatch = !jtMonth
+            || (tr.dataset.tglJthTempo || '').slice(0, 7) === jtMonth;
+
         const match = searchMatch && dppMatch && ppnMatch && catMatch && kbMatch
-            && blMatch && byMatch && sisaMatch && bayarMatch && jtMatch && revisiMatch;
+            && blMatch && byMatch && bpMatch && sisaMatch && sisaPpnMatch
+            && bayarMatch && jtMatch && jtMonthMatch && revisiMatch;
         // Publish filter result; table-enhance.js paginates only passing rows.
         tr.dataset.filterPass = match ? '1' : '0';
         if (match) visible++;
@@ -414,7 +432,8 @@ function updateFilterChips() {
 
     const ranges = [
         { key: 'berkas', from: 'berkasFrom', to: 'berkasTo', label: 'Tgl. Berkas' },
-        { key: 'bayar', from: 'bayarFrom', to: 'bayarTo', label: 'Tgl. Bayar' },
+        { key: 'bayar', from: 'bayarFrom', to: 'bayarTo', label: 'Tgl. Bayar DPP' },
+        { key: 'bayarPpn', from: 'bayarPpnFrom', to: 'bayarPpnTo', label: 'Tgl. Bayar PPN' },
     ];
     ranges.forEach(r => {
         const from = document.getElementById(r.from)?.value || '';
@@ -432,6 +451,15 @@ function updateFilterChips() {
         const val = sMin && sMax ? `${fmt(sMin)} \u2013 ${fmt(sMax)}`
             : (sMin ? `\u2265 ${fmt(sMin)}` : `\u2264 ${fmt(sMax)}`);
         chips.push({ type: 'sisa', key: 'sisa', label: 'Sisa DPP', value: val });
+    }
+
+    const spMin = document.getElementById('sisaPpnMin')?.value || '';
+    const spMax = document.getElementById('sisaPpnMax')?.value || '';
+    if (spMin || spMax) {
+        const fmt = n => 'Rp ' + Math.round(parseFloat(n) || 0).toLocaleString('id-ID');
+        const val = spMin && spMax ? `${fmt(spMin)} \u2013 ${fmt(spMax)}`
+            : (spMin ? `\u2265 ${fmt(spMin)}` : `\u2264 ${fmt(spMax)}`);
+        chips.push({ type: 'sisaPpn', key: 'sisaPpn', label: 'Sisa PPN', value: val });
     }
 
     box.innerHTML = '';
@@ -477,7 +505,8 @@ function countActiveFilters() {
         const el = document.getElementById(def.id);
         if (el && el.value) n++;
     });
-    ['berkasFrom', 'berkasTo', 'bayarFrom', 'bayarTo', 'sisaMin', 'sisaMax'].forEach(id => {
+    ['berkasFrom', 'berkasTo', 'bayarFrom', 'bayarTo', 'bayarPpnFrom', 'bayarPpnTo',
+ 'sisaMin', 'sisaMax', 'sisaPpnMin', 'sisaPpnMax'].forEach(id => {
         const el = document.getElementById(id);
         if (el && el.value !== '' && el.value != null) n++;
     });
@@ -510,7 +539,9 @@ function clearFilter(key) {
     if (key === 'search') { const el = document.getElementById('searchInput'); if (el) el.value = ''; }
     else if (key === 'berkas') { ['berkasFrom', 'berkasTo'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; }); }
     else if (key === 'bayar') { ['bayarFrom', 'bayarTo'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; }); }
+    else if (key === 'bayarPpn') { ['bayarPpnFrom', 'bayarPpnTo'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; }); }
     else if (key === 'sisa') { ['sisaMin', 'sisaMax'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; }); }
+    else if (key === 'sisaPpn') { ['sisaPpnMin', 'sisaPpnMax'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; }); }
     else { const el = document.getElementById(key); if (el) el.value = ''; }
     syncSearchClear();
     filterTable();
@@ -555,7 +586,8 @@ document.getElementById('filterReset')?.addEventListener('click', function () {
     if (inp) inp.value = '';
     syncSearchClear();
     // Clear the date-range + value-range filters.
-    ['berkasFrom', 'berkasTo', 'bayarFrom', 'bayarTo', 'sisaMin', 'sisaMax'].forEach(id => {
+    ['berkasFrom', 'berkasTo', 'bayarFrom', 'bayarTo', 'bayarPpnFrom', 'bayarPpnTo',
+ 'sisaMin', 'sisaMax', 'sisaPpnMin', 'sisaPpnMax'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
     });
@@ -584,12 +616,14 @@ function updateRangeLabels() {
     };
     setLabel('ddBerkas', document.getElementById('berkasFrom')?.value, document.getElementById('berkasTo')?.value, fmt);
     setLabel('ddBayar', document.getElementById('bayarFrom')?.value, document.getElementById('bayarTo')?.value, fmt);
+    setLabel('ddBayarPpn', document.getElementById('bayarPpnFrom')?.value, document.getElementById('bayarPpnTo')?.value, fmt);
     const fmtMoney = n => 'Rp ' + Math.round(parseFloat(n) || 0).toLocaleString('id-ID');
     setLabel('ddSisa', document.getElementById('sisaMin')?.value, document.getElementById('sisaMax')?.value, fmtMoney);
+    setLabel('ddSisaPpn', document.getElementById('sisaPpnMin')?.value, document.getElementById('sisaPpnMax')?.value, fmtMoney);
 }
 document.querySelectorAll('.dd-toggle-label').forEach(l => { l.dataset.base = l.textContent; });
 
-[['berkasFrom', 'berkasTo'], ['bayarFrom', 'bayarTo']].forEach(([fId, tId]) => {
+[['berkasFrom', 'berkasTo'], ['bayarFrom', 'bayarTo'], ['bayarPpnFrom', 'bayarPpnTo']].forEach(([fId, tId]) => {
     const fEl = document.getElementById(fId);
     const tEl = document.getElementById(tId);
     const sync = () => {
@@ -605,7 +639,8 @@ document.querySelectorAll('.dd-toggle-label').forEach(l => { l.dataset.base = l.
 });
 
 [['berkasClear', 'berkasFrom', 'berkasTo'], ['bayarClear', 'bayarFrom', 'bayarTo'],
- ['sisaClear', 'sisaMin', 'sisaMax']].forEach(([btnId, fId, tId]) => {
+ ['bayarPpnClear', 'bayarPpnFrom', 'bayarPpnTo'],
+ ['sisaClear', 'sisaMin', 'sisaMax'], ['sisaPpnClear', 'sisaPpnMin', 'sisaPpnMax']].forEach(([btnId, fId, tId]) => {
     document.getElementById(btnId)?.addEventListener('click', () => {
         const a = document.getElementById(fId), b = document.getElementById(tId);
         if (a) a.value = '';
@@ -615,13 +650,14 @@ document.querySelectorAll('.dd-toggle-label').forEach(l => { l.dataset.base = l.
     });
 });
 
-// Value-range quick presets ("Ada sisa" / "Lunas").
-document.querySelectorAll('[data-sisa-min], [data-sisa-max]').forEach(btn => {
+// Value-range quick presets ("Ada sisa" / "Lunas") — DPP dan PPN.
+document.querySelectorAll('[data-sisa-min], [data-sisa-max], [data-sisa-ppn-min], [data-sisa-ppn-max]').forEach(btn => {
     btn.addEventListener('click', () => {
-        const minEl = document.getElementById('sisaMin');
-        const maxEl = document.getElementById('sisaMax');
-        if (minEl) minEl.value = btn.dataset.sisaMin || '';
-        if (maxEl) maxEl.value = btn.dataset.sisaMax || '';
+        const isPpn = 'sisaPpnMin' in btn.dataset || 'sisaPpnMax' in btn.dataset;
+        const minEl = document.getElementById(isPpn ? 'sisaPpnMin' : 'sisaMin');
+        const maxEl = document.getElementById(isPpn ? 'sisaPpnMax' : 'sisaMax');
+        if (minEl) minEl.value = btn.dataset[isPpn ? 'sisaPpnMin' : 'sisaMin'] || '';
+        if (maxEl) maxEl.value = btn.dataset[isPpn ? 'sisaPpnMax' : 'sisaMax'] || '';
         updateRangeLabels();
         filterTable();
     });
@@ -629,7 +665,7 @@ document.querySelectorAll('[data-sisa-min], [data-sisa-max]').forEach(btn => {
 
 // Live value-range (number inputs) — debounced so typing stays smooth.
 let sisaTimer = null;
-['sisaMin', 'sisaMax'].forEach(id => {
+['sisaMin', 'sisaMax', 'sisaPpnMin', 'sisaPpnMax'].forEach(id => {
     document.getElementById(id)?.addEventListener('input', () => {
         clearTimeout(sisaTimer);
         sisaTimer = setTimeout(() => { updateRangeLabels(); filterTable(); }, 220);
@@ -904,7 +940,7 @@ function buildMonthlyChart(data, year) {
                 <td style="font-weight:600">${m[1].label}</td>
                 <td class="cell-money">${money(m[1].total_hutang_dpp)}</td>
                 <td class="cell-money" style="color:#0f766e">${money(m[1].total_bayar_dpp)}</td>
-                <td class="cell-money" style="color:${m[1].sisa_dpp > 0 ? '#b42318' : '#0f766e'};font-weight:700">${money(m[1].sisa_dpp)}</td>
+                <td class="cell-money" style="color:${m[1].sisa_dpp > 1 ? '#b42318' : '#0f766e'};font-weight:700">${money(m[1].sisa_dpp)}</td>
             </tr>
         `).join('');
     }
@@ -941,7 +977,7 @@ function buildDailyChart(data, month) {
                 <td style="font-weight:600">${d[1].tgl}</td>
                 <td class="cell-money">${money(d[1].hutang_jt_dpp)}</td>
                 <td class="cell-money" style="color:#0f766e">${money(d[1].bayar_jt_dpp)}</td>
-                <td class="cell-money" style="color:${d[1].sisa_dpp > 0 ? '#b42318' : '#0f766e'};font-weight:700">${money(d[1].sisa_dpp)}</td>
+                <td class="cell-money" style="color:${d[1].sisa_dpp > 1 ? '#b42318' : '#0f766e'};font-weight:700">${money(d[1].sisa_dpp)}</td>
             </tr>
         `).join('') : '<tr><td colspan="4" class="text-center text-muted small py-3">Tidak ada data</td></tr>';
     }

@@ -379,7 +379,10 @@
 .lp-tbl tbody td.c-rekan { text-align: left; font-weight: 700; color: #333333; font-size: 0.76rem; }
 .lp-tbl tbody td.c-rekan:hover { color: var(--lp-primary); }
 .lp-tbl tbody td.c-over { color: var(--danger, #e74c3c); font-weight: 800; }
-.lp-tbl tbody td.c-warn { color: #7a6000; font-weight: 800; }
+.lp-tbl tbody td.c-warn { color: #1d4ed8; font-weight: 800; }
+.lp-tbl tbody td.c-late,
+.lp-tbl tbody tr:hover td.c-late,
+.lp-tbl tbody tr.selected td.c-late { color: #a16207; font-weight: 800; }
 .lp-tbl tbody td.c-ok { color: var(--success, #2ECC40); font-weight: 600; }
 .lp-tbl tbody td.c-muted { color: #3d434c; font-weight: 600; }
 .lp-tbl tbody td.c-sisa-pos { color: var(--danger, #e74c3c); font-weight: 700; }
@@ -508,9 +511,10 @@
 }
 .lp-mtbl .em td { text-align: center; padding: 36px 20px; color: var(--muted, #667080); font-family: "Inter", system-ui, sans-serif; font-size: 0.75rem; }
 .lp-mtbl .em td i { font-size: 1.2rem; display: block; margin-bottom: 8px; color: #c9ccd1; }
-.lp-mtbl td.st-overdue, .lp-mtbl td.st-paid_late { color: var(--danger, #e74c3c); font-weight: 800; white-space: nowrap; }
+.lp-mtbl td.st-overdue { color: var(--danger, #e74c3c); font-weight: 800; white-space: nowrap; }
+.lp-mtbl tbody td.st-paid_late { color: #a16207; font-weight: 800; white-space: nowrap; }
 .lp-mtbl td.st-paid_ok { color: var(--success, #2ECC40); font-weight: 700; white-space: nowrap; }
-.lp-mtbl td.st-due_today { color: #7a6000; font-weight: 800; white-space: nowrap; }
+.lp-mtbl td.st-due_today { color: #1d4ed8; font-weight: 800; white-space: nowrap; }
 .lp-mtbl td.st-not_due { color: #3d434c; font-weight: 600; white-space: nowrap; }
 
 /* ── Responsive ── */

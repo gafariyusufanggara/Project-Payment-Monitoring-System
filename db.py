@@ -5,7 +5,7 @@ import os
 import sqlite3
 from datetime import datetime, date
 
-from constants import COLUMNS, DATE_FIELDS, NUMERIC_FIELDS, safe_float, parse_date, calc_sisa, round_currency
+from constants import COLUMNS, DATE_FIELDS, NUMERIC_FIELDS, safe_float, parse_date, calc_sisa, round_currency, status_retensi
 
 DB_DIR = os.environ.get('DATA_DIR', os.path.dirname(os.path.abspath(__file__)))
 DB_FILE = os.path.join(DB_DIR, 'monitoring_hutang.db')
@@ -178,7 +178,6 @@ def write_row(data_dict, row_idx=None):
     If row_idx is given → UPDATE that _row.
     """
     with _conn() as conn:
-        round_currency(data_dict)
         keys = list(data_dict.keys())
         if row_idx is None:
             cols = ', '.join(f'"{k}"' for k in keys)
@@ -252,6 +251,8 @@ def import_rows(rows_data):
         cols = ', '.join(f'"{k}"' for k in keys)
         placeholders = ', '.join('?' for _ in keys)
         for rd in rows_data:
+            # Simpan nilai MENTAH apa adanya (source of truth = Excel, termasuk
+            # desimal dari formula). Pembulatan rupiah hanya di lapisan tampil.
             try:
                 conn.execute(f'INSERT INTO hutang ({cols}) VALUES ({placeholders})',
                              [rd.get(k, '') for k in keys])
@@ -265,9 +266,12 @@ def import_rows(rows_data):
 def get_levelansir_retensi(project_id=None):
     """Return levelansir/rekanan with POT. RETENSI > 0, grouped by name.
 
-    Returns list of dicts: {nama, total_retensi, jumlah_invoice, invoices: [...]}
+    Returns list of dicts: {nama, total_retensi, total_cair, total_sisa_retensi,
+                            jumlah_invoice, status_retensi, invoices: [...]}
     Each invoice entry: {row, no_invoice, no_po, nilai_retensi, harga_exld,
-                         project_id, kode_biaya, deskripsi, sisa_hutang}
+                         nilai_ppn, bayar_dpp, persen_retensi, total, status_retensi,
+                         sisa_retensi, retensi_cair, project_id, kode_biaya,
+                         deskripsi, sisa_hutang}
     Respects project_id filter (same semantics as read_data).
     """
     where = ''
@@ -284,6 +288,7 @@ def get_levelansir_retensi(project_id=None):
                    "NO PO / KONTRAK"            AS no_po,
                    "POT. RETENSI"               AS retensi,
                    "HARGA (EXLD)"               AS harga_exld,
+                   "PEMBAYARAN DPP"             AS bayar_dpp,
                    "project_id"                 AS project_id,
                    "KODE BIAYA2"                AS kode_biaya,
                    "DESKRIPSI"                  AS deskripsi,
@@ -302,23 +307,63 @@ def get_levelansir_retensi(project_id=None):
     for r in rows:
         key = (r['nama'] or '').strip()
         if key not in grouped:
-            grouped[key] = {'nama': key, 'total_retensi': 0.0, 'jumlah_invoice': 0, 'invoices': []}
+            grouped[key] = {
+                'nama': key,
+                'total_retensi': 0.0,
+                'total_harga': 0.0,
+                'total_bayar_dpp': 0.0,
+                'total_cair': 0.0,
+                'total_sisa_retensi': 0.0,
+                'jumlah_invoice': 0,
+                'invoices': [],
+                '_search': [key],
+            }
         ret = float(r['retensi'] or 0)
-        grouped[key]['total_retensi'] += ret
-        grouped[key]['jumlah_invoice'] += 1
         harga_exld = float(r['harga_exld'] or 0)
+        bayar_dpp = float(r['bayar_dpp'] or 0)
+        st_ret, sisa_ret, cair = status_retensi(harga_exld, ret, bayar_dpp)
+        nilai_ppn = max(0, harga_exld - ret) * 0.11
+        grouped[key]['total_retensi'] += ret
+        grouped[key]['total_harga'] += harga_exld
+        grouped[key]['total_bayar_dpp'] += bayar_dpp
+        grouped[key]['total_cair'] += cair
+        grouped[key]['total_sisa_retensi'] += sisa_ret
+        grouped[key]['jumlah_invoice'] += 1
+        grouped[key]['_search'].extend([
+            r['no_invoice'] or '', r['no_po'] or '',
+            r['kode_biaya'] or '', r['deskripsi'] or '', st_ret,
+        ])
         grouped[key]['invoices'].append({
             '_row': r['_row'],
             'no_invoice': r['no_invoice'] or '',
             'no_po': r['no_po'] or '',
             'nilai_retensi': ret,
             'harga_exld': harga_exld,
+            'nilai_ppn': nilai_ppn,
+            'bayar_dpp': bayar_dpp,
+            'persen_retensi': (ret / harga_exld * 100) if harga_exld else 0.0,
+            'total': max(0, harga_exld - ret),
+            'status_retensi': st_ret,
+            'sisa_retensi': sisa_ret,
+            'retensi_cair': cair,
             'project_id': r['project_id'] or '',
             'kode_biaya': r['kode_biaya'] or '',
             'deskripsi': r['deskripsi'] or '',
-            'total': max(0, harga_exld - ret),
             'status_dpp': r['status_dpp'] or '',
         })
+
+    for g in grouped.values():
+        g['persen_retensi'] = (
+            g['total_retensi'] / g['total_harga'] * 100 if g['total_harga'] else 0.0
+        )
+        statuses = [i['status_retensi'] for i in g['invoices']]
+        g['status_retensi'] = (
+            'Lunas' if g['total_sisa_retensi'] <= 1.0
+            else 'Cair Sebagian' if g['total_cair'] > 1.0
+            else 'Ditahan' if statuses and all(s == 'Ditahan' for s in statuses)
+            else 'Belum Dibayar'
+        )
+        g['search_text'] = ' '.join(g.pop('_search'))
 
     return sorted(grouped.values(), key=lambda x: (-x['total_retensi'], x['nama']))
 

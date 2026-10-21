@@ -9,7 +9,7 @@ import os
 import sqlite3
 from datetime import datetime
 
-from constants import safe_float, effective_invoice
+from constants import safe_float, effective_invoice, status_retensi
 
 DB_DIR = os.environ.get('DATA_DIR', os.path.dirname(os.path.abspath(__file__)))
 DB_FILE = os.path.join(DB_DIR, 'monitoring_hutang.db')
@@ -155,12 +155,14 @@ def get_retensi_rows(project_id=None):
     Sama seperti halaman Levelansir/Retensi (db.get_levelansir_retensi):
     retensi adalah uang yang ditahan (bukan utang aktif), sehingga TIDAK
     disyaratkan TGL TERIMA dan TIDAK menerapkan aturan exclude. Semua baris
-    dengan POT. RETENSI > 0 dihitung, agar tombol "Retensi Proyek" menampilkan
+    dengan POT. RETENSI > 0 dihitung, agar KPI retensi proyek mencakup
     seluruh retensi.
 
-    Returns list of dicts: {nama, total_retensi, jumlah_invoice, invoices: [...]}
+    Returns list of dicts: {nama, total_retensi, total_cair, total_sisa_retensi,
+                            jumlah_invoice, status_retensi, invoices: [...]}
     Each invoice entry: {_row, no_invoice, tgl_terima, nilai_retensi,
-                         harga_exld, kode_biaya, deskripsi, kategori}
+                         harga_exld, bayar_dpp, status_retensi, sisa_retensi,
+                         retensi_cair, kode_biaya, deskripsi, kategori}
     """
     where = ''
     params = ()
@@ -176,6 +178,7 @@ def get_retensi_rows(project_id=None):
                    "TGL TERIMA"                AS tgl_terima,
                    "POT. RETENSI"              AS retensi,
                    "HARGA (EXLD)"              AS harga_exld,
+                   "PEMBAYARAN DPP"            AS bayar_dpp,
                    "KODE BIAYA2"               AS kode_biaya,
                    "DESKRIPSI"                 AS deskripsi,
                    "KATEGORI"                  AS kategori
@@ -191,20 +194,49 @@ def get_retensi_rows(project_id=None):
     for r in rows:
         key = (r['nama'] or '').strip()
         if key not in grouped:
-            grouped[key] = {'nama': key, 'total_retensi': 0.0, 'jumlah_invoice': 0, 'invoices': []}
+            grouped[key] = {
+                'nama': key,
+                'total_retensi': 0.0,
+                'total_harga': 0.0,
+                'total_bayar_dpp': 0.0,
+                'total_cair': 0.0,
+                'total_sisa_retensi': 0.0,
+                'jumlah_invoice': 0,
+                'invoices': [],
+            }
         ret = float(r['retensi'] or 0)
+        harga_exld = float(r['harga_exld'] or 0)
+        bayar_dpp = float(r['bayar_dpp'] or 0)
+        st_ret, sisa_ret, cair = status_retensi(harga_exld, ret, bayar_dpp)
         grouped[key]['total_retensi'] += ret
+        grouped[key]['total_harga'] += harga_exld
+        grouped[key]['total_bayar_dpp'] += bayar_dpp
+        grouped[key]['total_cair'] += cair
+        grouped[key]['total_sisa_retensi'] += sisa_ret
         grouped[key]['jumlah_invoice'] += 1
         grouped[key]['invoices'].append({
             '_row': r['_row'],
             'no_invoice': r['no_invoice'] or '',
             'tgl_terima': r['tgl_terima'] or '',
             'nilai_retensi': ret,
-            'harga_exld': float(r['harga_exld'] or 0),
+            'harga_exld': harga_exld,
+            'bayar_dpp': bayar_dpp,
+            'status_retensi': st_ret,
+            'sisa_retensi': sisa_ret,
+            'retensi_cair': cair,
             'kode_biaya': r['kode_biaya'] or '',
             'deskripsi': r['deskripsi'] or '',
             'kategori': r['kategori'] or '',
         })
+
+    for g in grouped.values():
+        statuses = [i['status_retensi'] for i in g['invoices']]
+        g['status_retensi'] = (
+            'Lunas' if g['total_sisa_retensi'] <= 1.0
+            else 'Cair Sebagian' if g['total_cair'] > 1.0
+            else 'Ditahan' if statuses and all(s == 'Ditahan' for s in statuses)
+            else 'Belum Dibayar'
+        )
 
     return sorted(grouped.values(), key=lambda x: (-x['total_retensi'], x['nama']))
 
@@ -308,15 +340,3 @@ def get_pph_summary(project_id):
     total_pph = sum(safe_float(r.get('POT. PPH')) for r in rows)
     total_dpp = sum(safe_float(r.get('HARGA (EXLD)')) for r in rows)
     return {'total_pph': float(total_pph), 'total_dpp': float(total_dpp)}
-
-
-def get_retensi_from_hutang(project_id):
-    """Total retensi for a project = SUM(POT. RETENSI) over ALL rows.
-
-    Matches the Levelansir/Retensi page (db.get_levelansir_retensi): retention
-    is money withheld, not an active debt, so it does NOT require TGL TERIMA
-    and is NOT subject to the exclude rules. No dedup either.
-    """
-    import db as _db
-    rows = _db.read_data(project_id)
-    return float(sum(safe_float(r.get('POT. RETENSI')) for r in rows))

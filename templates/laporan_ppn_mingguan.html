@@ -63,7 +63,7 @@
   <div class="month-section" id="section-{{ r.key }}"{% if r.key != current_week %} hidden{% endif %}>
     {% set k = r.kpi %}
 
-    <div class="lp-sisa-card lp-hero ds-kpi {% if k.sisa_ppn > 0 %}pos ds-kpi--err{% else %}zero ds-kpi--ok{% endif %}">
+    <div class="lp-sisa-card lp-hero ds-kpi {% if k.sisa_ppn|has_sisa %}pos ds-kpi--err{% else %}zero ds-kpi--ok{% endif %}">
       <div class="lp-hero-main">
         <span class="kpi-lbl ds-kpi__label"><i class="bi bi-wallet2"></i> Sisa PPN · {{ r.label }}</span>
         <span class="kpi-num ds-kpi__value">{{ k.sisa_ppn|money }}</span>
@@ -156,7 +156,7 @@
               <td class="c-p">{{ s.lalu_bayar_ppn|money }}</td>
               <td class="c-p">{{ s.saat_ini_bayar_ppn|money }}</td>
               <td class="c-p">{{ s.sd_bayar_ppn|money }}</td>
-              <td class="{{ 'c-sisa-pos' if s.sisa_ppn > 0 else 'c-sisa-zero' }}">{{ s.sisa_ppn|money }}</td>
+              <td class="{{ 'c-sisa-pos' if s.sisa_ppn|has_sisa else 'c-sisa-zero' }}">{{ s.sisa_ppn|money }}</td>
             </tr>
             {% endfor %}
           </tbody>
@@ -214,7 +214,7 @@
           <table class="lp-mtbl">
             <thead>
               <tr>
-                <th scope="col" class="m-tgl">Tgl Berkas</th>
+                <th scope="col" class="m-tgl">Tgl Berkas Lengkap</th>
                 <th scope="col" class="m-inv">Invoice</th>
                 <th scope="col" class="m-po">PO / Kontrak</th>
                 <th scope="col" class="m-jt">Jth Tempo</th>
@@ -270,7 +270,7 @@ function showDetail(monthKey,rekanan,rowEl){
   if(rowEl){ rowEl.classList.add('selected'); _activeRow=rowEl; }
   const allInvoices=[];
   for(const wk of REKANAN_DATA){ const rec=wk.rekanan_list.find(s=>s.rekanan===rekanan); if(rec&&rec.invoices) for(const inv of rec.invoices) allInvoices.push({...inv, bulan:wk.label, bulanKey:wk.key}); }
-  allInvoices.sort((a,b)=>(a.tgl_berkas<b.tgl_berkas?-1:a.tgl_berkas>b.tgl_berkas?1:0));
+  allInvoices.sort((a,b)=>(a.tgl_berkas<b.tgl_berkas?1:a.tgl_berkas>b.tgl_berkas?-1:0));
   const _wk=REKANAN_DATA.find(w=>w.key===monthKey); const perLabel=_wk?(_wk.label_long||_wk.label||monthKey):monthKey;
   document.getElementById('modalLabel').innerHTML='<i class="bi bi-receipt"></i> '+esc(rekanan)+' <span class="mm mm-cnt" role="status" aria-live="polite">'+allInvoices.length+' invoice</span> <span class="mm">Periode '+esc(perLabel)+'</span>';
   const search=document.getElementById('invoiceSearch'); search.value='';
@@ -281,7 +281,7 @@ function showDetail(monthKey,rekanan,rowEl){
     let tDpp=0,tPpn=0,tB=0,tS=0;
     body.innerHTML=allInvoices.map(inv=>{
       const sisa=Math.max(0,(Number(inv.ppn)||0)-(Number(inv.bayar_ppn)||0)); tDpp+=Number(inv.harga_excl)||0; tPpn+=Number(inv.ppn)||0; tB+=Number(inv.bayar_ppn)||0; tS+=sisa;
-      const cls=sisa>0?'sn':'sz';
+      const cls = sisa > 1 ? 'sn' : 'sz';  // SISA_EPS (Rp 1)
       const invWK=weekKeyOf(inv.tgl_berkas); const payWK=weekKeyOf(inv.tgl_bayar_ppn);
       const invoiceIsCurrent=invWK===monthKey; const paymentIsCurrent=payWK===monthKey;
       if(invoiceIsCurrent) currentInvoiceTotal+=Number(inv.ppn??0)||0;

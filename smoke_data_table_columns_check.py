@@ -230,4 +230,35 @@ assert 'chips.length > 0) setFilterPanel(true' in idx, \
     "panel filter harus auto-buka saat ada filter aktif"
 print("[7c] JS toggle + countActiveFilters + persistensi localStorage OK")
 
+# --- 8. Filter Tanggal: 3 rentang (Berkas, Bayar DPP, Bayar PPN) ---
+for need in ('id="ddBayarPpn"', 'id="bayarPpnFrom"', 'id="bayarPpnTo"',
+             'id="bayarPpnClear"', 'Rentang Tgl. Bayar PPN'):
+    assert need in tpl, f"filter Tgl. Bayar PPN tidak lengkap: {need} hilang"
+assert 'id="ddBerkas"' in tpl and 'id="ddBayar"' in tpl, \
+    "filter Tgl. Berkas / Tgl. Bayar DPP harus tetap ada"
+print("[8] filter Tanggal: Berkas + Bayar DPP + Bayar PPN OK")
+
+# --- 9. Filter Sisa Hutang dipisah: DPP dan PPN ---
+assert '<i class="bi bi-cash-coin"></i> Sisa Hutang</span>' in tpl, \
+    "label cluster harus 'Sisa Hutang' (bukan 'Sisa Hutang DPP')"
+for need in ('id="ddSisa"', 'id="ddSisaPpn"', 'id="sisaPpnMin"', 'id="sisaPpnMax"',
+             'id="sisaPpnClear"', 'Rentang Sisa Hutang DPP', 'Rentang Sisa Hutang PPN'):
+    assert need in tpl, f"filter Sisa Hutang tidak lengkap: {need} hilang"
+assert "inRange(bp, bpFrom, bpTo)" in idx and \
+       "inNumRange(tr.dataset.sisaPpn, sisaPpnMin, sisaPpnMax)" in idx, \
+    "JS filterTable belum memakai Tgl. Bayar PPN / Sisa Hutang PPN"
+assert 'bpMatch && sisaMatch && sisaPpnMatch' in idx, \
+    "hasil filter Tgl. Bayar PPN / Sisa PPN belum masuk ke kondisi match"
+print("[9] filter Sisa Hutang DPP + Sisa Hutang PPN (cluster 'Sisa Hutang') OK")
+
+# --- 10. Filter Bulan Jatuh Tempo (opsi = bulan JTH di data, label spt page JT) ---
+assert 'id="filterJtMonth"' in tpl, "select #filterJtMonth tidak ada di template"
+assert 'JT: Semua Bulan' in tpl, "opsi default 'JT: Semua Bulan' tidak ada"
+assert 'for k, lbl in jt_month_options' in tpl, \
+    "opsi bulan JT harus dirender dari jt_month_options"
+assert "tr.dataset.tglJthTempo || '').slice(0, 7) === jtMonth" in idx, \
+    "JS belum mencocokkan bulan JT baris dengan filter"
+assert 'jtMatch && jtMonthMatch' in idx, "jtMonthMatch belum masuk kondisi match"
+print("[10] filter Bulan Jatuh Tempo (dropdown dari data) OK")
+
 print("\nALL CHECKS PASSED")

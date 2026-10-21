@@ -304,10 +304,10 @@
               <td class="cell-money">{{ info.total_dpp|money }}</td>
               <td class="cell-money">{{ info.total_pph|money }}</td>
               <td class="cell-money">{{ info.total_bayar_dpp|money }}</td>
-              <td class="cell-money" style="color:{% if info.sisa_dpp > 0 %}#912018{% else %}#115e59{% endif %}">{{ info.sisa_dpp|money }}</td>
+              <td class="cell-money" style="color:{% if info.sisa_dpp|has_sisa %}#912018{% else %}#115e59{% endif %}">{{ info.sisa_dpp|money }}</td>
               <td class="cell-money">{{ info.total_ppn|money }}</td>
               <td class="cell-money">{{ info.total_bayar_ppn|money }}</td>
-              <td class="cell-money" style="color:{% if info.sisa_ppn > 0 %}#912018{% else %}#115e59{% endif %}">{{ info.sisa_ppn|money }}</td>
+              <td class="cell-money" style="color:{% if info.sisa_ppn|has_sisa %}#912018{% else %}#115e59{% endif %}">{{ info.sisa_ppn|money }}</td>
             </tr>
             {% endfor %}
           </tbody>

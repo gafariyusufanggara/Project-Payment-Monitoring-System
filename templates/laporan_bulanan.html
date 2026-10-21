@@ -75,7 +75,7 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
           <table class="lp-mtbl">
             <thead>
               <tr>
-                <th scope="col" class="m-tgl">Tgl Berkas</th>
+                <th scope="col" class="m-tgl">Tgl Berkas Lengkap</th>
                 <th scope="col" class="m-tgl">Tgl Inv</th>
                 <th scope="col" class="m-inv">Invoice</th>
                 <th scope="col" class="m-po">PO / Kontrak</th>
@@ -314,7 +314,7 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
               }
           }
       }
-      allInvoices.sort((a, b) => (a.tgl_berkas < b.tgl_berkas ? -1 : a.tgl_berkas > b.tgl_berkas ? 1 : 0));
+      allInvoices.sort((a, b) => (a.tgl_berkas < b.tgl_berkas ? 1 : a.tgl_berkas > b.tgl_berkas ? -1 : 0));
 
       const perLabel = monthLabel(monthKey) || monthKey;
       document.getElementById('modalLabel').innerHTML =
@@ -341,7 +341,7 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
 
               const invSisaDpp = Math.max(0, (Number(inv.harga_excl)||0) - (Number(inv.bayar_dpp)||0));
               tH += Number(inv.harga_excl)||0; tPpn += Number(inv.ppn)||0; tPph += Number(inv.pot_pph)||0; tRet += Number(inv.retensi)||0; tB += Number(inv.bayar_dpp)||0; tS += invSisaDpp;
-              const sisaClass = invSisaDpp > 0 ? 'sn' : 'sz';
+              const sisaClass = invSisaDpp > 1 ? 'sn' : 'sz';  // SISA_EPS (Rp 1)
               const invYM = String(inv.tgl_berkas || '').slice(0, 7);
                const payYM = String(inv.tgl_bayar_dpp || '').slice(0, 7);
                const invoiceIsCurrent = invYM === monthKey;

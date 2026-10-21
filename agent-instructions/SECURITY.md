@@ -1,26 +1,20 @@
-# Security & Data Integrity Policy
+# Security & Data Integrity
 
-Apply to authentication, authorization, finance, payments, personal data, schema migrations,
+Apply to: authentication, authorization, finance/payments, personal data, schema migrations,
 public APIs, and other high-risk workflows.
 
-## Consider
-- trust boundaries
-- authorization checks
-- input validation
-- secrets/tokens/credentials
-- sensitive logging
-- idempotency and duplicate requests
-- race conditions
-- replay and partial failure
-- regression tests for critical behavior
+## Checklist (answer only the relevant items)
+- Trust boundaries and where input enters
+- Authorization on every access path
+- Input validation/sanitization at the boundary
+- Secrets/tokens/credentials: never hardcoded, never logged
+- Sensitive data in logs/errors
+- Idempotency and duplicate requests
+- Race conditions, replay, partial failure
+- Regression tests for the critical behavior
 - API/type safety
 
 ## Never
-- weaken security controls for convenience
-- expose secrets/private data
-- bypass authorization
-- disable security checks to pass tests
-- guess material security requirements
-
-When a critical security requirement is unclear, escalate the uncertainty rather than
-silently inventing a rule.
+- Weaken or bypass security controls for convenience or to pass tests
+- Expose secrets/private data
+- Guess a material security requirement → escalate the uncertainty to the user instead

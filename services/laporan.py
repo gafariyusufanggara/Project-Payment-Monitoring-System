@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, date
 import io
 import re
 import db
-from constants import safe_float, effective_invoice
+from constants import safe_float, effective_invoice, sisa_belum_lunas
 
 
 def _resolve_pay_period(pay_date_str, tgl_berkas_str, rekan_keyfn, cutoff_date=None):
@@ -377,7 +377,7 @@ def build_vendor_invoice_index(project_id=None, cutoff_date=None):
             for inv in s['invoices']:
                 bucket.append(inv)
     for key, invs in index.items():
-        invs.sort(key=lambda i: (str(i.get('tgl_berkas') or ''), str(i.get('invoice') or '')))
+        invs.sort(key=lambda i: str(i.get('tgl_berkas') or ''), reverse=True)
     return index
 
 
@@ -1115,7 +1115,7 @@ def _jt_status(hari_lebih, sisa_dpp):
       paid_ok   — paid on/before due date   → 'Lunas Tepat Waktu'
     """
     h = hari_lebih or 0
-    if sisa_dpp > 0:
+    if sisa_belum_lunas(sisa_dpp):
         if h > 0:
             return f'Telat +{h} hari', 'overdue'
         if h == 0:
@@ -1237,12 +1237,14 @@ def build_jatuh_tempo_data(project_id=None):
 
         harga_excl = g['harga_excl']
         dp = g['bayar_dpp']
-        # Per-invoice net clamp + half-up (Excel style) seperti constants._calc
-        sisa_dpp = int(max(0, harga_excl - dp) + 0.5)
-        sisa_ppn = int(max(0, g['ppn'] - g['bayar_ppn']) + 0.5)
+        # Simpan MENTAH (tanpa pembulatan) — pembulatan rupiah hanya sekali di
+        # lapisan tampil (filter |money). Pembulatan di sini akan membuat total
+        # laporan terkena pembulatan berlapis.
+        sisa_dpp = max(0, harga_excl - dp)
+        sisa_ppn = max(0, g['ppn'] - g['bayar_ppn'])
 
         # Overdue days: today - JTH TEMPO (positive = overdue)
-        if sisa_dpp > 0:
+        if sisa_belum_lunas(sisa_dpp):
             hari_lebih = (today - jt_dt).days
         else:
             tb = g['tgl_bayar_dpp']
@@ -1270,7 +1272,7 @@ def build_jatuh_tempo_data(project_id=None):
             'bayar_dpp': dp,
             'bayar_ppn': g['bayar_ppn'],
             # Total incl. PPN minus both payments (dedup-safe: parts are local)
-            'sisa': int(g['total'] + g['ppn'] - dp - g['bayar_ppn'] + 0.5),
+            'sisa': g['total'] + g['ppn'] - dp - g['bayar_ppn'],
             'sisa_dpp': sisa_dpp,
             'sisa_ppn': sisa_ppn,
             'hari_lebih': hari_lebih,
@@ -1305,7 +1307,7 @@ def build_jatuh_tempo_data(project_id=None):
             # STATUS from oldest unpaid invoice still outstanding.
             # If all paid, use the latest payment delay among paid invoices.
             # Negative hari_lebih = paid early / future due date.
-            unpaid = [inv for inv in invs if inv['sisa_dpp'] > 0]
+            unpaid = [inv for inv in invs if sisa_belum_lunas(inv['sisa_dpp'])]
             if unpaid:
                 oldest = min(unpaid, key=lambda x: x['jth_tempo'] or '9999-99-99')
                 status_hari = oldest['hari_lebih']
@@ -1338,7 +1340,7 @@ def build_jatuh_tempo_data(project_id=None):
         overdue_count = 0
         for s in rekanan_list:
             for inv in s['invoices']:
-                if inv['sisa_dpp'] <= 0:
+                if not sisa_belum_lunas(inv['sisa_dpp']):
                     continue
                 h = inv['hari_lebih']
                 if h < 0:

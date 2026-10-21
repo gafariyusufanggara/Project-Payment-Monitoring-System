@@ -132,7 +132,7 @@
         <div class="ds-kpi__hint">Terbayar {{ masuk_bayar_ppn|money }}</div>
       </div>
     </div>
-    <div class="ds-kpi ds-kpi--compact{% if sisa_dpp > 0 %} ds-kpi--warn{% endif %}" tabindex="0">
+    <div class="ds-kpi ds-kpi--compact{% if sisa_dpp|has_sisa %} ds-kpi--warn{% endif %}" tabindex="0">
       <div class="kpi-ico kpi-ico--rose"><i class="bi bi-wallet2"></i></div>
       <div>
         <div class="ds-kpi__label">Sisa DPP (s/d {{ 'minggu' if mode == 'minggu' else 'bulan' }} ini)</div>
@@ -196,8 +196,8 @@
               <td class="num">{{ s.saat_ini_retensi|money }}</td>
               <td class="num">{{ s.saat_ini_bayar|money }}</td>
               <td class="num">{{ s.saat_ini_bayar_ppn|money }}</td>
-              <td class="num" style="color:{% if s.sisa_dpp > 0 %}#912018{% else %}#115e59{% endif %}">{{ s.sisa_dpp|money }}</td>
-              <td class="num" style="color:{% if s.sisa_ppn > 0 %}#912018{% else %}#115e59{% endif %}">{{ s.sisa_ppn|money }}</td>
+              <td class="num" style="color:{% if s.sisa_dpp|has_sisa %}#912018{% else %}#115e59{% endif %}">{{ s.sisa_dpp|money }}</td>
+              <td class="num" style="color:{% if s.sisa_ppn|has_sisa %}#912018{% else %}#115e59{% endif %}">{{ s.sisa_ppn|money }}</td>
             </tr>
             {% endfor %}
           </tbody>
@@ -258,7 +258,7 @@
           <table class="lp-mtbl">
             <thead>
               <tr>
-                <th scope="col" class="m-tgl">Tgl Berkas</th>
+                <th scope="col" class="m-tgl">Tgl Berkas Lengkap</th>
                 <th scope="col" class="m-tgl">Tgl Inv</th>
                 <th scope="col" class="m-inv">Invoice</th>
                 <th scope="col" class="m-po">PO / Kontrak</th>
@@ -358,7 +358,7 @@
       tRet += Number(inv.retensi) || 0;
       tB += Number(inv.bayar_dpp) || 0;
       tS += sisa;
-      const sisaClass = sisa > 0 ? 'sn' : 'sz';
+      const sisaClass = sisa > 1 ? 'sn' : 'sz';  // SISA_EPS (Rp 1)
       const inPeriod = (v) => PERIOD_MODE === 'bulan'
         ? String(v || '').slice(0, 7) === PERIOD_KEY
         : weekKeyOf(v) === PERIOD_KEY;

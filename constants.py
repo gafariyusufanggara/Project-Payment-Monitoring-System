@@ -21,6 +21,10 @@ KODE_BIAYA = [
 ]
 KODE_BIAYA_MAP = dict(KODE_BIAYA)  # '500' -> 'BAHAN', etc.
 
+# Nama bulan Indonesia (index = nomor bulan 1-12) — label periode laporan.
+MONTH_NAMES = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+               'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
+
 # ========== COLUMN DEFINITIONS (Sesuai Template Asli) ==========
 COLUMNS = [
     'R',
@@ -284,10 +288,11 @@ def calc_sisa(data):
     ppn = safe_float(data.get('PPN'))
     bayar_dpp = safe_float(data.get('PEMBAYARAN DPP'))
     bayar_ppn = safe_float(data.get('PEMBAYARAN PPN'))
-    # round half away from zero (Excel-style), floor at 0
+    # Simpan hasil hitung APA ADANYA (mentah), floor at 0. Pembulatan rupiah
+    # hanya dilakukan sekali di lapisan tampil (filter money/money0), supaya
+    # tidak ada pembulatan berlapis yang menggeser nominal.
     def _r(x):
-        x = max(0, x)
-        return int(x + 0.5)
+        return max(0, x)
     data['SISA HUTANG (INCLD PPN)'] = _r(total - bayar_dpp - bayar_ppn)
     data['SISA HUTANG DPP'] = _r(harga - bayar_dpp)
     data['SISA HUTANG PPN'] = _r(ppn - bayar_ppn)
@@ -314,6 +319,51 @@ def calc_sisa(data):
             data['LEBIH 90 HARI'] = 1
 
 
+# Toleransi "dianggap lunas" untuk sisa hutang (dalam Rupiah).
+# Data Excel menyimpan float mentah, sehingga sisa bisa berupa pecahan sangat
+# kecil (mis. -0.006 dari 299999999.99417 - 300000000) yang secara matematis
+# BUKAN utang nyata. Ambang Rp 1 (rupiah terkecil yang sah) mencegah invoice
+# lunas ikut terhitung "belum lunas"/aging/overdue, tanpa pernah menyembunyikan
+# utang sungguhan.
+SISA_EPS = 1.0
+
+
+def sisa_belum_lunas(sisa):
+    """True bila sisa hutang masih signifikan (> SISA_EPS)."""
+    return (sisa or 0) > SISA_EPS
+
+
+def status_retensi(harga_exld, nilai_retensi, bayar_dpp, eps=SISA_EPS):
+    """Turunkan status pencairan retensi dari pembayaran DPP yang ada.
+
+    Retensi diperlakukan sebagai bagian TERAKHIR dari DPP: selama sisa DPP
+    masih ada, retensi dianggap belum cair. Ini konsisten dengan definisi
+    SISA HUTANG DPP = HARGA (EXLD) - PEMBAYARAN DPP (retensi tidak mengurangi
+    sisa). Tidak ada field pembayaran retensi terpisah, jadi status ini
+    murni turunan — bukan input manual.
+
+    Returns (status, sisa_retensi, retensi_cair).
+    """
+    harga = safe_float(harga_exld)
+    retensi = max(0.0, safe_float(nilai_retensi))
+    bayar = max(0.0, safe_float(bayar_dpp))
+    if harga <= eps:
+        return 'Belum Dibayar', retensi, 0.0
+    sisa_dpp = max(0.0, harga - bayar)
+    sisa_retensi = min(retensi, sisa_dpp)
+    cair = max(0.0, retensi - sisa_retensi)
+
+    if sisa_dpp <= eps:
+        status = 'Lunas'
+    elif sisa_dpp > retensi + eps:
+        status = 'Belum Dibayar'
+    elif sisa_retensi >= retensi - eps:
+        status = 'Ditahan'
+    else:
+        status = 'Cair Sebagian'
+    return status, sisa_retensi, cair
+
+
 def effective_invoice(row):
     """Return the effective dedup identity — NO INVOICE INTERNAL if filled, else NO INVOICE."""
     inv_int = (row.get('NO INVOICE INTERNAL') or '').strip()
@@ -323,7 +373,11 @@ def effective_invoice(row):
 
 
 def round_currency(data):
-    """Round all currency amount fields to whole Rupiah in place (no decimals).
+    """Round currency amount fields to whole Rupiah in place (no decimals).
+
+    LAPISAN TAMPIL / FORM, bukan lapisan simpan. DB menyimpan nilai MENTAH
+    (source of truth = Excel) dan pembulatan hanya dilakukan sekali saat
+    nominal ditampilkan — jangan panggil ini di jalur import/persist.
 
     Uses round-half-away-from-zero (like Excel), not banker's rounding.
     VOLUME PROGRESS stays decimal; aging buckets are integer counts.

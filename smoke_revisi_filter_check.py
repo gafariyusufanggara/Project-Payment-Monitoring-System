@@ -106,7 +106,7 @@ with open(PAGE, encoding='utf-8') as f:
 assert "getElementById('filterRevisi')?.checked" in page, \
     "filterTable() tidak membaca #filterRevisi"
 assert 'revisiMatch' in page, "filterTable() tidak memakai revisiMatch"
-assert 'jtMatch && revisiMatch' in page, \
+assert 'jtMonthMatch && revisiMatch' in page, \
     "revisiMatch tidak ikut dalam konjungsi match"
 assert re.search(r"getElementById\('filterRevisi'\)\?\.addEventListener\('change', filterTable\)", page), \
     "checkbox tidak terhubung ke filterTable()"

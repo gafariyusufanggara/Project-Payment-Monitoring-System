@@ -65,7 +65,7 @@ def log_changes(hutang_row, old_data, new_data):
     fields the user explicitly edited.
     Returns number of changed fields logged.
     """
-    from constants import COLUMNS, AUTO_FIELDS
+    from constants import COLUMNS, AUTO_FIELDS, CURRENCY_FIELDS
     skip = set(AUTO_FIELDS)
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     count = 0
@@ -73,14 +73,26 @@ def log_changes(hutang_row, old_data, new_data):
         for key in COLUMNS:
             if key in skip:
                 continue
-            old_val = str(old_data.get(key, '')) if old_data.get(key) is not None else ''
-            new_val = str(new_data.get(key, '')) if new_data.get(key) is not None else ''
-            if old_val != new_val:
-                conn.execute('''
-                    INSERT INTO audit_log (hutang_row, field_name, old_value, new_value, changed_at)
-                    VALUES (?, ?, ?, ?, ?)
-                ''', (hutang_row, key, old_val, new_val, timestamp))
-                count += 1
+            old_raw = old_data.get(key)
+            new_raw = new_data.get(key)
+            old_val = str(old_raw) if old_raw is not None else ''
+            new_val = str(new_raw) if new_raw is not None else ''
+            if old_val == new_val:
+                continue
+            # Nominal dibandingkan sebagai ANGKA, bukan teks: nilai mentah dari
+            # DB bisa '132653.06' sementara hasil form '132653.0600'. Selisih
+            # sub-rupiah (float noise) tidak dianggap perubahan.
+            if key in CURRENCY_FIELDS:
+                try:
+                    if abs(float(old_raw or 0) - float(new_raw or 0)) < 1e-9:
+                        continue
+                except (ValueError, TypeError):
+                    pass
+            conn.execute('''
+                INSERT INTO audit_log (hutang_row, field_name, old_value, new_value, changed_at)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (hutang_row, key, old_val, new_val, timestamp))
+            count += 1
         conn.commit()
     return count
 
@@ -169,8 +181,7 @@ def save_snapshot(hutang_row, row_dict, original_row=None):
     the main DB is re-imported.
     Returns the new snapshot id.
     """
-    from constants import COLUMNS, round_currency
-    round_currency(row_dict)
+    from constants import COLUMNS
     cols = ['hutang_row'] + list(COLUMNS)
     placeholders = ', '.join('?' for _ in cols)
     vals = [hutang_row] + [str(row_dict.get(c, '')) if row_dict.get(c) is not None else '' for c in COLUMNS]
@@ -235,21 +246,21 @@ def get_audit_page_data():
             orig = {}
         changed = []
         if orig:
-            # Normal path: compare original vs snapshot
-            # Round original currency fields so decimals (132653.06)
-            # don't false-match against already-rounded snapshot (132653).
-            for c in CURRENCY_FIELDS:
-                if c in orig and orig[c] not in (None, ''):
-                    try:
-                        v = float(orig[c])
-                        orig[c] = str(int(v + (0.5 if v >= 0 else -0.5)))
-                    except (ValueError, TypeError):
-                        pass
+            # Nominal dibandingkan sebagai angka: nilai mentah DB & snapshot
+            # sama-sama tersimpan apa adanya, selisih sub-rupiah karena float
+            # noise tidak ditampilkan sebagai perubahan.
             for c in COLUMNS:
                 old = _norm(orig.get(c, ''))
                 new = _norm(snap.get(c, ''))
-                if old != new:
-                    changed.append({'field': c, 'old': old, 'new': new})
+                if old == new:
+                    continue
+                if c in CURRENCY_FIELDS:
+                    try:
+                        if abs(float(orig.get(c) or 0) - float(snap.get(c) or 0)) < 1e-9:
+                            continue
+                    except (ValueError, TypeError):
+                        pass
+                changed.append({'field': c, 'old': old, 'new': new})
         else:
             # Fallback for pre-migration entries (no audit_originals):
             # use audit_log which stores old/new per changed field.

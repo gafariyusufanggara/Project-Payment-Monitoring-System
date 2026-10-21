@@ -123,7 +123,6 @@ def project_dashboard(project_id):
 
     monthly = db_project.get_realisasi_by_month(project_id)
     pph = db_project.get_pph_summary(project_id)
-    total_retensi = db_project.get_retensi_from_hutang(project_id)
     retensi_groups = db_project.get_retensi_rows(project_id)
 
     total_realisasi = float(p.get('total_realisasi') or 0)
@@ -162,25 +161,7 @@ def project_dashboard(project_id):
                            pph_dpp=pph['total_dpp'],
                            pph_rate=pph_rate,
                            retensi_outstanding=retensi_count,
-                           retensi_total=retensi_total,
-                           total_retensi_hutang=total_retensi)
-
-
-# ── RETENSI (otomatis dari POT. RETENSI, read-only) ──────────────────
-
-@bp.route('/<int:project_id>/retention')
-def list_retention(project_id):
-    p = db_project.get_project(project_id)
-    if not p:
-        flash('Proyek tidak ditemukan.', 'danger')
-        return redirect(url_for('project.list_projects'))
-    retensi_groups = db_project.get_retensi_rows(project_id)
-    total_retensi = db_project.get_retensi_from_hutang(project_id)
-    total_invoice = sum(g['jumlah_invoice'] for g in retensi_groups)
-    return render_template('project_retention.html', project=p,
-                           retensi_groups=retensi_groups,
-                           total_retensi_hutang=total_retensi,
-                           total_invoice=total_invoice)
+                           retensi_total=retensi_total)
 
 
 # ── API: return project list for dropdown ────────────────────────────

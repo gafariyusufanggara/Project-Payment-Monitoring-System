@@ -37,7 +37,7 @@ if s.rekanan not in all_rekanan %} {% set _ = all_rekanan.append(s.rekanan) %}
   {#- Strip tunggakan lintas periode: total JTH sudah lewat di SEMUA bulan. -#}
   {% set _now = now_key|default('9999-99') %}
   {% set ov = namespace(val=0, cnt=0, months=[]) %}
-  {% for r in report_rows %}{% if r.overdue_sisa > 0 and r.key < _now %}{% set ov.val = ov.val + r.overdue_sisa %}{% set ov.cnt = ov.cnt + r.overdue_count %}{% set _ = ov.months.append(r) %}{% endif %}{% endfor %}
+  {% for r in report_rows %}{% if r.overdue_sisa|has_sisa and r.key < _now %}{% set ov.val = ov.val + r.overdue_sisa %}{% set ov.cnt = ov.cnt + r.overdue_count %}{% set _ = ov.months.append(r) %}{% endif %}{% endfor %}
   {% if ov.cnt > 0 %}
   <div class="lp-jt-alert" role="note" title="Invoice belum lunas dengan JTH sudah lewat pada periode SEBELUM bulan berjalan">
     <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
@@ -58,7 +58,7 @@ if s.rekanan not in all_rekanan %} {% set _ = all_rekanan.append(s.rekanan) %}
     id="section-{{ r.key }}"
     {% if r.key != current_month %}hidden{% endif %}
   >
-    <div class="lp-sisa-card lp-hero ds-kpi {% if ns.sdpp > 0 %}pos ds-kpi--err{% else %}zero ds-kpi--ok{% endif %}">
+    <div class="lp-sisa-card lp-hero ds-kpi {% if ns.sdpp|has_sisa %}pos ds-kpi--err{% else %}zero ds-kpi--ok{% endif %}">
       <div class="lp-hero-main">
         <span class="kpi-lbl ds-kpi__label"><i class="bi bi-wallet2"></i> DPP Jatuh Tempo · {{ r.label }}</span>
         <span class="kpi-num ds-kpi__value">{{ ns.sdpp|money }}</span>
@@ -70,7 +70,7 @@ if s.rekanan not in all_rekanan %} {% set _ = all_rekanan.append(s.rekanan) %}
       </div>
     </div>
 
-    {% if ns.sdpp > 0 %}
+    {% if ns.sdpp|has_sisa %}
     <div class="lp-aging" role="list" aria-label="Umur hutang (aging) {{ r.label }}">
       {% set ag = [('due_today', 'Jatuh Tempo Hari Ini', 'warn'),
                    ('d1_30', 'Jatuh Tempo 1–30 Hari', 'pos'), ('d31_60', 'Jatuh Tempo 31–60 Hari', 'pos'),
@@ -161,8 +161,8 @@ if s.rekanan not in all_rekanan %} {% set _ = all_rekanan.append(s.rekanan) %}
               <td class="c-jt">{{ s.jt_terdekat or '—' }}</td>
               <td class="c-h">{{ s.total_dpp|money }}</td>
               <td class="c-p">{{ s.bayar_dpp|money }}</td>
-              <td class="{{ 'c-sisa-pos' if s.sisa_dpp > 0 else 'c-sisa-zero' }}">{{ s.sisa_dpp|money }}</td>
-              <td class="{% if s.status_key == 'overdue' %}c-over{% elif s.status_key == 'paid_late' %}c-over{% elif s.status_key == 'paid_ok' %}c-ok{% elif s.status_key == 'due_today' %}c-warn{% else %}c-muted{% endif %}">
+              <td class="{{ 'c-sisa-pos' if s.sisa_dpp|has_sisa else 'c-sisa-zero' }}">{{ s.sisa_dpp|money }}</td>
+              <td class="{% if s.status_key == 'overdue' %}c-over{% elif s.status_key == 'paid_late' %}c-late{% elif s.status_key == 'paid_ok' %}c-ok{% elif s.status_key == 'due_today' %}c-warn{% else %}c-muted{% endif %}">
                 {{ s.status_label }}
               </td>
             </tr>
@@ -181,7 +181,7 @@ if s.rekanan not in all_rekanan %} {% set _ = all_rekanan.append(s.rekanan) %}
               <td class="c-jt"></td>
               <td class="c-h">{{ t.total_dpp|money }}</td>
               <td class="c-p">{{ t.bayar_dpp|money }}</td>
-              <td class="{{ 'c-sisa-pos' if t.sisa_dpp > 0 else 'c-sisa-zero' }}">{{ t.sisa_dpp|money }}</td>
+              <td class="{{ 'c-sisa-pos' if t.sisa_dpp|has_sisa else 'c-sisa-zero' }}">{{ t.sisa_dpp|money }}</td>
               <td></td>
             </tr>
           </tfoot>
@@ -224,7 +224,7 @@ if s.rekanan not in all_rekanan %} {% set _ = all_rekanan.append(s.rekanan) %}
           <table class="lp-mtbl">
             <thead>
               <tr>
-                <th scope="col" class="m-tgl">Tgl Berkas</th>
+                <th scope="col" class="m-tgl">Tgl Berkas Lengkap</th>
                 <th scope="col" class="m-inv">Invoice</th>
                 <th scope="col" class="m-po">PO / Kontrak</th>
                 <th scope="col" class="m-jt">Jth Tempo</th>
@@ -321,12 +321,12 @@ function showDetail(monthKey, rekanan, rowEl) {
     body.innerHTML = '<tr class="em"><td colspan="12"><i class="bi bi-inbox"></i>Tidak ada data untuk ' + esc(rekanan) + '</td></tr>';
     if (tfoot) tfoot.hidden = true;
   } else {
-    invoices.sort((a, b) => (a.jth_tempo < b.jth_tempo ? -1 : a.jth_tempo > b.jth_tempo ? 1 : 0));
+    invoices.sort((a, b) => (a.tgl_berkas < b.tgl_berkas ? 1 : a.tgl_berkas > b.tgl_berkas ? -1 : 0));
     let tH = 0, tPpn = 0, tPph = 0, tB = 0, tS = 0;
     body.innerHTML = invoices.map(inv => {
       const invSisaDpp = Math.max(0, (Number(inv.harga_excl)||0) - (Number(inv.bayar_dpp)||0));
       tH += Number(inv.harga_excl)||0; tPpn += Number(inv.ppn)||0; tPph += Number(inv.pot_pph)||0; tB += Number(inv.bayar_dpp)||0; tS += invSisaDpp;
-      const sisaClass = invSisaDpp > 0 ? 'sn' : 'sz';
+      const sisaClass = invSisaDpp > 1 ? 'sn' : 'sz';  // konsisten dgn SISA_EPS (Rp 1)
       const invYM = String(inv.tgl_berkas||'').slice(0,7);
       const payYM = String(inv.tgl_bayar_dpp||'').slice(0,7);
       const invoiceIsCurrent = invYM === monthKey;

@@ -78,7 +78,7 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
 
     <!-- â•â•â• KPI ROW â•â•â• -->
     <div
-      class="lp-sisa-card lp-hero ds-kpi {% if k.sisa_dpp > 0 %}pos ds-kpi--err{% else %}zero ds-kpi--ok{% endif %}"
+      class="lp-sisa-card lp-hero ds-kpi {% if k.sisa_dpp|has_sisa %}pos ds-kpi--err{% else %}zero ds-kpi--ok{% endif %}"
     >
       <div class="lp-hero-main">
         <span class="kpi-lbl ds-kpi__label"><i class="bi bi-wallet2"></i> Sisa Hutang DPP · {{ r.label }}</span>
@@ -221,7 +221,7 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
               <td class="c-p">{{ s.saat_ini_bayar|money }}</td>
               <td class="c-p">{{ s.sd_bayar|money }}</td>
               <td
-                class="{{ 'c-sisa-pos' if s.sisa_dpp > 0 else 'c-sisa-zero' }}"
+                class="{{ 'c-sisa-pos' if s.sisa_dpp|has_sisa else 'c-sisa-zero' }}"
               >
                 {{ s.sisa_dpp|money }}
               </td>
@@ -294,7 +294,7 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
           <table class="lp-mtbl">
             <thead>
               <tr>
-                <th scope="col" class="m-tgl">Tgl Berkas</th>
+                <th scope="col" class="m-tgl">Tgl Berkas Lengkap</th>
                 <th scope="col" class="m-tgl">Tgl Inv</th>
                 <th scope="col" class="m-inv">Invoice</th>
                 <th scope="col" class="m-po">PO / Kontrak</th>
@@ -410,7 +410,7 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
               for (const inv of rec.invoices) allInvoices.push({ ...inv, bulan: wk.label, bulanKey: wk.key });
           }
       }
-      allInvoices.sort((a, b) => (a.tgl_berkas < b.tgl_berkas ? -1 : a.tgl_berkas > b.tgl_berkas ? 1 : 0));
+      allInvoices.sort((a, b) => (a.tgl_berkas < b.tgl_berkas ? 1 : a.tgl_berkas > b.tgl_berkas ? -1 : 0));
       const _wk = REKANAN_DATA.find(w => w.key === monthKey);
       const perLabel = _wk ? (_wk.label_long || _wk.label || monthKey) : monthKey;
       document.getElementById('modalLabel').innerHTML = '<i class="bi bi-receipt"></i> ' + esc(rekanan) + ' <span class="mm mm-cnt" role="status" aria-live="polite">' + allInvoices.length + ' invoice</span> <span class="mm">Periode ' + esc(perLabel) + '</span>';
@@ -429,7 +429,7 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
           body.innerHTML = allInvoices.map(inv => {
               const invSisaDpp = Math.max(0, (Number(inv.harga_excl)||0) - (Number(inv.bayar_dpp)||0));
               tH += Number(inv.harga_excl)||0; tPpn += Number(inv.ppn)||0; tPph += Number(inv.pot_pph)||0; tRet += Number(inv.retensi)||0; tB += Number(inv.bayar_dpp)||0; tS += invSisaDpp;
-              const sisaClass = invSisaDpp > 0 ? 'sn' : 'sz';
+              const sisaClass = invSisaDpp > 1 ? 'sn' : 'sz';  // SISA_EPS (Rp 1)
               const invWK = weekKeyOf(inv.tgl_berkas);
               const payWK = weekKeyOf(inv.tgl_bayar_dpp);
               const invoiceIsCurrent = invWK === monthKey;

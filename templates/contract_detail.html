@@ -62,7 +62,10 @@
   .kd-table tbody tr:hover td { background: #f7f8f9; }
   .kd-table .cell-money { font-family: "JetBrains Mono", "SF Mono", monospace; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; font-size: .75rem; white-space: nowrap; }
   .kd-table .cell-dim { font-family: "JetBrains Mono", monospace; font-size: .75rem; color: #4d5766; font-variant-numeric: tabular-nums; }
-  .kd-table .cell-desc { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .kd-table .cell-desc { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+  .kd-table .cell-invno { max-width: 140px; }
+  .kd-table [data-full].cx-on { cursor: pointer; }
+  .kd-table [data-full].cx-on:hover { text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 2px; }
   .kd-scroll { overflow-x: auto; }
   .ds-badge { padding: 3px 10px; border-radius: 6px; font-size: .7rem; font-weight: 700; display: inline-block; white-space: nowrap; }
   .ds-badge-green { background: #e6f4f1; color: #115e59; }
@@ -92,8 +95,14 @@
   </div>
 
   {% if contract %}
-  {% set sisa_dpp = (contract.tertagih or 0) - (contract.dibayar or 0) %}
-  {% set sisa_ppn = (contract.tertagih_ppn or 0) - (contract.dibayar_ppn or 0) %}
+  {% set nilai_dpp_k = contract.nilai_dpp or 0 %}
+  {% set nilai_ppn_k = contract.nilai_ppn or 0 %}
+  {% set belum_ditagih_dpp = nilai_dpp_k - (contract.tertagih or 0) %}
+  {% set belum_ditagih_ppn = nilai_ppn_k - (contract.tertagih_ppn or 0) %}
+  {% set belum_dibayar_dpp = (contract.tertagih or 0) - (contract.dibayar or 0) %}
+  {% set belum_dibayar_ppn = (contract.tertagih_ppn or 0) - (contract.dibayar_ppn or 0) %}
+  {% set sisa_tagihan_dpp = nilai_dpp_k - (contract.dibayar or 0) %}
+  {% set sisa_tagihan_ppn = nilai_ppn_k - (contract.dibayar_ppn or 0) %}
   <div class="kd-kpis">
     <div class="ds-kpi ds-kpi--compact" tabindex="0">
       <div class="kpi-ico kpi-ico--amber"><i class="bi bi-cash-coin"></i></div>
@@ -113,13 +122,15 @@
       <div><div class="ds-kpi__label">Terbayar PPN</div><div class="ds-kpi__value">{{ (contract.dibayar_ppn or 0)|money }}</div>
         <div class="ds-kpi__hint">{% if contract.tertagih_ppn > 0 %}{{ (contract.dibayar_ppn / contract.tertagih_ppn * 100)|round(1) }}{% else %}0{% endif %}% dari yang ditagihkan</div></div>
     </div>
-    <div class="ds-kpi ds-kpi--compact{% if sisa_dpp > 0 %} ds-kpi--warn{% endif %}" tabindex="0">
+    <div class="ds-kpi ds-kpi--compact{% if sisa_tagihan_dpp|has_sisa %} ds-kpi--warn{% endif %}" tabindex="0" title="Sisa Tagihan DPP = Nilai Kontrak (DPP) − Terbayar DPP, termasuk yang belum ditagih">
       <div class="kpi-ico kpi-ico--rose"><i class="bi bi-wallet2"></i></div>
-      <div><div class="ds-kpi__label">Sisa Hutang DPP</div><div class="ds-kpi__value">{{ sisa_dpp|money }}</div></div>
+      <div><div class="ds-kpi__label">Sisa Tagihan (DPP)</div><div class="ds-kpi__value">{{ sisa_tagihan_dpp|money }}</div>
+        <div class="ds-kpi__hint">Belum ditagih: {{ belum_ditagih_dpp|money }} &middot; Belum dibayar: {{ belum_dibayar_dpp|money }}</div></div>
     </div>
-    <div class="ds-kpi ds-kpi--compact{% if sisa_ppn > 0 %} ds-kpi--warn{% endif %}" tabindex="0">
+    <div class="ds-kpi ds-kpi--compact{% if sisa_tagihan_ppn|has_sisa %} ds-kpi--warn{% endif %}" tabindex="0" title="Sisa Tagihan PPN = PPN Kontrak − Terbayar PPN, termasuk yang belum ditagih">
       <div class="kpi-ico kpi-ico--rose"><i class="bi bi-hourglass-split"></i></div>
-      <div><div class="ds-kpi__label">Sisa Hutang PPN</div><div class="ds-kpi__value">{{ sisa_ppn|money }}</div></div>
+      <div><div class="ds-kpi__label">Sisa Tagihan (PPN)</div><div class="ds-kpi__value">{{ sisa_tagihan_ppn|money }}</div>
+        <div class="ds-kpi__hint">Belum ditagih: {{ belum_ditagih_ppn|money }} &middot; Belum dibayar: {{ belum_dibayar_ppn|money }}</div></div>
     </div>
   </div>
   {% endif %}
@@ -350,15 +361,16 @@
           <thead>
             <tr>
               <th>No. Invoice</th>
-              <th>Tgl Terima</th>
+              <th>Tgl Berkas Lengkap</th>
+              <th>Tgl Jatuh Tempo</th>
               <th>Deskripsi</th>
               <th class="num">Nilai DPP</th>
               <th class="num">Pot. PPH</th>
               <th class="num">Bayar DPP</th>
-              <th class="num">Sisa DPP</th>
+              <th class="num" title="Sisa tagihan invoice ini (Nilai DPP − Bayar DPP)">Sisa DPP</th>
               <th class="num">Nilai PPN</th>
               <th class="num">Bayar PPN</th>
-              <th class="num">Sisa PPN</th>
+              <th class="num" title="Sisa tagihan PPN invoice ini (Nilai PPN − Bayar PPN)">Sisa PPN</th>
             </tr>
           </thead>
           <tbody>
@@ -366,16 +378,17 @@
             {% set sisa_inv = (inv.harga or 0) - (inv.bayar or 0) %}
             {% set sisa_ppn_inv = (inv.nilai_ppn or 0) - (inv.bayar_ppn or 0) %}
             <tr>
-              <td class="cell-dim">{{ inv.no_invoice or '-' }}</td>
+              <td class="cell-dim"><div class="cell-desc cell-invno" data-full="{{ inv.no_invoice or '' }}">{{ inv.no_invoice or '-' }}</div></td>
               <td>{{ inv.tgl_terima or '-' }}</td>
-              <td class="cell-desc" title="{{ inv.deskripsi }}">{{ inv.deskripsi or '-' }}</td>
+              <td>{{ inv.jth_tempo or '-' }}</td>
+              <td><div class="cell-desc" data-full="{{ inv.deskripsi or '' }}">{{ inv.deskripsi or '-' }}</div></td>
               <td class="cell-money">{% if inv.dup %}<span style="color:#a3a8af">0</span>{% else %}{{ inv.harga|money }}{% endif %}</td>
               <td class="cell-money">{% if inv.pot_pph %}{{ inv.pot_pph|money }}{% else %}-{% endif %}</td>
               <td class="cell-money">{{ inv.bayar|money }}</td>
-              <td class="cell-money" style="{% if sisa_inv > 0 %}color:#912018{% else %}color:#115e59{% endif %}">{{ sisa_inv|money }}</td>
+              <td class="cell-money" style="{% if sisa_inv|has_sisa %}color:#912018{% else %}color:#115e59{% endif %}">{{ sisa_inv|money }}</td>
               <td class="cell-money">{% if inv.nilai_ppn %}{{ inv.nilai_ppn|money }}{% else %}-{% endif %}</td>
               <td class="cell-money">{% if inv.bayar_ppn %}{{ inv.bayar_ppn|money }}{% else %}-{% endif %}</td>
-              <td class="cell-money" style="{% if sisa_ppn_inv > 0 %}color:#912018{% else %}color:#115e59{% endif %}">{{ sisa_ppn_inv|money }}</td>
+              <td class="cell-money" style="{% if sisa_ppn_inv|has_sisa %}color:#912018{% else %}color:#115e59{% endif %}">{{ sisa_ppn_inv|money }}</td>
             </tr>
             {% endfor %}
           </tbody>

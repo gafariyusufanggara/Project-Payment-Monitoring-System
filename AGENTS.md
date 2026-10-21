@@ -1,139 +1,82 @@
 # AGENTS.md — AI Coding Operating Constitution
 
-> Maximize verified value. Minimize unnecessary change.
+> Maximize verified value. Minimize unnecessary change and unnecessary context.
 
-This root file is intentionally high-signal. Detailed procedures live in
-`agent-instructions/` and are read when relevant.
+Always-loaded file: keep it short. Details live in `agent-instructions/` and are
+read ONLY when the task needs them (see §9).
 
 ## 1. Prime Directive
+- Understand the real problem before coding; evidence over assumptions.
+- Reuse existing project patterns; smallest correct change.
+- No unrelated refactors, no speculative abstractions, no cosmetic churn.
+- Never claim success without evidence. Report limitations honestly.
+- A tool existing is not a reason to use it. Use the cheapest tool that answers the question.
 
-- Understand the real problem before coding.
-- Prefer evidence over assumptions.
-- Prefer existing project patterns over new abstractions.
-- Make the smallest reasonable change.
-- Avoid unrelated refactors and cosmetic churn.
-- Verify important outcomes before claiming completion.
-- Report limitations honestly.
+## 2. Lifecycle
+REQUEST → INTENT → CONTEXT → PLAN → IMPLEMENT → VERIFY → REVIEW → GRAPH SYNC → DONE
+GRAPH SYNC = run `graphify update .` once after code changes are final (see TOOL-ROUTING.md).
+Tiny/local change: collapse to inspect → edit → verify. The decisions still apply.
 
-The existence of a tool does not mean it must be used.
+## 3. Instruction Precedence
+1. Explicit request in the current task
+2. Project docs and existing code patterns (docs/, ADRs, project CLAUDE.md)
+3. This file and `agent-instructions/`
+4. Global style preferences (e.g. layered-architecture templates): apply for greenfield
+   code or when the project has no established pattern. Never add layers/abstractions
+   to satisfy a preference when it conflicts with "smallest correct change".
 
-> Use the minimum tool necessary to reduce uncertainty or produce evidence.
+## 4. Context Protocol (core loop)
+Go down this ladder; STOP at the first rung that answers the question.
+1. Resume memory: `ctx_search(sort: "timeline")` before asking the user to repeat anything.
+2. Global/structural questions (architecture, "what depends on / what breaks / how are A and B
+   connected", unfamiliar subsystem): `graphify query "<question>" --budget 1500`;
+   then `graphify path "A" "B"` or `graphify explain "X"` to drill in.
+3. Content ("where is X defined/used"): `ctx_search`, then sandbox grep via `ctx_execute`.
+4. Exact bytes: `Read` ONLY the range you are about to edit, then `Edit`.
 
-## 2. Mandatory Lifecycle
+Hard rules:
+- Code changed and task finished → `graphify update .` (once, at the end, not per edit).
+- Never read a whole file to "get a feel". Search first, read the minimum range.
+- Any command whose output may exceed ~20 lines runs in the sandbox; only the derived
+  answer returns to context.
+- Exploration budget: ≤ 8 tool calls before stating a plan or asking a question.
+  Hitting the budget means the question is unclear → use Graphify or Matt grilling, not more greps.
+- Don't re-read or re-search what is already in context.
+- Label findings FACT (observed) / INFERENCE (unconfirmed) / DECISION (chosen).
+  Graphify output and memory are INFERENCE until confirmed in source.
+- Fallback: if a tool is unavailable, use bounded native commands (`rg -n | head`,
+  `sed -n 'a,bp'`), say so once, continue. Do not stall.
 
-REQUEST → INTENT → CONTEXT → PLAN → IMPLEMENT → VERIFY → ANTI-SLOP REVIEW → DONE
+## 5. Intent Gate (before implementing, as applicable)
+problem · expected behavior · acceptance criteria · constraints · non-goals · open assumptions.
+Materially ambiguous → Matt Pocock grilling/spec. Never invent business rules, APIs, files, or behavior.
 
-For tiny/local changes, the process may be lightweight, but the underlying decisions still apply.
-
-## 3. Intent Gate
-
-Before implementation, establish as applicable:
-- problem
-- affected user/system
-- expected behavior
-- acceptance criteria
-- constraints
-- non-goals
-- uncertain assumptions
-
-When requirements or domain behavior are materially ambiguous, use the relevant
-Matt Pocock skill, especially grilling/specification, domain modelling, TDD, or diagnosis.
-
-Never invent business rules, APIs, files, or existing behavior.
-
-## 4. Context Gate
-
-Inspect only the context relevant to the task:
-1. agent/project instructions
-2. PRD/product documentation
-3. architecture/design/IA documentation
-4. relevant ADRs
-5. source code, tests, schemas, CI
-6. Graphify when architecture or impact is uncertain
-
-Separate confirmed facts, inferences, and explicit decisions.
-
-For context-efficient exploration, read `agent-instructions/CONTEXT-MODE.md`.
-
-## 5. Tool Routing
-
-Read `agent-instructions/TOOL-ROUTING.md` when tool selection is relevant.
-
-- Matt Pocock Skills → intent, grilling, TDD, diagnosis, engineering reasoning
-- Graphify → architecture, dependencies, cross-module impact, unfamiliar subsystems
-- Serena → semantic navigation, references, precise symbol-level edits
-- Impeccable → UI/UX audit, critique, polish, responsive/browser iteration
-- Context Mode → context-efficient exploration/processing
-- Repository-native checks → verification evidence
-
-Do not run every tool for every task.
-
-## 6. Minimal Change & Scope Control
-
-Prefer existing abstractions, utilities, components, dependencies, conventions, and
-architectural patterns.
-
-Do not add unnecessary dependencies, layers, frameworks, abstractions, speculative
-extensibility, broad renames, or unrelated refactors.
-
-Before editing, estimate the expected change surface. If scope expands materially:
-stop, inspect why, and update the plan before continuing.
-
-Never silently expand scope.
+## 6. Scope Control
+Estimate the change surface before editing (files/symbols). If it grows materially:
+stop, find out why, update the plan. Record unrelated issues in the final notes; do not fix them.
 
 ## 7. Verification
+Proportional to risk. Cheapest sufficient evidence first: static → targeted tests →
+rendered UI → focused browser → broad E2E. Use the repo's real commands.
+PASS only if it actually ran, succeeded, and is relevant to the claim.
+Details: `agent-instructions/VERIFICATION.md`.
 
-Verification is proportional to risk, change surface, and acceptance criteria.
+## 8. Security
+Auth, authorization, finance, payments, personal data, migrations, public APIs →
+apply `agent-instructions/SECURITY.md`. Never weaken a control to simplify work.
 
-Use actual repository commands for applicable tests, typecheck, lint, build, integration/E2E,
-and browser/UI checks. Never claim a check passed unless it actually ran successfully.
+## 9. Which policy file to read (only when triggered)
+| Trigger | Read |
+|---|---|
+| Normal/large task, need a plan | WORKFLOW.md |
+| Unsure which tool to use | TOOL-ROUTING.md |
+| Logs, big files, many commands, web docs | CONTEXT-MODE.md |
+| About to add dependency/abstraction/layer | ANTI-SLOP.md |
+| Before verifying / declaring DONE | VERIFICATION.md |
+| High-risk domain | SECURITY.md |
 
-Browser verification is conditional, not automatic. Read `agent-instructions/VERIFICATION.md`.
-
-## 8. Security & Data Integrity
-
-For auth, authorization, finance, payments, personal data, schema migrations, public APIs,
-or other critical workflows, apply `agent-instructions/SECURITY.md`.
-
-Never weaken security controls to simplify implementation.
-
-## 9. Anti-Slop Review
-
-Before DONE, inspect the final diff/status:
-- Does this satisfy the requirement?
-- Is every changed file necessary?
-- Did unrelated changes slip in?
-- Did I add unnecessary complexity/dependencies?
-- Did I miss an existing abstraction?
-- What was actually verified?
-- What remains uncertain or untested?
-
-Read `agent-instructions/ANTI-SLOP.md` for detailed criteria.
-
-## 10. Definition of Done
-
-A task is DONE only when applicable:
-- requirements and constraints are understood
-- relevant context was inspected
-- implementation is within scope
-- unnecessary complexity was avoided
-- appropriate verification was executed
-- UI was inspected when materially affected
-- final diff/status were reviewed
-- material limitations are documented
-- final claims are evidence-based
-
-For the complete checklist, read `agent-instructions/DEFINITION-OF-DONE.md`.
-
-## 11. Final Response
-
-### Implemented
-What changed.
-
-### Verification
-Relevant checks with PASS / FAIL / NOT RUN.
-
-### Notes
-Only material caveats, assumptions, or limitations.
-
-Never hide failures or claim unverified success.
+## 10. Final Response
+**Implemented** — what changed (files/symbols).
+**Verification** — each check: PASS / FAIL / NOT RUN (+ one-line evidence).
+**Notes** — only material caveats, assumptions, unrelated issues found.
+Keep it short. Never hide failures or claim unverified success.

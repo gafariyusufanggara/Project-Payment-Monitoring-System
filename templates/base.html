@@ -798,19 +798,21 @@
           const setVal = (n, v) => { const el = scope?.querySelector(`[name="${n}"]`); if (el) el.value = String(v); };
           const vol = num('VOLUME PROGRESS');
           const hargaSat = num('HARGA SATUAN');
-          const h = vol && hargaSat ? Math.round(vol * hargaSat) : num('HARGA (EXLD)');
+          // Hitung apa adanya (tanpa Math.round): input form = jalur data, bukan
+          // tampilan. Pembulatan hanya terjadi sekali saat nominal ditampilkan.
+          const h = vol && hargaSat ? vol * hargaSat : num('HARGA (EXLD)');
           setVal('HARGA (EXLD)', h);
           const retensi = num('POT. RETENSI');
           const pot = num('POT. PPH');
           const ppn = num('PPN');
-          setVal('TOTAL (INCLD)', Math.round(h - retensi - pot + ppn));
+          setVal('TOTAL (INCLD)', h - retensi - pot + ppn);
       }
 
       // ═══ Shared VIEW (detail) modal (used by Data Invoice & Verifikasi pages) ═══
       const money = v => Math.round(Number(v || 0)).toLocaleString('id-ID');
       const badge = s => s === 'Lunas' ? 'vm-badge-lunas' : s === 'Belum Lunas' ? 'vm-badge-belum' : 'vm-badge-na';
       const FIELD_LABELS = {
-          'TGL TERIMA': 'TGL TERIMA BERKAS LENGKAP',
+          'TGL TERIMA': 'TGL BERKAS LENGKAP',
           'TGL INV': 'TGL INVOICE',
           'JTH TEMPO': 'TGL JATUH TEMPO',
           'TGL FAKTUR PAJAK': 'TGL FAKTUR PAJAK',
@@ -872,8 +874,8 @@
                   { label: 'TOTAL (INCLUDE PPN)', val: money(total), cls: '#3d434c' },
                   { label: 'Bayar DPP', val: money(bayarDPP), cls: '#115e59', sub: data['TGL BAYAR DPP'] },
                   { label: 'Bayar PPN', val: money(bayarPPN), cls: '#115e59', sub: data['TGL BAYAR PPN'] },
-                  { label: 'SISA HUTANG (DPP)', val: money(sisaDPP), cls: sisaDPP > 0 ? '#b42318' : '#115e59' },
-                  { label: 'SISA HUTANG (PPN)', val: money(sisaPPN), cls: sisaPPN > 0 ? '#b42318' : '#115e59' },
+      { label: 'SISA HUTANG (DPP)', val: money(sisaDPP), cls: sisaDPP > 1 ? '#b42318' : '#115e59' },
+      { label: 'SISA HUTANG (PPN)', val: money(sisaPPN), cls: sisaPPN > 1 ? '#b42318' : '#115e59' },
               ];
               document.getElementById('vmFinbar').innerHTML = finItems.map(f =>
                   `<div class="vm-finbar-item"><div class="vm-finbar-label">${f.label}</div><div class="vm-finbar-val" style="color:${f.cls}">${f.val}</div>` +

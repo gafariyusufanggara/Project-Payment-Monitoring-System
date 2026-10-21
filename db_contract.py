@@ -270,6 +270,10 @@ def get_contracts(project_id=None):
         c['sisa_hutang'] = a['sisa_hutang']
         c['jumlah_invoice'] = a['jumlah_invoice']
         c['sisa_kontrak'] = dpp - tertagih
+        # Sisa Tagihan (kolom tabel & KPI daftar kontrak) = bagian kontrak
+        # yang belum dibayar, termasuk yang belum ditagih.
+        c['sisa_tagihan'] = dpp - a['dibayar']
+        c['sisa_tagihan_ppn'] = c['nilai_ppn'] - a['dibayar_ppn']
         # Progres = pembayaran (PEMBAYARAN DPP), bukan nilai invoice —
         # invoice belum dibayar tidak menaikkan progres.
         c['progres'] = (a['dibayar'] / dpp * 100) if dpp > 0 else 0.0
@@ -319,6 +323,8 @@ def get_contract(contract_id):
     c['sisa_hutang'] = a['sisa_hutang']
     c['jumlah_invoice'] = a['jumlah_invoice']
     c['sisa_kontrak'] = dpp - tertagih
+    c['sisa_tagihan'] = dpp - a['dibayar']
+    c['sisa_tagihan_ppn'] = c['nilai_ppn'] - a['dibayar_ppn']
     c['progres'] = (a['dibayar'] / dpp * 100) if dpp > 0 else 0.0
     c['progres_ppn'] = ((a['dibayar_ppn'] / c['nilai_ppn'] * 100)
                         if c['nilai_ppn'] > 0 else 0.0)
@@ -919,6 +925,7 @@ def get_contract_invoices(no_kontrak):
             'rekanan': rekan,
             'no_invoice': inv,
             'tgl_terima': r.get('tgl_terima') or '',
+            'jth_tempo': r.get('jth_tempo') or '',
             'tgl_inv': r.get('tgl_inv') or '',
             'deskripsi': r.get('deskripsi') or '',
             'kode_biaya': r.get('kode_biaya') or '',
@@ -982,12 +989,21 @@ def get_summary(project_id=None):
     total_ppn = sum(safe_float(c.get('nilai_ppn')) for c in contracts)
     total_tertagih = sum(float(c.get('tertagih') or 0) for c in contracts)
     total_tertagih_ppn = sum(float(c.get('tertagih_ppn') or 0) for c in contracts)
-    # Pembayaran & sisa hutang — DPP dan PPN selalu dipisah, tidak pernah digabung.
+    # Pembayaran — DPP dan PPN selalu dipisah, tidak pernah digabung.
     total_dibayar = sum(float(c.get('dibayar') or 0) for c in contracts)
     total_dibayar_ppn = sum(float(c.get('dibayar_ppn') or 0) for c in contracts)
-    total_sisa_dpp = sum(float(c.get('sisa_hutang') or 0) for c in contracts)
-    total_sisa_ppn = sum(max(0.0, float(c.get('tertagih_ppn') or 0)
-                             - float(c.get('dibayar_ppn') or 0)) for c in contracts)
+    # Sisa Tagihan = bagian kontrak yang belum dibayar (termasuk belum ditagih).
+    # KPI "Sisa Hutang DPP/PPN" = Σ kolom Sisa Tagihan, supaya angka kartu
+    # selalu sama dengan jumlah kolom yang terlihat pengguna.
+    total_sisa_dpp = sum(float(c.get('sisa_tagihan') or 0) for c in contracts)
+    total_sisa_ppn = sum(float(c.get('sisa_tagihan_ppn') or 0) for c in contracts)
+    # Rincian untuk hint KPI: belum ditagih + sudah ditagih belum dibayar.
+    total_belum_ditagih = sum(float(c.get('sisa_kontrak') or 0) for c in contracts)
+    total_belum_ditagih_ppn = sum(float(c.get('sisa_ppn') or 0) for c in contracts)
+    total_belum_dibayar = sum(float(c.get('sisa_hutang') or 0) for c in contracts)
+    total_belum_dibayar_ppn = sum(max(0.0, float(c.get('tertagih_ppn') or 0)
+                                      - float(c.get('dibayar_ppn') or 0))
+                                  for c in contracts)
     known_keys = {_norm_kontrak(c.get('no_kontrak')) for c in contracts}
     belum_lunas, jatuh_tempo = _linked_invoice_counts(project_id, known_keys)
     belum = sum(1 for c in contracts if c.get('status_invoice') == 'Belum Ada Invoice')
@@ -1002,6 +1018,10 @@ def get_summary(project_id=None):
         'total_dibayar_ppn': total_dibayar_ppn,
         'total_sisa_dpp': total_sisa_dpp,
         'total_sisa_ppn': total_sisa_ppn,
+        'total_belum_ditagih': total_belum_ditagih,
+        'total_belum_ditagih_ppn': total_belum_ditagih_ppn,
+        'total_belum_dibayar': total_belum_dibayar,
+        'total_belum_dibayar_ppn': total_belum_dibayar_ppn,
         'belum_lunas': belum_lunas,
         'jatuh_tempo': jatuh_tempo,
         'belum_invoice': belum,

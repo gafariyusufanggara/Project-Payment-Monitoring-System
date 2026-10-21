@@ -84,7 +84,7 @@
       <div class="kpi-ico kpi-ico--amber"><i class="bi bi-graph-up"></i></div>
       <div><div class="ds-kpi__label">Total Realisasi</div><div class="ds-kpi__value">{{ total_realisasi|money }}</div></div>
     </div>
-    <div class="ds-kpi ds-kpi--compact{% if project.total_sisa > 0 %} ds-kpi--warn{% else %} ds-kpi--ok{% endif %}" tabindex="0">
+    <div class="ds-kpi ds-kpi--compact{% if project.total_sisa|has_sisa %} ds-kpi--warn{% else %} ds-kpi--ok{% endif %}" tabindex="0">
       <div class="kpi-ico kpi-ico--rose"><i class="bi bi-exclamation-circle"></i></div>
       <div><div class="ds-kpi__label">Sisa Hutang</div><div class="ds-kpi__value">{{ project.total_sisa|money }}</div></div>
     </div>
@@ -103,9 +103,6 @@
         <div><div class="pd-pph-label">Rata-rata Tarif</div><div class="pd-pph-rate">{{ '%.2f'|format(pph_rate) }}%</div></div>
         <div><div class="pd-pph-label">Estimasi Final</div><div style="font-size:.7rem;color:#667080">2%: {{ (pph_dpp * 0.02)|money }}<br>4%: {{ (pph_dpp * 0.04)|money }}</div></div>
       </div>
-    </div>
-    <div style="border-top:1px solid #e3e5e8;padding:12px 20px">
-      <a href="{{ url_for('project.list_retention', project_id=project.id) }}" class="ds-btn ds-btn--sm"><i class="bi bi-lock"></i> Rincian Retensi <i class="bi bi-chevron-right"></i></a>
     </div>
   </div>
 
@@ -127,7 +124,7 @@
             <div class="pd-cf-row">
               <div class="pd-cf-bar" role="progressbar" aria-valuenow="{{ '%.0f'|format(pct) }}" aria-valuemin="0" aria-valuemax="100" aria-label="Progress bayar {{ cf.bulan }}">
                 <span class="pd-cf-bayar" style="width:{{ pct }}%"></span>
-                {% if cf.cum_sisa > 0 %}<span class="pd-cf-sisa" style="width:{{ (cf.cum_sisa / total_cf_amount * 100) if total_cf_amount > 0 else 0 }}%"></span>{% endif %}
+                {% if cf.cum_sisa|has_sisa %}<span class="pd-cf-sisa" style="width:{{ (cf.cum_sisa / total_cf_amount * 100) if total_cf_amount > 0 else 0 }}%"></span>{% endif %}
               </div>
               <span class="pd-cf-pct">{{ '%.0f'|format(pct) }}%</span>
             </div>

@@ -127,15 +127,15 @@
       <div><div class="ds-kpi__label">Terbayar PPN</div><div class="ds-kpi__value">{{ summary.total_dibayar_ppn|money }}</div>
         <div class="ds-kpi__hint">{% if summary.total_tertagih_ppn > 0 %}{{ (summary.total_dibayar_ppn / summary.total_tertagih_ppn * 100)|round(1) }}{% else %}0{% endif %}% dari yang ditagihkan</div></div>
     </div>
-    <div class="ds-kpi ds-kpi--compact{% if summary.total_sisa_dpp > 0 %} ds-kpi--warn{% endif %}" tabindex="0" title="Sisa hutang DPP = invoice yang sudah ditagih tapi belum dibayar (berbeda dari kolom 'Sisa Tagih')">
+    <div class="ds-kpi ds-kpi--compact{% if summary.total_sisa_dpp|has_sisa %} ds-kpi--warn{% endif %}" tabindex="0" title="Sisa Tagihan (DPP) = Nilai Kontrak (DPP) − Terbayar DPP, termasuk yang belum ditagih. {{ summary.belum_lunas }} invoice belum lunas.">
       <div class="kpi-ico kpi-ico--rose"><i class="bi bi-wallet2"></i></div>
-      <div><div class="ds-kpi__label">Sisa Hutang DPP</div><div class="ds-kpi__value">{{ summary.total_sisa_dpp|money }}</div>
-        <div class="ds-kpi__hint">{{ summary.belum_lunas }} invoice belum lunas</div></div>
+      <div><div class="ds-kpi__label">Sisa Tagihan (DPP)</div><div class="ds-kpi__value">{{ summary.total_sisa_dpp|money }}</div>
+        <div class="ds-kpi__hint">Belum ditagih: {{ summary.total_belum_ditagih|money }} &middot; Belum dibayar: {{ summary.total_belum_dibayar|money }}</div></div>
     </div>
-    <div class="ds-kpi ds-kpi--compact{% if summary.total_sisa_ppn > 0 or summary.jatuh_tempo > 0 %} ds-kpi--warn{% endif %}" tabindex="0" title="Sisa hutang PPN = invoice PPN yang sudah ditagih tapi belum dibayar (berbeda dari kolom 'Sisa Tagih')">
+    <div class="ds-kpi ds-kpi--compact{% if summary.total_sisa_ppn|has_sisa or summary.jatuh_tempo > 0 %} ds-kpi--warn{% endif %}" tabindex="0" title="Sisa Tagihan (PPN) = PPN Kontrak − Terbayar PPN, termasuk yang belum ditagih. {{ summary.jatuh_tempo }} invoice jatuh tempo.">
       <div class="kpi-ico kpi-ico--rose"><i class="bi bi-hourglass-split"></i></div>
-      <div><div class="ds-kpi__label">Sisa Hutang PPN</div><div class="ds-kpi__value">{{ summary.total_sisa_ppn|money }}</div>
-        <div class="ds-kpi__hint">{{ summary.jatuh_tempo }} invoice jatuh tempo</div></div>
+      <div><div class="ds-kpi__label">Sisa Tagihan (PPN)</div><div class="ds-kpi__value">{{ summary.total_sisa_ppn|money }}</div>
+        <div class="ds-kpi__hint">Belum ditagih: {{ summary.total_belum_ditagih_ppn|money }} &middot; Belum dibayar: {{ summary.total_belum_dibayar_ppn|money }}</div></div>
     </div>
   </div>
 
@@ -171,6 +171,12 @@
               <option value="Ada">Ada Invoice</option>
               <option value="Belum">Belum Ada Invoice</option>
             </select>
+            {% set metodes = contracts|map(attribute='metode_pembayaran', default='')|list|unique|sort %}
+            <select class="filter-select" id="filterMetode" aria-label="Filter metode bayar">
+              <option value="">Semua Metode Bayar</option>
+              {% for m in metodes %}{% if m %}<option value="{{ m }}">{{ m }}</option>{% endif %}{% endfor %}
+              {% if '' in metodes %}<option value="-">Belum Diisi</option>{% endif %}
+            </select>
             <div class="search-box ds-search ft-search">
               <i class="bi bi-search"></i>
               <input type="text" id="kcSearch" placeholder="Cari no. kontrak / vendor..." autocomplete="off" aria-label="Cari kontrak" />
@@ -197,15 +203,16 @@
               <th class="col-sticky-left-2">Vendor / Rekanan</th>
               <th>Item Pekerjaan</th>
               <th class="text-end">DPP Kontrak</th>
-              <th class="text-end">PPN Kontrak</th>
               <th class="text-end">Tagihan DPP</th>
+              <th class="text-end" title="Jumlah DPP yang sudah dibayar">Bayar DPP (Rp)</th>
+              <th title="Persentase DPP yang sudah dibayar terhadap DPP Kontrak">Bayar DPP (%)</th>
+              <th class="text-end">PPN Kontrak</th>
               <th class="text-end">Tagihan PPN</th>
-              <th class="text-end" title="Nilai kontrak yang belum ditagih ke vendor (Nilai Kontrak − Sudah Ditagih)">Sisa Tagih (DPP)</th>
-              <th class="text-end" title="Nilai kontrak PPN yang belum ditagih ke vendor (PPN Kontrak − Sudah Ditagih PPN)">Sisa Tagih (PPN)</th>
-              <th class="text-end">Terbayar DPP (Rp)</th>
-              <th>Terbayar DPP (%)</th>
-              <th class="text-end">Terbayar PPN (Rp)</th>
-              <th>Terbayar PPN (%)</th>
+              <th class="text-end" title="Jumlah PPN yang sudah dibayar">Bayar PPN (Rp)</th>
+              <th title="Persentase PPN yang sudah dibayar terhadap PPN Kontrak">Bayar PPN (%)</th>
+              <th class="text-center" title="PPN Include: PPN sudah termasuk dalam nilai kontrak. PPN Reimburse: PPN ditagih terpisah.">Metode Bayar</th>
+              <th class="text-end" title="Nilai kontrak DPP yang belum dibayar (Nilai Kontrak − Terbayar DPP, termasuk yang belum ditagih)">Sisa Tagihan (DPP)</th>
+              <th class="text-end" title="PPN kontrak yang belum dibayar (PPN Kontrak − Terbayar PPN, termasuk yang belum ditagih)">Sisa Tagihan (PPN)</th>
               <th class="text-center col-sticky-right">Stat. Invoice</th>
             </tr>
           </thead>
@@ -213,16 +220,17 @@
             {% for c in contracts %}
             <tr data-search="{{ (c.no_kontrak ~ ' ' ~ c.vendor ~ ' ' ~ (c.item_pekerjaan or '') ~ ' ' ~ (project_labels.get(c.project_id|string) or ''))|lower }}"
                 data-vendor="{{ c.vendor }}"
-                data-status="{{ 'Ada' if c.status_invoice == 'Ada Invoice' else 'Belum' }}">
+                data-status="{{ 'Ada' if c.status_invoice == 'Ada Invoice' else 'Belum' }}"
+                data-metode="{{ c.metode_pembayaran or '-' }}">
               {% set is_ada = c.status_invoice == 'Ada Invoice' %}
               {# Toleransi pembulatan Rp 1: sisa dari selisih floating point yang
-                 sangat kecil (mis. -0.0000001) dianggap 0, bukan over-tagih.
-                 Sisa = Nilai Kontrak - Sudah Ditagih (sudut pandang "belum
-                 ditagih", bukan sisa hutang). Nilai negatif hanya bila benar-
-                 benar over-tagih (ditagih melebihi nilai kontrak). #}
+                 sangat kecil (mis. -0.0000001) dianggap 0, bukan over-bayar.
+                 Sisa Tagihan = Nilai Kontrak - Terbayar (bagian kontrak yang
+                 belum dibayar, termasuk yang belum ditagih). Nilai negatif
+                 hanya bila pembayaran melebihi nilai kontrak. #}
               {% set eps = 1.0 %}
-              {% set sisa_dpp = c.sisa_kontrak|float %}
-              {% set sisa_ppn = c.sisa_ppn|float %}
+              {% set sisa_dpp = c.sisa_tagihan|float %}
+              {% set sisa_ppn = c.sisa_tagihan_ppn|float %}
               <td class="col-sticky-left" data-type="num" data-v="{{ loop.index }}">
                 <span class="row-num">{{ loop.index }}</span>
               </td>
@@ -234,25 +242,26 @@
               </td>
               <td class="kc-item" title="{{ c.item_pekerjaan or '' }}">{{ c.item_pekerjaan or '—' }}</td>
               <td class="cell-money">{{ (c.nilai_dpp or 0)|money }}</td>
-              <td class="cell-money">{{ (c.nilai_ppn or 0)|money }}</td>
               <td class="cell-money">{{ c.tertagih|money }}</td>
-              <td class="cell-money">{{ c.tertagih_ppn|money }}</td>
-              <td class="cell-money{% if is_ada and sisa_dpp|abs > eps %} kc-owe{% endif %}{% if sisa_dpp > eps %} text-danger{% elif sisa_dpp < -eps %} text-danger{% elif not is_ada %} text-muted{% else %} text-success{% endif %}" style="font-weight:700">{{ (0 if sisa_dpp|abs <= eps else sisa_dpp)|money }}</td>
-              <td class="cell-money{% if is_ada and sisa_ppn|abs > eps %} kc-owe{% endif %}{% if sisa_ppn > eps %} text-danger{% elif sisa_ppn < -eps %} text-danger{% elif not is_ada %} text-muted{% else %} text-success{% endif %}" style="font-weight:700">{{ (0 if sisa_ppn|abs <= eps else sisa_ppn)|money }}</td>
-              <td class="cell-money">{{ c.dibayar|money }}</td>
+              <td class="cell-money{% if (c.dibayar or 0) > eps %} text-danger{% endif %}"{% if (c.dibayar or 0) > eps %} style="font-weight:700"{% endif %}>{{ c.dibayar|money }}</td>
               <td class="kc-prog">
                 {{ pay_bar(c.progres if c.nilai_dpp and c.nilai_dpp > 0 else none,
                            c.over,
                            'Progres pembayaran DPP ' ~ c.no_kontrak,
                            'DPP Kontrak belum diisi.') }}
               </td>
-              <td class="cell-money">{{ c.dibayar_ppn|money }}</td>
+              <td class="cell-money">{{ (c.nilai_ppn or 0)|money }}</td>
+              <td class="cell-money">{{ c.tertagih_ppn|money }}</td>
+              <td class="cell-money{% if (c.dibayar_ppn or 0) > eps %} text-danger{% endif %}"{% if (c.dibayar_ppn or 0) > eps %} style="font-weight:700"{% endif %}>{{ c.dibayar_ppn|money }}</td>
               <td class="kc-prog">
                 {{ pay_bar(c.progres_ppn if c.nilai_ppn and c.nilai_ppn > 0 else none,
                            c.over_ppn,
                            'Progres pembayaran PPN ' ~ c.no_kontrak,
                            'PPN Kontrak belum diisi.') }}
               </td>
+              <td class="text-center kc-metode">{{ c.metode_pembayaran or '—' }}</td>
+              <td class="cell-money kc-sisa{% if sisa_dpp > eps %} kc-owe{% endif %}{% if sisa_dpp > eps %} text-danger{% elif sisa_dpp < -eps %} text-danger{% else %} text-success{% endif %}" style="font-weight:700">{{ (0 if sisa_dpp|abs <= eps else sisa_dpp)|money }}</td>
+              <td class="cell-money kc-sisa{% if sisa_ppn > eps %} kc-owe{% endif %}{% if sisa_ppn > eps %} text-danger{% elif sisa_ppn < -eps %} text-danger{% else %} text-success{% endif %}" style="font-weight:700">{{ (0 if sisa_ppn|abs <= eps else sisa_ppn)|money }}</td>
               <td class="text-center col-sticky-right">
                 {% if is_ada %}
                 <span class="kc-stat-pill kc-stat-pill--ok" title="Ada Invoice ({{ c.jumlah_invoice }})">{{ c.jumlah_invoice }}</span>
@@ -285,12 +294,14 @@ function filterRows() {
   var q = (inp.value || '').toLowerCase();
   var vendor = document.getElementById('filterVendor')?.value || '';
   var status = document.getElementById('filterStatus')?.value || '';
+  var metode = document.getElementById('filterMetode')?.value || '';
   var rows = document.querySelectorAll('#kcBody tr');
   var shown = 0;
   rows.forEach(function (tr) {
     var hit = (!q || (tr.getAttribute('data-search') || '').indexOf(q) !== -1)
            && (!vendor || tr.getAttribute('data-vendor') === vendor)
-           && (!status || tr.getAttribute('data-status') === status);
+           && (!status || tr.getAttribute('data-status') === status)
+           && (!metode || tr.getAttribute('data-metode') === metode);
     // Publish filter result; TableEnhance paginates only passing rows.
     tr.dataset.filterPass = hit ? '1' : '0';
     if (hit) shown++;
@@ -308,7 +319,7 @@ function filterRows() {
   }
 
   var el = document.getElementById('kcCount');
-  var anyFilter = q || vendor || status;
+  var anyFilter = q || vendor || status || metode;
   if (el) el.textContent = anyFilter ? shown + ' dari ' + rows.length + ' kontrak' : '';
   var clr = document.getElementById('kcSearchClear');
   if (clr) clr.hidden = !q;
@@ -316,6 +327,7 @@ function filterRows() {
 document.getElementById('kcSearch')?.addEventListener('input', filterRows);
 document.getElementById('filterVendor')?.addEventListener('change', filterRows);
 document.getElementById('filterStatus')?.addEventListener('change', filterRows);
+document.getElementById('filterMetode')?.addEventListener('change', filterRows);
 // Tombol X dibersihkan oleh handler generik di partials/_search_box.html
 // (klik → kosongkan input → dispatch 'input' → filterRows() ikut jalan).
 // Re-init pada full load & setiap HTMX swap (konten di-swap tanpa reload penuh).

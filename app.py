@@ -61,12 +61,25 @@ def inject_static_version():
     return {'static_url': static_url}
 
 
+@app.after_request
+def _no_store_html(resp):
+    if resp.mimetype == 'text/html':
+        resp.headers['Cache-Control'] = 'no-store'
+    return resp
+
+
+# ── Round-half-away-from-zero helper (Excel/Indonesian-kuasa style) ──
+def _round_idr(v):
+    """Round to whole integer, half away from zero. E.g. 10.5→11, -10.5→-11."""
+    return int(v + (0.5 if v >= 0 else -0.5))
+
+
 # ── Jinja filter: format money (Indonesian locale, no Rp prefix, no decimals) ──
 @app.template_filter('money')
 def _money_filter(val):
     """Format a number with dot separators (ID locale). E.g. 1000000 → 1.000.000"""
     try:
-        v = int(float(val or 0))
+        v = _round_idr(float(val or 0))
         return '{:,}'.format(v).replace(',', '.')
     except (ValueError, TypeError):
         return '0'
@@ -80,9 +93,25 @@ def _money0_filter(val):
         v = float(val or 0)
     except (ValueError, TypeError):
         v = 0
-    if v == 0:
+    if _round_idr(v) == 0:
         return '-'
-    return '{:,}'.format(int(v)).replace(',', '.')
+    return '{:,}'.format(_round_idr(v)).replace(',', '.')
+
+
+# ── Jinja filter: has_sisa (masih ada sisa hutang signifikan?) ──
+@app.template_filter('has_sisa')
+def _has_sisa_filter(val):
+    """True bila sisa hutang > SISA_EPS (Rp 1).
+
+    Dipakai untuk pewarnaan & penanda "ada sisa" di template, supaya konsisten
+    dengan logika server (constants.sisa_belum_lunas) dan tidak memakai '> 0'
+    mentah yang bisa tersulut noise float sub-rupiah dari Excel.
+    """
+    from constants import sisa_belum_lunas
+    try:
+        return sisa_belum_lunas(float(val or 0))
+    except (ValueError, TypeError):
+        return False
 
 
 # ── Jinja filter: format date YYYY-MM-DD → 10 Mar 2026 ──
