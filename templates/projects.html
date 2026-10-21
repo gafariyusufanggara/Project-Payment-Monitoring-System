@@ -19,44 +19,97 @@
   /* Judul halaman ditampilkan di topbar (konsisten dgn halaman lain); kluster
      kanan tetap mepet kanan. Pemilih proyek disembunyikan via topbar_scope. */
   .topbar-right { margin-left: auto; }
-  .prj-wrap { display: flex; flex-direction: column; gap: 16px; max-width: 1200px; margin: 0 auto; }
+  .prj-wrap { display: flex; flex-direction: column; gap: var(--ds-sp-4); max-width: 1200px; margin: 0 auto; }
   .prj-toolbar { display: flex; justify-content: flex-end; }
-  .prj-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; align-items: start; }
-  .ds-card { background: #fff; border: 1px solid #e3e5e8; border-radius: 16px; box-shadow: 0 1px 3px rgba(51, 51, 51,.05); overflow: hidden; display: flex; flex-direction: column; height: 100%; transition: box-shadow .25s cubic-bezier(.4,0,.2,1), transform .25s cubic-bezier(.4,0,.2,1); }
-  .ds-card:hover { box-shadow: 0 4px 12px -2px rgba(51, 51, 51,.08), 0 2px 6px -1px rgba(51, 51, 51,.04); transform: translateY(-2px); }
-  .prj-card-top { padding: 16px 18px 12px; border-bottom: 1px solid #e3e5e8; display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
-  .prj-card-title { flex: 1 1 auto; min-width: 0; font-weight: 700; font-size: 1rem; color: #333333; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-  .prj-card-kode { font-family: "JetBrains Mono", "SF Mono", monospace; font-size: .7rem; color: #16324f; font-weight: 600; background: #eaf0f6; padding: 3px 10px; border-radius: 6px; white-space: nowrap; flex: none; }
-  .prj-card-body { padding: 12px 18px 14px; display: flex; flex-direction: column; gap: 12px; flex: 1; }
+  .prj-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: var(--ds-sp-3); align-items: stretch; }
+
+  /* ── Kartu proyek ─────────────────────────────────────────────────────────
+     Hierarki baru: 1 aksen navy di tepi atas (bukan blok teal penuh) →
+     judul + kode → konteks ringkas → SATU angka utama (Sisa Hutang) →
+     dua angka pendukung → periode → aksi. Semua memakai token --ds-*;
+     tidak ada hex baru selain yang sudah dipakai tema (navy/teal/rose). */
+  .prj-card { position: relative; }
+  .prj-card::before {
+    content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: var(--ds-accent); border-radius: var(--ds-r-xl) var(--ds-r-xl) 0 0;
+  }
+  .prj-card--aktif::before { background: var(--ds-ok); }
+  .prj-card--lain::before { background: var(--ds-warn); }
+  .prj-card:hover {
+    box-shadow: 0 4px 12px -2px rgba(51, 51, 51,.08), 0 2px 6px -1px rgba(51, 51, 51,.04);
+    transform: translateY(-2px);
+    border-color: #cfd8e2;
+  }
+  .prj-card { transition: box-shadow .2s ease, transform .2s ease, border-color .2s ease; }
+
+  /* Header: judul 2 baris + kode proyek (mono, chip navy muda) */
+  .prj-card-top { padding: var(--ds-sp-4) var(--ds-sp-5) var(--ds-sp-3); display: flex; align-items: flex-start; justify-content: space-between; gap: var(--ds-sp-2); }
+  .prj-card-title { flex: 1 1 auto; min-width: 0; font-weight: 700; font-size: var(--ds-fs-lg); color: var(--ds-text); line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .prj-card-kode { font-family: "JetBrains Mono", "SF Mono", monospace; font-size: var(--ds-fs-xs); color: var(--deep); font-weight: 700; background: #eaf0f6; padding: 3px 9px; border-radius: var(--ds-r-sm); white-space: nowrap; flex: none; letter-spacing: .3px; }
+
+  .prj-card-body { padding: 0 var(--ds-sp-5) var(--ds-sp-4); display: flex; flex-direction: column; gap: var(--ds-sp-3); flex: 1; }
+
   /* Baris konteks: status (dot + badge) · pemilik · lokasi */
-  .prj-ctx { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; font-size: .74rem; color: #667080; min-width: 0; }
+  .prj-ctx { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; font-size: var(--ds-fs-sm); color: var(--ds-text-soft); min-width: 0; }
   .prj-ctx-sep { width: 1px; height: 10px; background: #d9dde2; flex: none; }
   .prj-ctx-item { display: inline-flex; align-items: center; min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .prj-ctx-item i { margin-right: 4px; font-size: .72rem; color: #9aa2ad; }
-  /* Blok posisi keuangan: satu blok angka (hairline atas), 3 kolom sama lebar */
-  .prj-money { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px 12px; padding-top: 12px; border-top: 1px solid #eef0f2; }
-  .prj-money > div { min-width: 0; }
-  .prj-money-label { font-size: .66rem; color: #667080; text-transform: uppercase; letter-spacing: .6px; font-weight: 700; white-space: nowrap; }
-  .prj-money-value { font-family: "JetBrains Mono", "SF Mono", monospace; font-size: .74rem; font-weight: 600; color: #333333; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-  .prj-money-value--neg { color: #912018; }
+  .prj-ctx-item i { margin-right: 4px; font-size: var(--ds-fs-xs); color: #9aa2ad; }
+
+  /* Angka utama: Sisa Hutang. Diberi latar lembut supaya jadi titik pandang
+     pertama, dengan nilai pendukung (Realisasi/Terbayar) di bawahnya. */
+  .prj-money { padding: var(--ds-sp-3) var(--ds-sp-4); border-radius: var(--ds-r-lg); background: #f7f8f9; border: 1px solid #eef0f2; display: flex; flex-direction: column; gap: var(--ds-sp-3); }
+  .prj-money-main { min-width: 0; }
+  .prj-money-label { font-size: var(--ds-fs-2xs); color: var(--ds-text-soft); text-transform: uppercase; letter-spacing: .6px; font-weight: 700; white-space: nowrap; }
+  .prj-money-hero {
+    font-family: var(--ds-font-display); font-size: 1.3rem; font-weight: 700; line-height: 1.15;
+    color: var(--ds-text); font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere; margin-top: 1px; letter-spacing: -.01em;
+  }
+  .prj-money-hero--neg { color: #912018; }
+  .prj-money-sub { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--ds-sp-2) var(--ds-sp-3); padding-top: var(--ds-sp-2); border-top: 1px dashed #dfe4ea; }
+  .prj-money-sub > div { min-width: 0; }
+  .prj-money-value { font-family: "JetBrains Mono", "SF Mono", monospace; font-size: var(--ds-fs-sm); font-weight: 600; color: var(--ds-text); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
   .prj-money-value--pos { color: #115e59; }
+
   /* Kaki body: periode rencana */
-  .prj-period { display: flex; align-items: center; gap: 6px; font-size: .72rem; color: #667080; font-variant-numeric: tabular-nums; }
-  .prj-period i { font-size: .72rem; color: #9aa2ad; }
-  .ds-badge { padding: 3px 10px; border-radius: 6px; font-size: .7rem; font-weight: 700; display: inline-block; white-space: nowrap; }
-  .ds-badge-green { background: #e6f4f1; color: #115e59; }
-  .ds-badge-blue { background: #eaf0f6; color: #16324f; }
-  .ds-badge-amber { background: #fdf6d8; color: #8a6d00; }
-  .prj-badge { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 999px; font-size: .7rem; font-weight: 700; white-space: nowrap; }
-  .prj-badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: none; }
-  .prj-badge--aktif { background: #e6f4f1; color: #115e59; }
-  .prj-badge--selesai { background: #eaf0f6; color: #16324f; }
-  .prj-badge--lain { background: #fdf6d8; color: #8a6d00; }
-  .prj-card-actions { padding: 12px 18px; background: #f7f8f9; border-top: 1px solid #e3e5e8; }
-  .prj-card-actions a { width: 100%; justify-content: center; }
-  .ds-btn:focus-visible, .prj-card-actions a:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 86, 145,.18); }
-  @media (max-width: 768px) { .prj-grid { grid-template-columns: 1fr; } .prj-money { grid-template-columns: repeat(3, 1fr); } }
-  @media (prefers-reduced-motion: reduce) { .ds-card { transition: none; } .ds-card:hover { transform: none; } }
+  .prj-period { display: flex; align-items: center; gap: 6px; font-size: var(--ds-fs-xs); color: var(--ds-text-soft); font-variant-numeric: tabular-nums; }
+  .prj-period i { font-size: var(--ds-fs-xs); color: #9aa2ad; }
+
+  /* Badge status memakai .prj-badge dari project.css (satu tampilan). */
+  /* Aksi kartu: baris footer netral (bukan tombol selebar kartu yang
+     terlihat "gepeng"). Ikon + label di kiri, chevron di kanan sebagai
+     penanda navigasi; seluruh permukaan kartu tetap terasa seperti link. */
+  .prj-card-actions {
+    display: flex; align-items: center;
+    padding: var(--ds-sp-3) var(--ds-sp-5);
+    background: #f7f8f9; border-top: 1px solid var(--border);
+    margin-top: auto;
+  }
+  .prj-cta {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-size: var(--ds-fs-sm); font-weight: 700;
+    color: var(--ds-accent-dark); text-decoration: none;
+    padding: 5px 10px 5px 8px; margin: -5px 0 -5px -8px;
+    border-radius: var(--ds-r-md);
+    transition: background .15s ease, color .15s ease;
+  }
+  .prj-cta i { font-size: var(--ds-fs-md); line-height: 1; }
+  .prj-cta .prj-cta__chev { margin-left: 2px; font-size: var(--ds-fs-xs); transition: transform .15s ease; }
+  .prj-cta:hover { background: #eaf0f6; color: var(--deep); }
+  .prj-cta:hover .prj-cta__chev { transform: translateX(2px); }
+  .ds-btn:focus-visible, .prj-cta:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 86, 145,.18); }
+
+  @media (max-width: 768px) {
+    .prj-grid { grid-template-columns: 1fr; }
+    .prj-card-top { padding: var(--ds-sp-3) var(--ds-sp-4) var(--ds-sp-2); }
+    .prj-card-body { padding: 0 var(--ds-sp-4) var(--ds-sp-3); }
+    .prj-card-actions { padding: var(--ds-sp-2) var(--ds-sp-4); }
+    .prj-money-hero { font-size: 1.15rem; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .prj-card { transition: none; }
+    .prj-card:hover { transform: none; }
+  }
 </style>
 <div class="prj-wrap animate-in">
   <!-- Toolbar aksi (judul halaman kini di topbar, konsisten dgn halaman lain) -->
@@ -74,7 +127,8 @@
     {% set terbayar = realisasi - sisa %}
     {% set tgl_mulai = p.tgl_mulai|tgl %}
     {% set tgl_selesai = p.tgl_selesai|tgl %}
-    <div class="ds-card">
+    {% set ada_sisa = sisa|has_sisa %}
+    <div class="ds-card prj-card{% if p.status == 'Aktif' %} prj-card--aktif{% elif p.status != 'Selesai' %} prj-card--lain{% endif %}">
       <div class="prj-card-top">
         <div class="prj-card-title">{{ p.nama_proyek }}</div>
         <span class="prj-card-kode">{{ p.kode_proyek }}</span>
@@ -98,17 +152,19 @@
           {% endif %}
         </div>
         <div class="prj-money">
-          <div>
-            <div class="prj-money-label">Realisasi</div>
-            <div class="prj-money-value">{{ realisasi|money }}</div>
-          </div>
-          <div>
-            <div class="prj-money-label">Terbayar</div>
-            <div class="prj-money-value prj-money-value--pos">{{ terbayar|money }}</div>
-          </div>
-          <div>
+          <div class="prj-money-main">
             <div class="prj-money-label">Sisa Hutang</div>
-            <div class="prj-money-value{% if sisa|has_sisa %} prj-money-value--neg{% endif %}">{{ sisa|money }}</div>
+            <div class="prj-money-hero{% if ada_sisa %} prj-money-hero--neg{% endif %}">{{ sisa|money }}</div>
+          </div>
+          <div class="prj-money-sub">
+            <div>
+              <div class="prj-money-label">Realisasi</div>
+              <div class="prj-money-value">{{ realisasi|money }}</div>
+            </div>
+            <div>
+              <div class="prj-money-label">Terbayar</div>
+              <div class="prj-money-value prj-money-value--pos">{{ terbayar|money }}</div>
+            </div>
           </div>
         </div>
         <div class="prj-period">
@@ -117,8 +173,9 @@
         </div>
       </div>
       <div class="prj-card-actions">
-        <a class="ds-btn ds-btn--sm" href="{{ url_for('project.project_dashboard', project_id=p.id) }}">
-          <i class="bi bi-speedometer2"></i> Dashboard <i class="bi bi-chevron-right" style="margin-left:auto"></i>
+        <a class="prj-cta" href="{{ url_for('project.project_dashboard', project_id=p.id) }}">
+          <i class="bi bi-speedometer2"></i> Dashboard
+          <i class="bi bi-chevron-right prj-cta__chev"></i>
         </a>
       </div>
     </div>

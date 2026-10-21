@@ -14,6 +14,7 @@ memang boleh berbeda. Lihat services/contract_excel.py.
 Tabel disimpan di DB yang sama dengan hutang (monitoring_hutang.db).
 """
 import os
+import re
 import sqlite3
 from datetime import date
 
@@ -37,6 +38,36 @@ def _dict_factory(cursor, row):
 def _norm_kontrak(val):
     """Kunci pencocokan nomor kontrak: trim + upper."""
     return (str(val or '')).strip().upper()
+
+
+def _no_kontrak_sort_key(no):
+    """Kunci urut ALAMIAH (natural sort) untuk No. PO / No. Kontrak.
+
+    `ORDER BY no_kontrak` di SQLite mengurutkan sebagai TEKS, sehingga
+    "PB.10" < "PB.9" dan "PB.100" < "PB.2" - nomor 01 tidak dijamin di atas.
+    Di sini nomor pada segmen pertama (sebelum "/") dipecah menjadi
+    (prefix teks, angka) supaya urutannya numerik:
+
+        PB.1 -> ('PB.', 1)   PB.9 -> ('PB.', 9)   PB.10 -> ('PB.', 10)
+
+    Format nyata: "PB.001/PO/NK-WIKA/03/SINTONG/12/2025" -> nomor 1.
+
+    Kontrak tanpa angka (kosong / format lain) SELALU diletakkan di bawah
+    nomor berangka, lalu diurutkan menurut teksnya. Karena itu elemen pertama
+    tuple adalah 0 untuk yang berangka dan 1 untuk yang tidak - sehingga
+    keduanya tidak pernah tercampur.
+
+    Elemen terakhir (teks asli) menjadi tie-breaker agar urutan STABIL saat
+    nomornya kembar (mis. PB.021 dan PB.21).
+    """
+    text = str(no or '').strip()
+    segmen = text.split('/')[0]
+    m = re.search(r'(\d+)', segmen)
+    if not m:
+        # Tak ada nomor -> taruh paling bawah, urut teks.
+        return (1, '', 0, text.upper())
+    prefix = segmen[:m.start()].strip().upper()
+    return (0, prefix, int(m.group(1)), text.upper())
 
 
 # ---------------------------------------------------------------------------
@@ -154,6 +185,7 @@ def _query_invoice_rows(project_id=None):
                        "PEMBAYARAN DPP"               AS bayar,
                        "PEMBAYARAN PPN"               AS bayar_ppn,
                        "POT. PPH"                     AS pot_pph,
+                       "POT. RETENSI"                 AS pot_retensi,
                        "TOTAL (INCLD)"                AS total,
                        "STATUS TERHADAP DPP"          AS status_dpp,
                        "JTH TEMPO"                    AS jth_tempo,
@@ -310,6 +342,13 @@ def get_contracts(project_id=None):
         {c['id']: (c.get('tertagih') or 0.0) for c in out})
     for c in out:
         c['termin_cocok'] = cocok.get(c['id'])
+
+    # Urut ALAMIAH menurut No. PO/Kontrak: nomor 01 di atas, dan "PB.100"
+    # tetap setelah "PB.99" (bukan sebelum "PB.2" seperti urutan teks).
+    # SQLite tak punya natural sort, jadi pengurutan dilakukan di sini -
+    # setelah filter proyek, agar urutan yang dilihat = urutan final.
+    # Tie-breaker teks di dalam kunci membuat urutan stabil.
+    out.sort(key=lambda c: _no_kontrak_sort_key(c.get('no_kontrak')))
     return out
 
 
@@ -560,7 +599,8 @@ def enrich_termins(termins, contract=None):
 # dengan EPS tabel: selisih floating point bukan temuan).
 TERMIN_EPS = 1.0
 
-def termin_progress(termins, tertagih):
+
+def termin_progress(termins, tertagih):
     """Cocokkan nilai invoice yang sudah ditagih dengan jadwal termin kontrak.
 
     Inilah inti halaman Progress Kontrak: memastikan invoice yang masuk
@@ -1126,6 +1166,9 @@ def get_contract_invoices(no_kontrak):
             'harga': 0.0 if is_dup else safe_float(r.get('harga')),
             'total': 0.0 if is_dup else safe_float(r.get('total')),
             'pot_pph': safe_float(r.get('pot_pph')),
+            # Potongan retensi (kolom asli "POT. RETENSI"). Sama seperti
+            # pot_pph, ini informasi per baris invoice, tidak ikut agregasi.
+            'pot_retensi': safe_float(r.get('pot_retensi')),
             # Nilai PPN = TOTAL (INCLD) - HARGA (EXLD); duplikat sudah di-nol-kan.
             'nilai_ppn': 0.0 if is_dup else (safe_float(r.get('total'))
                                              - safe_float(r.get('harga'))),

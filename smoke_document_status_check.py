@@ -134,13 +134,16 @@ assert re.search(r'Dokumen Revisi</div><div class="ds-kpi__value">\d+</div><div 
 assert re.search(r'class="ds-desc"[^>]*data-full=', tpl), \
     "Deskripsi (ds-desc) tak punya data-full — tooltip tidak akan muncul"
 # Font tabel harus konsisten dengan tabel Data Invoice (.dt-table):
-# body 0.74rem, header 0.72rem uppercase navy #c9ccd1, zebra even.
+# body 0.78rem, header 0.7rem uppercase navy, zebra even.
+# Catatan: sebelumnya halaman ini memakai .74rem sementara tabel Data Invoice
+# memakai 0.78rem, sehingga keduanya TIDAK konsisten. Nilai diseragamkan ke
+# 0.78rem (lihat static/css/app.css & normalisasi skala font).
 assert re.search(
-    r'\.ds-table \{ width: 100%; min-width: \d+px; border-collapse: separate; border-spacing: 0; font-size: \.74rem; \}',
+    r'\.ds-table \{ width: 100%; min-width: \d+px; border-collapse: separate; border-spacing: 0; font-size: 0\.78rem; \}',
     tpl), \
-    "font-size/layout tabel Status Dokumen tak sesuai tabel lain (.74rem, tanpa table-layout:fixed)"
-assert re.search(r'\.ds-table thead th \{[^}]*font-size: \.7rem', tpl, re.S), \
-    "font-size header tabel Status Dokumen tak sesuai tabel lain (.7rem)"
+    "font-size/layout tabel Status Dokumen tak sesuai tabel lain (0.78rem, tanpa table-layout:fixed)"
+assert re.search(r'\.ds-table thead th \{[^}]*font-size: 0\.7rem', tpl, re.S), \
+    "font-size header tabel Status Dokumen tak sesuai tabel lain (0.7rem)"
 assert 'color: #eaf2f8' in tpl, "warna teks header tak sama dengan tabel lain (#eaf2f8)"
 assert 'nth-child(even)' in tpl, "tabel Status Dokumen tak punya zebra seperti tabel lain"
 # Kolom Rekanan harus lebar agar tidak wrap sempit (colgroup + min-width).

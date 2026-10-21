@@ -255,7 +255,6 @@ const FILTER_DEFS = [
     { id: 'filterKategori',    group: 'Kategori' },
     { id: 'filterKodeBiaya',   group: 'Kode Biaya' },
     { id: 'filterJtMonth',     group: 'Bulan JT', labelOf: v => (document.querySelector(`#filterJtMonth option[value="${v}"]`)?.textContent || v).trim() },
-    { id: 'filterJatuhTempo',  group: 'Jatuh Tempo', labelOf: v => ({ overdue: 'Lewat JT', due: 'JT \u2264 30 hari', safe: 'Aman', unpaid_no_due: 'Tanpa JT' }[v] || v) },
 ];
 
 // ── Subtotal footer (mengikuti filter) ──
@@ -295,7 +294,6 @@ function filterTable() {
     const catFilter = document.getElementById('filterKategori')?.value || '';
     const kbFilter = document.getElementById('filterKodeBiaya')?.value || '';
     const bayarFilter = document.getElementById('filterStatusBayar')?.value || '';
-    const jtFilter = document.getElementById('filterJatuhTempo')?.value || '';
     const jtMonth = document.getElementById('filterJtMonth')?.value || '';
     const blFrom = document.getElementById('berkasFrom')?.value || '';
     const blTo = document.getElementById('berkasTo')?.value || '';
@@ -312,12 +310,6 @@ function filterTable() {
 
     // Epsilon to absorb float noise on money fields.
     const EPS = 0.5;
-    // Today for jatuh-tempo comparisons (YYYY-MM-DD, local).
-    const today = new Date();
-    const todayStr = new Date(today.getTime() - today.getTimezoneOffset() * 60000)
-        .toISOString().slice(0, 10);
-    const in30Str = new Date(today.getTime() + 30 * 86400000 - today.getTimezoneOffset() * 60000)
-        .toISOString().slice(0, 10);
 
     let visible = 0;
     document.querySelectorAll('#dataTable tbody tr').forEach(tr => {
@@ -354,25 +346,15 @@ function filterTable() {
             else if (bayarFilter === 'sebagian') bayarMatch = (paidDpp || paidPpn) && !(paidDpp && paidPpn);
         }
 
-        // Jatuh tempo derived from JTH TEMPO + payment state.
-        let jtMatch = true;        if (jtFilter) {
-            const sisaPpn = parseFloat(tr.dataset.sisaPpn) || 0;
-            const belumLunas = (sisaDppRaw > EPS) || (sisaPpn > EPS);
-            const jt = tr.dataset.tglJthTempo || '';
-            const hasJt = /^\d{4}-\d{2}-\d{2}$/.test(jt);
-            if (jtFilter === 'unpaid_no_due') jtMatch = belumLunas && !hasJt;
-            else if (jtFilter === 'overdue') jtMatch = belumLunas && hasJt && jt < todayStr;
-            else if (jtFilter === 'due') jtMatch = belumLunas && hasJt && jt >= todayStr && jt <= in30Str;
-            else if (jtFilter === 'safe') jtMatch = !belumLunas || (hasJt && jt > in30Str);
-        }
-
         // Bulan jatuh tempo (YYYY-MM) — opsi sama dengan page Jatuh Tempo.
+        // Satu-satunya filter jatuh tempo di sini: status overdue/telat sudah
+        // punya halaman sendiri (Laporan Jatuh Tempo), jadi tidak diduplikasi.
         const jtMonthMatch = !jtMonth
             || (tr.dataset.tglJthTempo || '').slice(0, 7) === jtMonth;
 
         const match = searchMatch && dppMatch && ppnMatch && catMatch && kbMatch
             && blMatch && byMatch && bpMatch && sisaMatch && sisaPpnMatch
-            && bayarMatch && jtMatch && jtMonthMatch && revisiMatch;
+            && bayarMatch && jtMonthMatch && revisiMatch;
         // Publish filter result; table-enhance.js paginates only passing rows.
         tr.dataset.filterPass = match ? '1' : '0';
         if (match) visible++;
@@ -887,10 +869,10 @@ function initDashboardCharts() {
                 const total = chart.data.datasets[0].data.reduce((a,b)=>a+b,0);
                 el.innerHTML = chart.data.labels.map((l,i) => {
                     const pct = total ? ((chart.data.datasets[0].data[i]/total)*100).toFixed(0) : 0;
-                    return `<div style="display:flex;align-items:center;gap:5px;font-size:.68rem;padding:1px 0">
+                    return `<div style="display:flex;align-items:center;gap:5px;font-size: 0.7rem;padding:1px 0">
                         <span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${Array.isArray(colors)?colors[i]:colors};flex-shrink:0"></span>
                         <span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ds-muted)">${l}</span>
-                        <span style="font-weight:600;color:var(--ds-text);font-family:'JetBrains Mono',monospace;font-size:.65rem">${pct}%</span>
+                        <span style="font-weight:600;color:var(--ds-text);font-family:'JetBrains Mono',monospace;font-size: 0.66rem">${pct}%</span>
                     </div>`;
                 }).join('');
             }

@@ -20,6 +20,7 @@ Memverifikasi bahwa KPI dashboard proyek mengikuti pola dashboard utama
 Run:  python smoke_project_dashboard_check.py
 Read-only terhadap data nyata.
 """
+import io
 import os
 import re
 import sys
@@ -78,6 +79,39 @@ for p in PROJECTS:
     assert 'role="progressbar"' in body, 'bar progres hero hilang'
 print(f'[1] hero Total Sisa Hutang + bar progres OK ({len(PROJECTS)} proyek)')
 
+# ── 1b. Kartu hero (progress DPP/PPN) SERAGAM dgn hero dashboard ──
+# Dulu .prj-hero memakai background var(--ds-accent) (teal #0f766e) sehingga
+# kartu berisi bar DPP/PPN di halaman proyek berwarna beda dgn .dash-hero
+# di /dashboard yang navy #16324f. Disamakan ke navy + geometry yang sama.
+_ROOT = os.path.dirname(os.path.abspath(__file__))
+_pj_hero_css = io.open(os.path.join(_ROOT, 'static', 'css', 'project.css'),
+                       encoding='utf-8').read()
+_dash_tpl = io.open(os.path.join(_ROOT, 'templates', 'partials', '_dashboard.html'),
+                    encoding='utf-8').read()
+
+
+def _hero_block(css, sel):
+    i = css.find(sel)
+    if i < 0:
+        return None
+    o = css.index('{', i)
+    return ' '.join(css[i:css.index('}', o) + 1].split())
+
+
+_pj_hero = _hero_block(_pj_hero_css, '.prj-hero {')
+_dash_hero = _hero_block(_dash_tpl, '.dash-hero {')
+assert _pj_hero, 'hero proyek (.prj-hero) tidak ditemukan'
+assert _dash_hero, 'hero dashboard (.dash-hero) tidak ditemukan'
+assert 'linear-gradient(135deg, #16324f 0%, #16324f 100%)' in _pj_hero, \
+    'hero proyek harus navy #16324f seperti .dash-hero (bukan teal --ds-accent)'
+assert 'var(--ds-accent)' not in _pj_hero, \
+    'hero proyek masih memakai var(--ds-accent) (teal) - beda dgn dashboard'
+for prop in ('padding: 20px 24px', 'gap: 24px', 'color: #fff'):
+    assert prop in _pj_hero, f'hero proyek kehilangan "{prop}" seperti dashboard'
+assert 'border-radius: var(--ds-r-xl)' in _pj_hero, \
+    'radius hero proyek harus --ds-r-xl (=16px, sama dgn dashboard)'
+print('[1b] kartu hero (bar DPP/PPN) seragam dgn hero dashboard: navy + geometry sama')
+
 # ── 2. 3 grup KPI, urutan DPP -> PPN -> Umum ──
 for p in PROJECTS:
     _, html = render(p['id'])
@@ -111,8 +145,8 @@ for p in PROJECTS:
     labels = re.findall(r'class="prj-kpi__label">\s*([^<]+?)\s*</div>', body)
     assert 'Nilai Kontrak' not in labels, \
         f"{p['kode_proyek']}: Nilai Kontrak masih jadi kartu KPI"
-    assert 'akumulasi kontrak vendor' in body, \
-        'catatan "akumulasi kontrak vendor" di info strip hilang'
+    assert 'akumulasi kontrak vendor' not in body, \
+        'catatan "akumulasi kontrak vendor" di info strip sudah dihapus'
 print('[4] Nilai Kontrak hanya di info strip (1x), tidak di blok KPI')
 
 # ── 5. Invarian per grup: Terbayar + Sisa Hutang == Total ──
@@ -182,6 +216,33 @@ for p in PROJECTS:
     assert body.count('prj-kpi--ok') == 2, 'harus ada 2 kartu Terbayar dgn ds-kpi--ok'
     assert body.count('prj-kpi--err') == 2, 'harus ada 2 kartu Sisa dgn ds-kpi--err'
 print('[9] ds-kpi--warn tidak dipakai; --ok/--err sesuai referensi')
+
+# ── 9b. Warna hijau kartu KPI IDENTIK dgn dashboard utama ──
+# Kartu "Terbayar" di halaman proyek harus memakai warna yang sama dgn kartu
+# "Terbayar DPP/PPN" di dashboard (/dashboard), bukan hex terpisah. Karena
+# keduanya kini memakai token, cukup pastikan project.css memakai TOKEN itu
+# dan TIDAK lagi meng-hardcode hijau.
+ROOT = os.path.dirname(os.path.abspath(__file__))
+_pj_css = io.open(os.path.join(ROOT, 'static', 'css', 'project.css'),
+                  encoding='utf-8').read()
+_app_css = io.open(os.path.join(ROOT, 'static', 'css', 'app.css'),
+                   encoding='utf-8').read()
+
+assert '.prj-kpi--ok::before { background: var(--ds-ok); }' in _pj_css, \
+    'aksen hijau KPI proyek harus memakai var(--ds-ok), bukan hex hardcode'
+assert '.prj-kpi--err::before { background: var(--ds-err); }' in _pj_css, \
+    'aksen merah KPI proyek harus memakai var(--ds-err)'
+assert '.prj-kpi__ico--green { background: var(--success-soft); color: var(--accent-dark); }' in _pj_css, \
+    'ikon hijau KPI proyek harus memakai token --success-soft/--accent-dark'
+# dashboard memakai token yg sama
+assert '.ds-kpi--ok::before' in _app_css and 'var(--ds-ok)' in _app_css, \
+    'dashboard harus memakai var(--ds-ok) untuk aksen hijau'
+# bentuk aksen disamakan: garis ATAS (bukan garis kiri)
+assert 'top: 0; left: 0; right: 0; height: 3px' in _pj_css, \
+    'aksen KPI proyek harus garis atas 3px seperti .ds-kpi dashboard'
+assert 'inset: 0 auto 0 0' not in _pj_css, \
+    'aksen KPI proyek masih memakai garis kiri (bukan gaya dashboard)'
+print('[9b] hijau KPI proyek = hijau dashboard (token --ds-ok/--success-soft, garis atas)')
 
 # ── 10. Tanggal info strip terformat & nilai KPI tampil ──
 for p in PROJECTS:

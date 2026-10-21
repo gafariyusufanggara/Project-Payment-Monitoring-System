@@ -174,6 +174,42 @@ _expected = ['No.', 'Vendor / Rekanan', 'Item Pekerjaan',
 assert _hdr == _expected, f'urutan kolom salah:\n{_hdr}\n!=\n{_expected}'
 print('[4b] urutan kolom OK: DPP -> PPN, Belum Ditagih + Sisa Hutang per pajak')
 
+# --- 4b2. Urut ALAMIAH menurut No. PO/Kontrak ---
+# Regresi: ORDER BY teks membuat "PB.10" < "PB.9" dan "PB.100" < "PB.2",
+# sehingga nomor 01 tidak dijamin di atas. Kini diurutkan numerik.
+_key = db_contract._no_kontrak_sort_key
+
+# (a) unit: nomor dipecah jadi (prefix, angka) - pad nol tidak berpengaruh.
+_cases = ['PB.1/PO', 'PB.10/PO', 'PB.2/PO', 'PB.01/PO', 'PB.9/PO', 'PB.100/PO']
+_nums = [k[2] for k in map(_key, sorted(_cases, key=_key))]
+assert _nums == [1, 1, 2, 9, 10, 100], \
+    f'natural sort salah: {sorted(_cases, key=_key)} -> {_nums}'
+assert _key('PB.001/KONTRAK/NK-WIKA/03/08/2025')[2] == 1, \
+    'nomor diambil dari segmen pertama (sebelum "/") - PB.001 harus 1'
+
+# (b) tanpa angka -> SELALU di bawah nomor berangka (elemen pertama 1).
+assert _key('TANPA-NOMOR')[0] == 1 and _key('')[0] == 1, \
+    'kontrak tanpa angka harus dapat penanda urutan 1 (paling bawah)'
+assert _key('PB.001/PO')[0] == 0, 'kontrak berangka harus dapat penanda urutan 0'
+
+# (c) data nyata: get_contracts() sudah terurut menaik & elemen pertama
+#     adalah nomor terkecil.
+_keys = [_key(c['no_kontrak']) for c in contracts]
+assert _keys == sorted(_keys), 'get_contracts() tidak urut menurut No. PO'
+if contracts:
+    _min = min(_key(c['no_kontrak'])[2] for c in contracts)
+    assert _key(contracts[0]['no_kontrak'])[2] == _min, \
+        (f'kontrak pertama {contracts[0]["no_kontrak"]!r} bukan nomor terkecil '
+         f'({_min})')
+
+# (d) urutan baris di HTML == urutan get_contracts().
+_html_nos = re.findall(r'data-no-kontrak="([^"]*)"', html)
+if _html_nos:
+    assert _html_nos == [c['no_kontrak'] for c in contracts], \
+        'urutan baris <tbody> tidak sama dengan get_contracts()'
+print(f'[4b2] urut No. PO alami OK ({len(contracts)} kontrak, '
+      f'pertama: {contracts[0]["no_kontrak"] if contracts else "-"})')
+
 # --- 4c. Filter Metode Bayar (setelah filter Status) ---
 assert 'id="filterMetode"' in html, 'select filterMetode tidak ada'
 assert html.index('id="filterStatus"') < html.index('id="filterMetode"'), \
@@ -288,6 +324,51 @@ assert all((_i['jth_tempo'] or '-') in _det_html for _i in _invs), \
     'nilai Tgl Jatuh Tempo invoice tidak ter-render'
 print(f'[7] detail kontrak: {len(_invs)} invoice, No. Invoice + Deskripsi clickable, '
       f'Tgl Jatuh Tempo OK')
+
+
+# --- 7b. Kolom Retensi pada tabel invoice (tepat setelah Pot. PPH) ---
+# Sumber: kolom asli "POT. RETENSI" pada tabel hutang, diteruskan sebagai
+# inv['pot_retensi'] oleh get_contract_invoices().
+_seg = _det_html[_det_html.index('Invoice dengan No. Kontrak Ini'):]
+_seg = _seg[:_seg.index('</section>')]
+_th = [re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', '', t)).strip()
+       for t in re.findall(r'<th[^>]*>(.*?)</th>',
+                           re.search(r'<thead>(.*?)</thead>', _seg, re.S).group(1),
+                           re.S)]
+assert 'Retensi' in _th, f'kolom Retensi tidak ada pada tabel invoice: {_th}'
+assert _th[_th.index('Pot. PPH') + 1] == 'Retensi', \
+    f'Retensi harus TEPAT setelah Pot. PPH, urutan: {_th}'
+assert len(_th) == 12, f'jumlah kolom tabel invoice: {len(_th)}, harusnya 12'
+
+# Setiap baris punya jumlah <td> = jumlah kolom (tidak ada sel bergeser).
+_body = re.search(r'<tbody>(.*?)</tbody>', _seg, re.S).group(1)
+_trs = re.findall(r'<tr>(.*?)</tr>', _body, re.S)
+assert _trs, 'tabel invoice kosong'
+assert {len(re.findall(r'<td', _r)) for _r in _trs} == {12}, \
+    'jumlah <td> per baris tidak sama dengan 12 kolom'
+
+# Nilai retensi benar-benar ter-render (bukan hanya header).
+_money = app.jinja_env.filters['money']
+_bln = [  # kontrak ber-retensi: cari yang punya nilai retensi
+    _c for _c in contracts
+    if any(_i['pot_retensi'] for _i in db_contract.get_contract_invoices(_c['no_kontrak']))]
+assert _bln, 'tidak ada data retensi di DB untuk diuji'
+_cr = _bln[0]
+_inv_r = db_contract.get_contract_invoices(_cr['no_kontrak'])
+_hr = _client.get(f'/kontrak/{_cr["id"]}').get_data(as_text=True)
+_sr = _hr[_hr.index('Invoice dengan No. Kontrak Ini'):]
+_sr = _sr[:_sr.index('</section>')]
+_trr = re.findall(r'<tr>(.*?)</tr>',
+                  re.search(r'<tbody>(.*?)</tbody>', _sr, re.S).group(1), re.S)
+_ada = 0
+for _i in _inv_r:
+    if _i['pot_retensi']:
+        assert any(_money(_i['pot_retensi']) in _r for _r in _trr), \
+            f'retensi {_money(_i["pot_retensi"])} tidak tampil di baris'
+        _ada += 1
+assert _ada, 'nilai retensi tidak ter-render satupun'
+print(f'[7b] kolom Retensi OK (setelah Pot. PPH, 12 kolom, '
+      f'{_ada} nilai tampil di {_cr["no_kontrak"]})')
 
 
 # --- 8. Detail kontrak: KPI + rincian memakai istilah yang sama dgn daftar ---

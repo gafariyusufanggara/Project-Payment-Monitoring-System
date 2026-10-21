@@ -56,13 +56,19 @@
 .prj-card__body--flush { padding: 0; }
 
 /* ── 5. Hero navy (Total Sisa Hutang) ────────────────────────────────────── */
+/* DISAMAKAN dengan .dash-hero di partials/_dashboard.html: latar navy
+   #16324f (bukan teal --ds-accent), radius 16px, padding 20/24, dan shadow
+   yg sama. Sebelumnya halaman proyek memakai --ds-accent (teal) sehingga
+   kartu hero-nya beda warna dengan hero dashboard. */
 .prj-hero {
-  background: var(--ds-accent); border: 1px solid var(--ds-accent);
-  border-radius: var(--ds-r-xl); color: #fff;
-  padding: var(--ds-sp-5) var(--ds-sp-5);
-  display: flex; gap: var(--ds-sp-5); flex-wrap: wrap;
+  background: linear-gradient(135deg, #16324f 0%, #16324f 100%);
+  border: 1px solid #16324f;
+  border-radius: var(--ds-r-xl);
+  color: #fff;
+  padding: 20px 24px;
+  display: flex; gap: 24px; flex-wrap: wrap;
   align-items: center; justify-content: space-between;
-  box-shadow: var(--ds-sh-1);
+  box-shadow: 0 1px 3px rgba(51, 51, 51,.05);
 }
 .prj-hero__label { font-size: var(--ds-fs-xs); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #cfe3f0; }
 .prj-hero__value { font-family: var(--ds-font-display); font-size: 2rem; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; letter-spacing: -.01em; margin: 4px 0 6px; }
@@ -87,26 +93,40 @@
 .prj-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .prj-kpi {
   background: var(--card); border: 1px solid var(--border);
-  border-radius: var(--ds-r-lg); padding: 12px 14px;
+  border-radius: var(--ds-r-xl); padding: 12px 14px;
   display: flex; align-items: center; gap: 12px;
   position: relative; overflow: hidden;
+  box-shadow: var(--ds-sh-1);
   transition: box-shadow .2s ease, border-color .2s ease;
 }
-.prj-kpi::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 3px; background: transparent; }
-.prj-kpi--ok::before { background: #0f766e; }
-.prj-kpi--err::before { background: #b42318; }
-.prj-kpi:hover { box-shadow: var(--ds-sh-1); }
+/* Aksen status KPI — DISAMAKAN dengan .ds-kpi milik dashboard utama:
+   garis ATAS 3px (bukan garis kiri) dan memakai TOKEN warna, bukan hex
+   hardcode. Dengan begitu hijau kartu "Terbayar" di halaman proyek identik
+   dengan hijau kartu "Terbayar DPP/PPN" di dashboard, dan otomatis ikut
+   bila token --success diubah kelak. */
+.prj-kpi::before {
+  content: "";
+  position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  border-radius: var(--ds-r-xl) var(--ds-r-xl) 0 0;
+  background: var(--ds-accent);
+}
+.prj-kpi--ok::before { background: var(--ds-ok); }
+.prj-kpi--err::before { background: var(--ds-err); }
+.prj-kpi:hover { box-shadow: var(--ds-sh-2); }
 .prj-kpi__ico {
-  width: 36px; height: 36px; min-width: 36px; border-radius: var(--ds-r-md);
-  display: flex; align-items: center; justify-content: center; font-size: .95rem;
+  width: 38px; height: 38px; min-width: 38px; border-radius: var(--ds-r-lg);
+  display: flex; align-items: center; justify-content: center; font-size: var(--ds-fs-lg);
 }
 .prj-kpi__ico--blue { background: #eaf0f6; color: #16324f; }
-.prj-kpi__ico--green { background: #e6f4f1; color: #115e59; }
-.prj-kpi__ico--rose { background: #fef0ee; color: #912018; }
+/* Hijau ikon memakai token yang SAMA dgn .kpi-ico--green dashboard
+   (--success-soft / --accent-dark) supaya kartu "Terbayar" di halaman
+   proyek identik warnanya dgn kartu "Terbayar DPP/PPN" di dashboard. */
+.prj-kpi__ico--green { background: var(--success-soft); color: var(--accent-dark); }
+.prj-kpi__ico--rose { background: var(--danger-soft); color: #912018; }
 .prj-kpi__ico--amber { background: #fdf6d8; color: #8a6d00; }
 .prj-kpi__main { min-width: 0; }
 .prj-kpi__label { font-size: var(--ds-fs-xs); font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--ds-text-soft); margin-bottom: 2px; }
-.prj-kpi__value { font-family: var(--ds-font-display); font-size: 1.05rem; font-weight: 700; line-height: 1.2; color: var(--ds-text); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.prj-kpi__value { font-family: var(--ds-font-display); font-size: var(--ds-fs-2xl); font-weight: 700; line-height: 1.2; color: var(--ds-text); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .prj-kpi__hint { font-size: var(--ds-fs-xs); color: var(--ds-text-soft); margin-top: 1px; }
 
 /* ── 7. Strip meta (label/nilai) ─────────────────────────────────────────── */
@@ -117,7 +137,6 @@
 .prj-meta__label { font-size: var(--ds-fs-xs); font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--ds-text-soft); }
 .prj-meta__value { font-size: var(--ds-fs-md); font-weight: 600; color: var(--ds-text); }
 .prj-meta__value--money { font-family: var(--ds-font-mono, "JetBrains Mono", "SF Mono", monospace); font-size: var(--ds-fs-sm); font-variant-numeric: tabular-nums; }
-.prj-meta__note { font-size: .66rem; color: #8a929c; font-weight: 500; margin-top: 1px; }
 
 /* ── 8. Tabel ────────────────────────────────────────────────────────────── */
 .prj-table-wrap { overflow: auto; }

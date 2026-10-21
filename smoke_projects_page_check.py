@@ -72,11 +72,14 @@ assert 'prj-grid' in body, 'grid kartu hilang'
 assert '/project/create' in body, 'tombol Proyek Baru hilang'
 print('[3] grid kartu + tombol Proyek Baru tetap utuh')
 
-# --- 4. Tiga angka keuangan, urutan: Realisasi -> Terbayar -> Sisa Hutang ---
+# --- 4. Tiga angka keuangan, urutan: Sisa Hutang -> Realisasi -> Terbayar ---
+# Redesign kartu (hierarki): Sisa Hutang dijadikan ANGKA UTAMA (.prj-money-hero)
+# di puncak blok uang, sedangkan Realisasi & Terbayar jadi nilai pendukung
+# di bawahnya. Urutan label mengikuti urutan baca visual tersebut.
 labels = re.findall(r'class="prj-money-label">\s*([^<]+?)\s*</div>', body)
 assert len(labels) == 3 * len(PROJECTS), \
     f'jumlah label angka: {len(labels)}, harusnya {3 * len(PROJECTS)}'
-EXPECTED = ['Realisasi', 'Terbayar', 'Sisa Hutang']
+EXPECTED = ['Sisa Hutang', 'Realisasi', 'Terbayar']
 for i in range(len(PROJECTS)):
     got = labels[i * 3:(i + 1) * 3]
     assert got == EXPECTED, f'urutan label proyek ke-{i + 1}: {got} != {EXPECTED}'
@@ -102,7 +105,7 @@ def _idr(text):
     return float(re.sub(r'[^0-9-]', '', text) or 0)
 
 
-values = re.findall(r'class="prj-money-value[^"]*">\s*([\d.]+)\s*</div>', body)
+values = re.findall(r'class="prj-money-(?:hero|value)[^"]*">\s*([\d.]+)\s*</div>', body)
 assert len(values) == 3 * len(PROJECTS), \
     f'jumlah nilai angka: {len(values)}, harusnya {3 * len(PROJECTS)}'
 
@@ -110,7 +113,8 @@ for idx, p in enumerate(PROJECTS):
     realisasi = float(p.get('total_realisasi') or 0)
     sisa = float(p.get('total_sisa') or 0)
     terbayar = realisasi - sisa
-    got_r, got_b, got_s = (_idr(v) for v in values[idx * 3:(idx + 1) * 3])
+    # Urutan render: Sisa Hutang (hero), lalu Realisasi, lalu Terbayar.
+    got_s, got_r, got_b = (_idr(v) for v in values[idx * 3:(idx + 1) * 3])
     assert got_r == _idr(money_f(realisasi)), \
         f'{p["kode_proyek"]}: realisasi {got_r} != {money_f(realisasi)}'
     assert got_b == _idr(money_f(terbayar)), \
@@ -129,10 +133,10 @@ print(f'[6] invarian Terbayar + Sisa Hutang = Realisasi OK '
 # --- 7. Warna Sisa Hutang: merah hanya bila ada sisa signifikan ---
 sisa_cells = re.findall(
     r'<div class="prj-money-label">Sisa Hutang</div>\s*'
-    r'<div class="prj-money-value([^"]*)">', body)
+    r'<div class="prj-money-hero([^"]*)">', body)
 assert len(sisa_cells) == len(PROJECTS), f'jumlah sel sisa: {len(sisa_cells)}'
 for idx, p in enumerate(PROJECTS):
-    want = ' prj-money-value--neg' if sisa_f(p.get('total_sisa')) else ''
+    want = ' prj-money-hero--neg' if sisa_f(p.get('total_sisa')) else ''
     assert sisa_cells[idx] == want, (
         f'{p["kode_proyek"]}: kelas warna sisa {sisa_cells[idx]!r} != {want!r}')
 print('[7] pewarnaan Sisa Hutang mengikuti has_sisa (merah hanya bila ada sisa)')

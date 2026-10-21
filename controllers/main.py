@@ -260,12 +260,47 @@ def levelansir_retensi():
         for lv in levelansir_list
         for inv in lv['invoices']
     )
+
+    # Retensi = UTANG proyek ke vendor yang DITAHAN sampai pekerjaan selesai /
+    # syarat kontrak terpenuhi. "Retensi" sendiri artinya ditahan, jadi istilah
+    # yang dipakai di UI mengikuti kata itu, bukan "cair"/"jatuh tempo".
+    #
+    # KPI dipecah per STATUS, bukan sekadar (total - sudah dibayar): cara lama
+    # membuat dua kartu saling meniadakan ("Cair" selalu Rp 0 dan "Belum Cair"
+    # selalu = Total). Pertanyaan nyata staf finance: "mana yang sudah masuk
+    # tahap ditahan (DPP lunas) dan mana yang belum?"
+    #   retensi_ditahan  — DPP sudah lunas, retensi penuh ditahan & tinggal
+    #                      dibayar (status 'Ditahan'). Inilah "retensi" sejati.
+    #   retensi_belum_ditahan — DPP belum lunas atau belum dibayar sama sekali,
+    #                      retensi belum masuk tahap penahanan ('Belum Dibayar').
+    #   retensi_dibayar_sebagian — retensi sudah mulai dibayar ('Cair Sebagian')
+    # Identitas: ditahan + belum_ditahan == total - sudah dibayar.
+    retensi_ditahan = 0.0
+    retensi_belum_ditahan = 0.0
+    retensi_dibayar_sebagian = 0.0
+    for _lv in levelansir_list:
+        _st = _lv.get('status_retensi')
+        if _st == 'Ditahan':
+            retensi_ditahan += _lv.get('total_sisa_retensi', 0.0)
+        elif _st == 'Cair Sebagian':
+            # DPP sudah lewat batas retensi: sisa yang masih ditahan masuk
+            # kelompok ditahan, bagian yang sudah dibayar dicatat terpisah.
+            retensi_dibayar_sebagian += _lv.get('total_cair', 0.0)
+            retensi_ditahan += _lv.get('total_sisa_retensi', 0.0)
+        elif _st == 'Lunas':
+            pass  # utang retensi sudah dibayar penuh, terwakili total_cair
+        else:  # 'Belum Dibayar' — termasuk invoice yang belum dibayar sama sekali
+            retensi_belum_ditahan += _lv.get('total_sisa_retensi', 0.0)
+
     return render_template(
         'levelansir_retensi.html',
         levelansir_list=levelansir_list,
         total_retensi=total_retensi,
         total_cair=total_cair,
         total_belum_cair=total_retensi - total_cair,
+        retensi_ditahan=retensi_ditahan,
+        retensi_belum_ditahan=retensi_belum_ditahan,
+        retensi_dibayar_sebagian=retensi_dibayar_sebagian,
         total_setelah_retensi=total_setelah_retensi,
         total_levelansir=len(levelansir_list),
         total_invoices=total_invoices,

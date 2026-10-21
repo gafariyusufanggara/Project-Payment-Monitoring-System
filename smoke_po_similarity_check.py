@@ -96,9 +96,19 @@ with app.test_client() as c:
     assert 'No PO kembar' not in html, "section 'No PO kembar' harus sudah dihapus"
     # isi tab Tak Terdaftar ikut ter-render (74 nomor) walau tab default Temuan
     assert 'Nomor kontrak di invoice yang belum ada di registri' in html
-    # scroll internal: 3 tabel dibungkus .kpr-scroll (sticky header)
-    assert html.count('class="kpr-scroll"') >= 3, \
-        f"harus ada >=3 pembungkus .kpr-scroll, dapat {html.count('class=\"kpr-scroll\"')}"
+    # scroll internal: tiap tabel yang MEMANG dirender dibungkus .kpr-scroll
+    # (sticky header). Jumlahnya bergantung data: section A (mirip) & C
+    # (tak terdaftar) hanya dirender bila ada isinya, section B (kontrak tanpa
+    # invoice) selalu tampil selama ada kontrak. Karena itu jangan hardcode 3.
+    n_readonly = (1 if res['tanpa_invoice'] else 0) + 1  # B + C(tak terdaftar)
+    n_mirip = 1 if res['mirip'] else 0
+    n_expect = n_mirip + n_readonly
+    n_got = html.count('class="kpr-scroll"')
+    assert n_got == n_expect, (
+        f'pembungkus .kpr-scroll: dapat {n_got}, harusnya {n_expect} '
+        f'(mirip={n_mirip}, tanpa_invoice={1 if res["tanpa_invoice"] else 0}, '
+        f'missing=1)')
+    assert n_got >= 1, 'tidak ada satu pun pembungkus .kpr-scroll'
     assert 'position: sticky' in html and '.kpr-scroll .kpr-table thead th' in html
     # tombol Kembali dipindah ke ATAS: sebelum tabel pertama
     assert 'Kembali ke Progress Kontrak' in html

@@ -23,13 +23,6 @@
 
   .kc-wrap { display: flex; flex-direction: column; gap: 16px; max-width: 1280px; margin: 0 auto; }
   .kc-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-  .ds-kpi--compact { padding: 12px 14px; display: flex; align-items: center; gap: 12px; }
-  .ds-kpi--compact .ds-kpi__value { font-size: 1.05rem; }
-  .kpi-ico { width: 38px; height: 38px; min-width: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1rem; }
-  .kpi-ico--blue { background: #eaf0f6; color: #16324f; }
-  .kpi-ico--green { background: #e6f4f1; color: #115e59; }
-  .kpi-ico--rose { background: #fef0ee; color: #912018; }
-  .kpi-ico--amber { background: #fdf6d8; color: #8a6d00; }
   .kc-page { --c1w: 300px; }
   .kc-page #kcTable { min-width: 1720px; }
   .kc-page #kcTable thead th.col-sticky-left,
@@ -37,20 +30,20 @@
   .kc-page #kcTable thead th.col-sticky-left-2,
   .kc-page #kcTable tbody td.col-sticky-left-2 { width: var(--c1w); min-width: var(--c1w); max-width: var(--c1w); }
   .kc-vend { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-  .kc-vend-name { font-weight: 600; font-size: .8rem; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .kc-vend-name { font-weight: 600; font-size: 0.78rem; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .kc-vend-name a { color: #244866; text-decoration: none; }
   .kc-vend-name a:hover { text-decoration: underline; }
   .kc-no { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .kc-no a { color: #244866; text-decoration: none; font-weight: 500; font-size: .73rem; }
+  .kc-no a { color: #244866; text-decoration: none; font-weight: 500; font-size: 0.7rem; }
   .kc-no a:hover { text-decoration: underline; }
-  .kc-item { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #4d5766; font-size: .73rem; }
+  .kc-item { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #4d5766; font-size: 0.7rem; }
   .badge-status.badge-amber { background: #fdf6d8; color: #8a6d00; }
-  .kc-review-badge { display: inline-block; min-width: 18px; padding: 0 5px; margin-left: 4px; border-radius: 20px; background: #fdf6d8; color: #8a6d00; font-size: .66rem; font-weight: 700; line-height: 1.5; text-align: center; }
-  .kc-unmatched-banner { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; padding: 10px 14px; border-radius: 12px; border: 1px solid #f0dca0; background: #fdf6d8; color: #6b5500; font-size: .78rem; }
+  .kc-review-badge { display: inline-block; min-width: 18px; padding: 0 5px; margin-left: 4px; border-radius: 20px; background: #fdf6d8; color: #8a6d00; font-size: 0.66rem; font-weight: 700; line-height: 1.5; text-align: center; }
+  .kc-unmatched-banner { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; padding: 10px 14px; border-radius: 12px; border: 1px solid #f0dca0; background: #fdf6d8; color: #6b5500; font-size: 0.78rem; }
 .kc-unmatched-banner i { font-size: 1rem; }
   /* Banner keterangan kandidat typo — struktur sama dgn .kc-unmatched-banner,
      tetapi bernuansa merah (tanda bahaya). */
-  .kc-typo-banner { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; padding: 10px 14px; border-radius: 12px; border: 1px solid #f0c9c4; background: #fef0ee; color: #6b3a34; font-size: .78rem; }
+  .kc-typo-banner { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; padding: 10px 14px; border-radius: 12px; border: 1px solid #f0c9c4; background: #fef0ee; color: #6b3a34; font-size: 0.78rem; }
   .kc-typo-banner > i { font-size: 1rem; color: #b42318; }
   .kc-typo-banner strong { color: #912018; }
   .kc-typo-banner a { color: #244866; font-weight: 700; text-decoration: none; white-space: nowrap; }
@@ -59,7 +52,7 @@
   .kc-page #kcTable thead th.col-sticky-right,
   .kc-page #kcTable tbody td.col-sticky-right { min-width: 96px; }
   /* Stat. Invoice — pill kecil sebagai satu-satunya penanda kelompok. */
-  .kc-stat-pill { display: inline-block; min-width: 26px; padding: 3px 8px; border-radius: 20px; font-size: .68rem; font-weight: 700; line-height: 1.2; }
+  .kc-stat-pill { display: inline-block; min-width: 26px; padding: 3px 8px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; line-height: 1.2; }
   .kc-stat-pill--ok { background: #e6f4f1; color: #115e59; }
   .kc-stat-pill--none { background: #fdf6d8; color: #8a6d00; }
   /* Hutang aktif pada baris Ada — pill merah muda di sel Belum Ditagih. */
@@ -72,28 +65,28 @@
   /* Pencocokan termin: pill "ditagih/total" dengan warna per status.
      Warna hanya menandai KONDISI (pas / berjalan / perlu diperiksa / belum
      bisa dicocokkan); angkanya tetap terbaca sebagai teks biasa. */
-  .kc-term-pill { display: inline-block; min-width: 40px; padding: 3px 8px; border-radius: 20px; font-size: .7rem; font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; cursor: help; }
+  .kc-term-pill { display: inline-block; min-width: 40px; padding: 3px 8px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; cursor: help; }
   .kc-term-pill--pas { background: #e6f4f1; color: #115e59; }
   .kc-term-pill--berjalan { background: #eaf0f6; color: #244866; }
   .kc-term-pill--lebih { background: #fef0ee; color: #912018; }
   .kc-term-pill--belum { background: #f4f5f6; color: #667080; }
   .kc-term-pill--none { background: #fdf6d8; color: #8a6d00; }
   .kc-prog { min-width: 130px; }
-  .kc-prog-lbl { display: flex; justify-content: flex-end; font-size: .68rem; font-weight: 700; color: #667080; margin-bottom: 4px; font-variant-numeric: tabular-nums; }
+  .kc-prog-lbl { display: flex; justify-content: flex-end; font-size: 0.7rem; font-weight: 700; color: #667080; margin-bottom: 4px; font-variant-numeric: tabular-nums; }
   .kc-prog-lbl .pct { color: #333333; }
   .kc-bar { height: 7px; background: #eef0f2; border-radius: 6px; overflow: hidden; }
   .kc-bar > span { display: block; height: 100%; border-radius: 6px; background: #16324f; }
   .kc-bar > span.warn { background: #E5B800; }
   .kc-bar > span.over { background: linear-gradient(90deg, #b42318, #f0705f); }
   .kc-bar > span.none { background: #e3e5e8; }
-  .kc-empty-note { font-size: .72rem; color: #667080; }
+  .kc-empty-note { font-size: 0.7rem; color: #667080; }
 /* Toolbar: tombol "Pemeriksaan No PO" sejajar kanan. */
 .kc-page .filter-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; width: 100%; }
 .kc-page .filter-group .search-box { margin-right: 0; }
 .kc-page .toolbar-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
   ::selection { background: #eaf0f6; }
   @media (max-width: 1024px) { .kc-kpis { grid-template-columns: repeat(2, 1fr); } }
-  @media (max-width: 768px) { .ds-kpi--compact .ds-kpi__value { font-size: 1rem; } }
+  @media (max-width: 768px) { }
   @media (prefers-reduced-motion: reduce) {
     .kc-card, .ds-kpi, .ds-btn, .table-wrapper { transition: none; }
   }
@@ -235,6 +228,7 @@
           <tbody id="kcBody">
             {% for c in contracts %}
             <tr data-search="{{ (c.no_kontrak ~ ' ' ~ c.vendor ~ ' ' ~ (c.item_pekerjaan or '') ~ ' ' ~ (project_labels.get(c.project_id|string) or ''))|lower }}"
+                data-no-kontrak="{{ c.no_kontrak }}"
                 data-vendor="{{ c.vendor }}"
                 data-status="{{ 'Ada' if c.status_invoice == 'Ada Invoice' else 'Belum' }}"
                 data-metode="{{ c.metode_pembayaran or '-' }}">
@@ -257,7 +251,7 @@
               </td>
               <td class="col-sticky-left-2">
                 <div class="kc-vend">
-                  <div class="kc-vend-name" title="{{ c.vendor }}">{% if c.vendor %}<a href="{{ url_for('contract.contract_detail', contract_id=c.id) }}">{{ c.vendor }}</a>{% else %}Vendor belum diisi <span class="ds-badge ds-badge-amber" style="font-size:.62rem;vertical-align:middle"><i class="bi bi-exclamation-triangle"></i> lengkapi</span>{% endif %}</div>
+                  <div class="kc-vend-name" title="{{ c.vendor }}">{% if c.vendor %}<a href="{{ url_for('contract.contract_detail', contract_id=c.id) }}">{{ c.vendor }}</a>{% else %}Vendor belum diisi <span class="ds-badge ds-badge-amber" style="font-size: 0.66rem;vertical-align:middle"><i class="bi bi-exclamation-triangle"></i> lengkapi</span>{% endif %}</div>
                   <div class="kc-no" title="{{ c.no_kontrak }}"><a href="{{ url_for('contract.contract_detail', contract_id=c.id) }}">{{ c.no_kontrak }}</a></div>
                 </div>
               </td>

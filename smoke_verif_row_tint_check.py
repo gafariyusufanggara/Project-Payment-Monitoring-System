@@ -57,17 +57,31 @@ with app.test_client() as c:
 # Setiap row ber-issue harus muncul sebagai class verif-row--<LEVEL> di HTML.
 levels = get_row_levels('all')
 rendered = set(re.findall(r'verif-row--([A-Z]+)', html))
-assert rendered, "tidak ada class verif-row--<LEVEL> sama sekali di HTML"
 assert rendered <= VALID, f"level asing di HTML: {rendered - VALID}"
 
 # Baris ber-level HTML: hitung <tr ... verif-row--LEVEL ... data-row-idx="N">
 pairs = re.findall(r'verif-row--([A-Z]+) row-clickable"[^>]*?data-row-idx="(\d+)"', html, re.S)
-assert pairs, "tak menemukan baris verif-row dengan data-row-idx"
 for lv, rid in pairs:
     assert levels.get(int(rid)) == lv, (
         f"baris {rid} diwarnai {lv} tapi level sebenarnya {levels.get(int(rid))}"
     )
-print(f"[2] {len(pairs)} baris berwarna sesuai level verifikasi OK")
+
+if levels:
+    # Ada baris bermasalah (yang tidak diabaikan) -> WAJIB ada <tr> berwarna.
+    assert pairs, (
+        f"get_row_levels() berisi {len(levels)} baris tapi tak ada satu pun "
+        f'<tr class="verif-row--<LEVEL> row-clickable" data-row-idx=...> di HTML')
+    assert rendered, "tidak ada class verif-row--<LEVEL> sama sekali di HTML"
+    print(f"[2] {len(pairs)} baris berwarna sesuai level verifikasi OK")
+else:
+    # Semua baris bermasalah sudah diabaikan (atau datanya bersih). Kondisi ini
+    # SAH: tabel memang tidak boleh mewarnai apa pun. Yang diuji di sini adalah
+    # tidak adanya warna nyasar - bukan memaksa ada baris berwarna.
+    assert not pairs, (
+        "get_row_levels() kosong (semua issue diabaikan), tapi ada <tr> "
+        "ber-class verif-row--* yang tetap diwarnai")
+    print("[2] tak ada baris berwarna - semua issue sudah diabaikan / data bersih "
+          "(sesuai kondisi data) OK")
 
 
 # --- 3. Kelas lama overdue-row hilang dari HTML & CSS ---
@@ -82,13 +96,27 @@ print("[3] kelas lama 'overdue-row' sudah tidak ada di HTML & CSS OK")
 
 
 # --- 4. Warna verif-row--* ada di CSS yang dimuat ---
-with open(os.path.join(root, 'templates/partials/_dt_theme.html'), encoding='utf-8') as f:
+# Warna baris tersebar di TIGA file yang ikut dimuat halaman: _dt_theme.html
+# (tint utama), table.css & base.css (sel sticky + hover). Semua harus punya
+# definisi untuk keempat level, kalau tidak sebagian baris tak berwarna.
+_css_files = ('templates/partials/_dt_theme.html', 'static/css/table.css',
+              'static/css/base.css')
+_all_css = {}
+for rel in _css_files:
+    with open(os.path.join(root, rel), encoding='utf-8') as f:
+        _all_css[rel] = f.read()
+_union = '\n'.join(_all_css.values())
+for lv in VALID:
+    assert f'verif-row--{lv}' in _union, \
+        f"CSS .verif-row--{lv} tidak ada di file CSS mana pun"
+with open(os.path.join(root, 'templates/partials/_dt_theme.html'),
+          encoding='utf-8') as f:
     theme = f.read()
 for lv in VALID:
     assert f'verif-row--{lv}' in theme, f"CSS .verif-row--{lv} tidak ada di _dt_theme.html"
 assert 'verif-row--CRITICAL' in theme and '#fef0ee' in theme, "warna merah CRITICAL hilang"
 assert '#fdf6d8' in theme, "warna amber WARNING hilang"
 assert '#ece4f7' in theme, "warna violet DUPLICATE hilang"
-print("[4] warna verif-row--* terpasang di _dt_theme.html OK")
+print(f"[4] warna verif-row--* terpasang di {len(_css_files)} file CSS OK")
 
 print("\nALL CHECKS PASSED")

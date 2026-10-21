@@ -3,11 +3,11 @@
 
 Memverifikasi tata letak & komponen UI baru:
 - memakai stylesheet bersama static/css/project.css;
-- toolbar: tombol kembali + badge status berdot + tautan Dashboard;
+- toolbar: tombol kembali + badge status berdot (tanpa tautan Dashboard);
 - form terbagi 3 grup: Identitas, Kontrak & Jadwal, Catatan;
 - field wajib (kode_proyek, nama_proyek) tetap `required`;
-- chip nilai kontrak diberi catatan "akumulasi kontrak vendor" agar tidak
-  disalahbandingkan dengan realisasi;
+- field nilai kontrak ada, tanpa catatan "akumulasi kontrak vendor"
+  (catatan itu sudah dihapus dari halaman ini);
 - sidebar ringkasan memuat Realisasi & Sisa Hutang yang sama dgn daftar proyek;
 - zona hapus dipisah, mengirim ke form tersembunyi (bukan <form> bersarang);
 - TIDAK ada <form> bersarang (HTML tidak valid) di seluruh dokumen;
@@ -86,11 +86,15 @@ for name, html in (('edit', edit_html), ('create', new_html)):
     assert 'prj-page' in html, f'{name}: kerangka .prj-page tidak dipakai'
 print('[1] css/project.css dimuat & kerangka .prj-page dipakai (edit + create)')
 
-# ── 2. Toolbar: kembali, badge status berdot, tautan Dashboard ──
+# ── 2. Toolbar: kembali, badge status berdot, TANPA tautan Dashboard ──
 assert '/project/' in edit_body, 'tombol kembali ke daftar proyek hilang'
 assert 'prj-badge' in edit_body, 'badge status berdot hilang'
 assert P['status'] in edit_body, 'teks status tidak tampil'
-assert '/dashboard' in edit_body, 'tautan Dashboard hilang di toolbar'
+# Tombol "Dashboard" di kanan atas toolbar sengaja DIHAPUS: halaman edit
+# diakses dari Dashboard/daftar proyek, jadi tautan baliknya sudah jelas.
+_tb = edit_body[edit_body.find('prj-toolbar'):edit_body.find('pdt-layout')]
+assert '/dashboard' not in _tb, \
+    'tautan Dashboard masih ada di toolbar halaman edit proyek'
 # halaman "create" belum punya proyek -> tidak boleh ada TAUTAN Dashboard.
 # Dicek pada elemen <a href> di area konten (bukan seluruh dokumen: sidebar &
 # inline JS base.html memang menyebut '/dashboard').
@@ -98,7 +102,7 @@ _main = new_body[new_body.find('aria-label="Informasi proyek"'):]
 _hrefs = re.findall(r'<a\b[^>]*href="([^"]*)"', _main)
 assert not any('/dashboard' in h for h in _hrefs), \
     f'halaman Proyek Baru tidak boleh punya tautan Dashboard: {_hrefs}'
-print('[2] toolbar: kembali + badge status + Dashboard (create tanpa Dashboard)')
+print('[2] toolbar: kembali + badge status (tanpa tautan Dashboard)')
 
 # ── 3. Tiga grup form berurutan ──
 groups = re.findall(r'class="prj-group-label"[^>]*>\s*([^<]+?)\s*</h2>', edit_body)
@@ -113,11 +117,11 @@ for fid in ('kode_proyek', 'nama_proyek'):
     assert 'required' in m.group(0), f'#{fid} kehilangan atribut required'
 print('[4] kode_proyek & nama_proyek tetap required')
 
-# ── 5. Nilai kontrak: input + catatan basis ──
+# ── 5. Nilai kontrak: input saja (catatan basis sudah dihapus) ──
 assert 'nilai_kontrak' in edit_body, 'input nilai_kontrak hilang'
-assert 'akumulasi kontrak vendor' in edit_body, \
-    'catatan "akumulasi kontrak vendor" hilang (mencegah salah banding dgn realisasi)'
-print('[5] input nilai kontrak + catatan basis tersedia')
+assert 'akumulasi kontrak vendor' not in edit_body, \
+    'catatan "akumulasi kontrak vendor" di bawah Nilai Kontrak sudah dihapus'
+print('[5] input nilai kontrak tersedia (tanpa catatan akumulasi kontrak vendor)')
 
 # ── 6. Sidebar ringkasan: angka sama dgn daftar proyek ──
 for lbl, val in (('Realisasi', P['total_realisasi']), ('Sisa Hutang', P['total_sisa'])):

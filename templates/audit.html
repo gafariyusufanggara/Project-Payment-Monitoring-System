@@ -16,28 +16,20 @@ topbar_icon %}bi-clock-history{% endblock %} {% block topbar_badges %}
 {% include "partials/_search_box.html" %}
 <style>
   .au-wrap { display: flex; flex-direction: column; gap: 16px; max-width: 1100px; margin: 0 auto; }
-  .au-sub { margin: 2px 0 0; font-size: .78rem; color: #667080; }
+  .au-sub { margin: 2px 0 0; font-size: 0.78rem; color: #667080; }
   .au-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
   .au-kpis .ds-kpi { padding: 12px 14px; display: flex; align-items: center; gap: 12px; }
   .au-kpis .ds-kpi__value { font-size: 1.05rem; }
-  .au-kpis .ds-kpi__value--text { font-size: .85rem; font-family: "Inter", -apple-system, "Segoe UI", sans-serif; font-weight: 700; }
-  .kpi-ico {
-    width: 38px; height: 38px; min-width: 38px; border-radius: 10px;
-    display: flex; align-items: center; justify-content: center; font-size: 1rem;
-  }
-  .kpi-ico--blue { background: #eaf0f6; color: #16324f; }
-  .kpi-ico--violet { background: #ece4f7; color: #6a4fa3; }
-  .kpi-ico--amber { background: #fdf6d8; color: #8a6d00; }
-  .kpi-ico--slate { background: #eef0f2; color: #4d5766; }
+  .au-kpis .ds-kpi__value--text { font-size: 0.85rem; font-family: "Inter", -apple-system, "Segoe UI", sans-serif; font-weight: 700; }
   .au-toolbar {
     display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
     background: #fff; border: 1px solid #e3e5e8; border-radius: 16px;
     padding: 12px 16px; box-shadow: 0 1px 3px rgba(51, 51, 51,.05);
   }
-  .au-select-all { display: inline-flex; align-items: center; gap: 6px; font-size: .75rem; font-weight: 600; color: #333333; cursor: pointer; user-select: none; }
+  .au-select-all { display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; font-weight: 600; color: #333333; cursor: pointer; user-select: none; }
   .au-select-all input { width: 16px; height: 16px; accent-color: #16324f; cursor: pointer; }
   .au-select-all input:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 86, 145,.18); border-radius: 4px; }
-  .au-count { margin-left: auto; font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: #667080; font-variant-numeric: tabular-nums; }
+  .au-count { margin-left: auto; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: #667080; font-variant-numeric: tabular-nums; }
   .au-list { display: flex; flex-direction: column; gap: 10px; }
   .au-card {
     background: #fff; border: 1px solid #e3e5e8; border-radius: 16px;
@@ -57,22 +49,22 @@ topbar_icon %}bi-clock-history{% endblock %} {% block topbar_badges %}
   .au-rnum {
     display: inline-flex; align-items: center; justify-content: center;
     min-width: 26px; height: 26px; padding: 0 6px; border-radius: 6px; background: #eef0f2;
-    font-weight: 700; font-size: .7rem; color: #4d5766;
+    font-weight: 700; font-size: 0.7rem; color: #4d5766;
     font-family: "JetBrains Mono", ui-monospace, monospace;
   }
   .au-card:has(.au-check:checked) .au-rnum { background: #eaf0f6; color: #16324f; }
-  .au-rekanan { font-weight: 700; font-size: .85rem; color: #333333; }
+  .au-rekanan { font-weight: 700; font-size: 0.85rem; color: #333333; }
   .au-inv {
-    font-family: "JetBrains Mono", "SF Mono", monospace; font-size: .7rem; font-weight: 600;
+    font-family: "JetBrains Mono", "SF Mono", monospace; font-size: 0.7rem; font-weight: 600;
     color: #16324f; background: #eaf0f6; padding: 3px 10px; border-radius: 6px; white-space: nowrap;
   }
   .au-side {
     grid-column: 3; grid-row: 1; display: flex; flex-direction: column;
     align-items: flex-end; gap: 6px; min-width: 140px;
   }
-  .au-time { font-size: .7rem; color: #667080; white-space: nowrap; display: flex; align-items: center; gap: 4px; font-variant-numeric: tabular-nums; }
+  .au-time { font-size: 0.7rem; color: #667080; white-space: nowrap; display: flex; align-items: center; gap: 4px; font-variant-numeric: tabular-nums; }
   .au-btn {
-    font-size: .72rem; font-weight: 600; padding: 5px 12px; border-radius: 8px;
+    font-size: 0.7rem; font-weight: 600; padding: 5px 12px; border-radius: 8px;
     border: 1px solid #e3e5e8; background: #fff; color: #333333; cursor: pointer;
     display: inline-flex; align-items: center; gap: 5px; font-family: inherit; text-decoration: none;
     transition: border-color .15s, color .15s, background .15s;
@@ -83,24 +75,24 @@ topbar_icon %}bi-clock-history{% endblock %} {% block topbar_badges %}
   .au-body { padding: 0 18px 14px 18px; display: flex; flex-direction: column; }
   .au-chg {
     display: grid; grid-template-columns: 200px 1fr auto 1fr; gap: 8px; align-items: center;
-    padding: 8px 0; border-bottom: 1px dashed #e3e5e8; font-size: .8rem;
+    padding: 8px 0; border-bottom: 1px dashed #e3e5e8; font-size: 0.78rem;
   }
   .au-chg:last-child { border-bottom: none; }
-  .au-chg .fld { color: #4d5766; font-weight: 600; font-size: .7rem; text-transform: uppercase; letter-spacing: .6px; }
+  .au-chg .fld { color: #4d5766; font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: .6px; }
   .au-chg .old {
     color: #912018; text-decoration: line-through;
-    font-family: "JetBrains Mono", "SF Mono", monospace; font-size: .76rem; font-weight: 600;
+    font-family: "JetBrains Mono", "SF Mono", monospace; font-size: 0.78rem; font-weight: 600;
     padding: 2px 8px; background: #fef0ee; border-radius: 6px;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums;
   }
-  .au-chg .arr { color: #667080; font-size: .85rem; }
+  .au-chg .arr { color: #667080; font-size: 0.85rem; }
   .au-chg .new {
     color: #115e59; font-weight: 600;
-    font-family: "JetBrains Mono", "SF Mono", monospace; font-size: .76rem;
+    font-family: "JetBrains Mono", "SF Mono", monospace; font-size: 0.78rem;
     padding: 2px 8px; background: #e6f4f1; border-radius: 6px;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums;
   }
-  .au-meta { font-size: .7rem; color: #667080; margin-top: 10px; display: flex; align-items: center; gap: 6px; }
+  .au-meta { font-size: 0.7rem; color: #667080; margin-top: 10px; display: flex; align-items: center; gap: 6px; }
   ::selection { background: #eaf0f6; }
   @media (max-width: 768px) {
     .au-kpis { grid-template-columns: repeat(2, 1fr); }

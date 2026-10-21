@@ -16,20 +16,9 @@
 {% include "partials/_search_box.html" %}
 <style>
   .cic-wrap { display: flex; flex-direction: column; gap: 16px; max-width: 1200px; margin: 0 auto; }
-  .cic-sub { margin: 2px 0 0; font-size: .78rem; color: #667080; }
   .cic-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
-  .cic-count { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: #667080; }
+  .cic-count { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: #667080; }
   .cic-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-  .ds-kpi--compact { padding: 12px 14px; display: flex; align-items: center; gap: 12px; }
-  .ds-kpi--compact .ds-kpi__value { font-size: 1.05rem; }
-  .kpi-ico {
-    width: 38px; height: 38px; min-width: 38px; border-radius: 10px;
-    display: flex; align-items: center; justify-content: center; font-size: 1rem;
-  }
-  .kpi-ico--blue { background: #eaf0f6; color: #16324f; }
-  .kpi-ico--green { background: #e6f4f1; color: #115e59; }
-  .kpi-ico--rose { background: #fef0ee; color: #912018; }
-  .kpi-ico--amber { background: #fdf6d8; color: #8a6d00; }
   .cic-group {
     background: #fff; border: 1px solid #e3e5e8; border-radius: 16px;
     box-shadow: 0 1px 3px rgba(51, 51, 51,.05); overflow: hidden;
@@ -43,19 +32,19 @@
   }
   .cic-head:hover { background: #eef0f2; }
   .cic-head:focus-visible { outline: none; box-shadow: inset 0 0 0 2px rgba(0, 86, 145,.5); }
-  .cic-chevron { font-size: .75rem; color: #4d5766; transition: transform .25s cubic-bezier(.4,0,.2,1); width: 20px; text-align: center; }
+  .cic-chevron { font-size: 0.78rem; color: #4d5766; transition: transform .25s cubic-bezier(.4,0,.2,1); width: 20px; text-align: center; }
   .cic-head.collapsed .cic-chevron { transform: rotate(-90deg); }
-  .cic-rekanan { font-weight: 700; font-size: .88rem; color: #333333; flex: 1 1 160px; min-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .cic-count-pill { font-size: .7rem; font-weight: 700; color: #4d5766; white-space: nowrap; font-variant-numeric: tabular-nums; }
-  .ds-badge { padding: 3px 10px; border-radius: 6px; font-size: .7rem; font-weight: 700; display: inline-block; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .cic-rekanan { font-weight: 700; font-size: 0.85rem; color: #333333; flex: 1 1 160px; min-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cic-count-pill { font-size: 0.7rem; font-weight: 700; color: #4d5766; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .ds-badge { padding: 3px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 700; display: inline-block; white-space: nowrap; font-variant-numeric: tabular-nums; }
   .ds-badge-green { background: #e6f4f1; color: #115e59; }
   .ds-badge-red { background: #fef0ee; color: #912018; }
   .ds-badge-amber { background: #fdf6d8; color: #8a6d00; }
   .ds-badge-gray { background: #eef0f2; color: #4d5766; }
   .cic-body { overflow-x: auto; }
-  .cic-table { width: 100%; font-size: .78rem; border-collapse: separate; border-spacing: 0; min-width: 960px; }
+  .cic-table { width: 100%; font-size: 0.78rem; border-collapse: separate; border-spacing: 0; min-width: 1060px; }
   .cic-table thead th {
-    background: #f7f8f9; color: #4d5766; font-size: .7rem; font-weight: 700;
+    background: #f7f8f9; color: #4d5766; font-size: 0.7rem; font-weight: 700;
     text-transform: uppercase; letter-spacing: .6px; padding: 10px 14px;
     border-bottom: 2px solid #e3e5e8; white-space: nowrap; text-align: left;
   }
@@ -65,9 +54,9 @@
   .cic-table tbody tr:hover td { background: #f7f8f9; }
   .cic-table .cell-money {
     font-family: "JetBrains Mono", "SF Mono", monospace; text-align: right;
-    font-variant-numeric: tabular-nums; font-weight: 600; font-size: .75rem; white-space: nowrap;
+    font-variant-numeric: tabular-nums; font-weight: 600; font-size: 0.78rem; white-space: nowrap;
   }
-  .cic-table .cell-dim { font-family: "JetBrains Mono", monospace; font-size: .75rem; color: #4d5766; font-variant-numeric: tabular-nums; }
+  .cic-table .cell-dim { font-family: "JetBrains Mono", monospace; font-size: 0.78rem; color: #4d5766; font-variant-numeric: tabular-nums; }
   .cic-table .cell-desc { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .cic-table .cell-invno { max-width: 140px; }
   .cic-table .cell-po { max-width: 160px; }
@@ -80,7 +69,6 @@
   ::selection { background: #eaf0f6; }
   @media (max-width: 1024px) { .cic-kpis { grid-template-columns: repeat(2, 1fr); } }
   @media (max-width: 768px) {
-    .ds-kpi--compact .ds-kpi__value { font-size: 1rem; }
     .cic-rekanan { flex-basis: 100%; white-space: normal; }
   }
   @media (prefers-reduced-motion: reduce) {
@@ -89,30 +77,24 @@
 </style>
 
 <div class="cic-wrap animate-in">
-  {% set scope = namespace(label='Semua Proyek') %}
-  {% for pid, label in project_list %}
-    {% if active_project_id|string == pid|string %}{% set scope.label = label %}{% endif %}
-  {% endfor %}
-
   <div class="cic-kpis">
-    <div class="ds-kpi ds-kpi--compact ds-kpi--err" tabindex="0">
+    <div class="ds-kpi ds-kpi--compact ds-kpi--err" tabindex="0" title="Jumlah seluruh potongan retensi (POT. RETENSI) — utang proyek ke vendor yang ditahan sampai pekerjaan selesai / syarat kontrak terpenuhi.">
       <div class="kpi-ico kpi-ico--rose"><i class="bi bi-shield-lock"></i></div>
       <div><div class="ds-kpi__label">Total Retensi</div><div class="ds-kpi__value">{{ total_retensi|money }}</div></div>
     </div>
-    <div class="ds-kpi ds-kpi--compact ds-kpi--ok" tabindex="0">
-      <div class="kpi-ico kpi-ico--green"><i class="bi bi-check2-circle"></i></div>
-      <div><div class="ds-kpi__label">Retensi Cair</div><div class="ds-kpi__value">{{ total_cair|money }}</div></div>
+    <div class="ds-kpi ds-kpi--compact ds-kpi--warn" tabindex="0" title="DPP sudah lunas, jadi retensi penuh sedang ditahan dan tinggal dibayarkan ke vendor.">
+      <div class="kpi-ico kpi-ico--amber"><i class="bi bi-lock"></i></div>
+      <div><div class="ds-kpi__label">Retensi Ditahan</div><div class="ds-kpi__value">{{ retensi_ditahan|money }}</div></div>
     </div>
-    <div class="ds-kpi ds-kpi--compact" tabindex="0">
-      <div class="kpi-ico kpi-ico--amber"><i class="bi bi-hourglass-split"></i></div>
-      <div><div class="ds-kpi__label">Retensi Belum Cair</div><div class="ds-kpi__value">{{ total_belum_cair|money }}</div></div>
+    <div class="ds-kpi ds-kpi--compact" tabindex="0" title="DPP belum lunas atau belum ada pembayaran sama sekali, sehingga retensi belum masuk tahap penahanan.">
+      <div class="kpi-ico kpi-ico--blue"><i class="bi bi-hourglass-split"></i></div>
+      <div><div class="ds-kpi__label">Belum Ditahan</div><div class="ds-kpi__value">{{ retensi_belum_ditahan|money }}</div></div>
     </div>
-    <div class="ds-kpi ds-kpi--compact" tabindex="0">
+    <div class="ds-kpi ds-kpi--compact" tabindex="0" title="Nilai DPP setelah dikurangi potongan retensi — dasar perhitungan PPN 11%.">
       <div class="kpi-ico kpi-ico--blue"><i class="bi bi-calculator"></i></div>
-      <div><div class="ds-kpi__label">DPP Setelah Potongan</div><div class="ds-kpi__value">{{ total_setelah_retensi|money }}</div></div>
+      <div><div class="ds-kpi__label">DPP Setelah Retensi</div><div class="ds-kpi__value">{{ total_setelah_retensi|money }}</div></div>
     </div>
   </div>
-  <p class="cic-sub">Retensi DPP (belum termasuk PPN) · {{ scope.label }}. Status dihitung dari sisa DPP: retensi dianggap bagian terakhir yang dibayar.</p>
 
   <div class="cic-toolbar">
     <div class="ds-search ft-search">
@@ -135,8 +117,8 @@
         <i class="bi bi-chevron-down cic-chevron" aria-hidden="true"></i>
         <span class="cic-rekanan" data-full="{{ lv.nama }}" title="{{ lv.nama }}">{{ lv.nama }}</span>
         <span class="cic-count-pill">{{ lv.jumlah_invoice }}&times; invoice</span>
-        <span class="ds-badge ds-badge-amber" title="Cair {{ lv.total_cair|money }} · Sisa {{ lv.total_sisa_retensi|money }}">Retensi {{ lv.total_retensi|money }}</span>
-        <span class="ds-badge {% if lv.status_retensi == 'Lunas' %}ds-badge-green{% elif lv.status_retensi == 'Cair Sebagian' %}ds-badge-amber{% elif lv.status_retensi == 'Ditahan' %}ds-badge-gray{% else %}ds-badge-red{% endif %}">{{ lv.status_retensi }}</span>
+        <span class="ds-badge ds-badge-amber" title="Total utang retensi {{ lv.total_retensi|money }} · sudah dibayar {{ lv.total_cair|money }} · sisa utang {{ lv.total_sisa_retensi|money }}">Retensi {{ lv.total_retensi|money }}</span>
+        <span class="ds-badge {% if lv.status_retensi == 'Lunas' %}ds-badge-green{% elif lv.status_retensi == 'Cair Sebagian' %}ds-badge-amber{% elif lv.status_retensi == 'Ditahan' %}ds-badge-amber{% else %}ds-badge-gray{% endif %}" title="{% if lv.status_retensi == 'Lunas' %}Seluruh utang retensi sudah dibayar{% elif lv.status_retensi == 'Cair Sebagian' %}Sebagian retensi sudah dibayar{% elif lv.status_retensi == 'Ditahan' %}DPP sudah lunas — retensi sedang ditahan{% else %}DPP belum lunas — retensi belum masuk tahap ditahan{% endif %}">{% if lv.status_retensi == 'Ditahan' %}Ditahan{% elif lv.status_retensi == 'Belum Dibayar' %}Belum Ditahan{% elif lv.status_retensi == 'Cair Sebagian' %}Dibayar Sebagian{% else %}{{ lv.status_retensi }}{% endif %}</span>
       </div>
       <div class="cic-body">
         <table class="cic-table">
@@ -149,6 +131,7 @@
               <th class="num">Pot. Retensi</th>
               <th class="num" title="11% × (Nilai DPP − Pot. Retensi)">Nilai PPN</th>
               <th class="num">DPP Setelah Retensi</th>
+              <th class="num" title="DPP yang sudah dibayar ke vendor. Retensi baru ditahan setelah angka ini mencapai DPP Setelah Retensi.">Bayar DPP</th>
               <th class="num">Sisa Retensi</th>
               <th>Status Retensi</th>
             </tr>
@@ -163,18 +146,20 @@
               <td class="cell-money">{{ inv.nilai_retensi|money }}</td>
               <td class="cell-money">{{ inv.nilai_ppn|money }}</td>
               <td class="cell-money">{{ inv.total|money }}</td>
+              <td class="cell-money">{{ inv.bayar_dpp|money }}</td>
               <td class="cell-money">{{ inv.sisa_retensi|money }}</td>
               <td>
                 {% if inv.status_retensi == 'Lunas' %}
-                <span class="ds-badge ds-badge-green" title="Sisa retensi {{ inv.sisa_retensi|money }}">Lunas</span>
+                <span class="ds-badge ds-badge-green" title="Retensi {{ inv.nilai_retensi|money }} sudah dibayar seluruhnya — tidak ada lagi utang retensi">Lunas</span>
                 {% elif inv.status_retensi == 'Ditahan' %}
-                <span class="ds-badge ds-badge-gray" title="DPP net sudah dibayar; retensi {{ inv.sisa_retensi|money }} masih ditahan">Ditahan</span>
+                <span class="ds-badge ds-badge-amber" title="DPP sudah lunas; retensi {{ inv.sisa_retensi|money }} sedang ditahan dan tinggal dibayar (masuk KPI Retensi Ditahan)">Ditahan</span>
                 {% elif inv.status_retensi == 'Cair Sebagian' %}
-                <span class="ds-badge ds-badge-amber" title="Sisa retensi {{ inv.sisa_retensi|money }}">Cair Sebagian</span>
+                <span class="ds-badge ds-badge-amber" title="Sebagian retensi sudah dibayar; sisa {{ inv.sisa_retensi|money }} masih ditahan">Dibayar Sebagian</span>
                 {% else %}
-                <span class="ds-badge ds-badge-red" title="Sisa DPP {{ (inv.harga_exld - inv.bayar_dpp)|money }}; retensi belum cair">Belum Dibayar</span>
+                <span class="ds-badge ds-badge-gray" title="Sisa DPP {{ (inv.harga_exld - inv.bayar_dpp)|money }} — retensi {{ inv.sisa_retensi|money }} belum masuk tahap ditahan">Belum Ditahan</span>
                 {% endif %}
               </td>
+
             </tr>
             {% endfor %}
           </tbody>

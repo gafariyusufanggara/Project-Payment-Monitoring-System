@@ -33,12 +33,17 @@
   --ds-sh-2: var(--shadow-md);
   --ds-sh-3: var(--shadow-lg);
 
-  /* ── Font size: 5 langkah ── */
-  --ds-fs-xs: 0.7rem;
-  --ds-fs-sm: 0.78rem;
-  --ds-fs-md: 0.85rem;
-  --ds-fs-lg: 1rem;
-  --ds-fs-xl: 1.25rem;
+  /* ── Font size: skala 7 langkah ──
+     Sebelumnya halaman mengarang ukuran sendiri (.66/.68/.72/.73/.74/.8rem…)
+     sehingga label & angka KPI antar halaman beda-beda. Pakai token ini. */
+  --ds-fs-2xs: 0.66rem;   /* micro: catatan kaki, note */
+  --ds-fs-xs: 0.7rem;     /* label KPI, badge, header tabel */
+  --ds-fs-sm: 0.78rem;    /* teks tabel, body kecil */
+  --ds-fs-md: 0.85rem;    /* body standar, nilai ringkasan */
+  --ds-fs-lg: 1rem;       /* judul kartu */
+  --ds-fs-xl: 1.25rem;    /* judul halaman */
+  --ds-fs-2xl: 1.05rem;   /* angka KPI compact (satu ukuran utk semua halaman) */
+  --ds-fs-hero: 2rem;     /* angka hero dashboard */
 
   /* ── Aksen tunggal (tema 1-tone) + status colors ── */
   --ds-accent: var(--accent);
@@ -186,6 +191,204 @@
   margin-top: var(--ds-sp-1);
   font-size: var(--ds-fs-xs);
   color: var(--ds-text-soft);
+}
+
+/* ══════════════════════════════════════════════════════════
+   ALIAS KARTU LAMA -> .ds-card
+   ------------------------------------------------------------
+   Beberapa halaman memakai nama kartu sendiri (.vf-card, .kd-card,
+   .st-card, .rp-card, .au-card, .ig-card, .imp-card, .kpr-card).
+   Isinya dulu ditulis ulang manual dan bisa melenceng dari satu sama
+   lain. Dengan alias ini semuanya mewarisi bentuk kanonik, sehingga
+   kartu tampil SERAGAM tanpa perlu mengubah markup tiap halaman.
+   Selector halaman tetap boleh menambah properti khasnya sendiri.
+   ══════════════════════════════════════════════════════════ */
+.vf-card,
+.kd-card,
+.st-card,
+.rp-card,
+.au-card,
+.ig-card,
+.imp-card,
+.kpr-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--ds-r-xl);
+  box-shadow: var(--ds-sh-1);
+}
+
+/* ══════════════════════════════════════════════════════════
+   CARD - satu definisi kanonik untuk SEMUA halaman.
+   ------------------------------------------------------------
+   Enam halaman (document_status, verifikasi, audit, contract_detail,
+   inv_periode, settings) menulis blok ini persis sama di <style>-nya.
+   Disatukan di sini. Varian warna/aksen ditangani lewat modifier.
+   ══════════════════════════════════════════════════════════ */
+.ds-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--ds-r-xl);
+  box-shadow: var(--ds-sh-1);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.ds-card:hover {
+  box-shadow: var(--ds-sh-2);
+}
+.ds-card__head {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-sp-2);
+  padding: 13px var(--ds-sp-5);
+  border-bottom: 1px solid var(--border);
+  font-size: var(--ds-fs-lg);
+  font-weight: 700;
+  color: var(--ds-text);
+  flex-wrap: wrap;
+  min-height: 46px;
+}
+.ds-card__head > i { color: var(--ds-accent); font-size: var(--ds-fs-lg); }
+.ds-card__head-count {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: #eef0f2;
+  color: #4d5766;
+  font-size: var(--ds-fs-xs);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.ds-card__body { padding: var(--ds-sp-4) var(--ds-sp-5); }
+.ds-card__body--flush { padding: 0; }
+
+/* Label/nilai ringkas di dalam kartu */
+.ds-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--ds-sp-3);
+  padding: 14px var(--ds-sp-5);
+}
+.ds-meta__label {
+  font-size: var(--ds-fs-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  color: var(--ds-text-soft);
+}
+.ds-meta__value {
+  font-size: var(--ds-fs-md);
+  font-weight: 600;
+  color: var(--ds-text);
+}
+.ds-meta__value--money {
+  font-family: "JetBrains Mono", "SF Mono", monospace;
+  font-size: var(--ds-fs-sm);
+  font-variant-numeric: tabular-nums;
+}
+.ds-meta__note { font-size: var(--ds-fs-2xs); color: #8a929c; font-weight: 500; margin-top: 1px; }
+
+/* Baris statistik label-nilai (dipakai kartu ringkasan) */
+.ds-stat-list { display: flex; flex-direction: column; }
+.ds-stat {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--ds-sp-3);
+  padding: 9px 0;
+  border-bottom: 1px solid #eef0f2;
+}
+.ds-stat:last-child { border-bottom: none; }
+.ds-stat__label { font-size: var(--ds-fs-sm); color: var(--ds-text-soft); font-weight: 600; }
+.ds-stat__value {
+  font-family: "JetBrains Mono", "SF Mono", monospace;
+  font-size: var(--ds-fs-sm);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ds-text);
+}
+.ds-stat--total { border-top: 2px solid var(--border); margin-top: 2px; padding-top: 10px; }
+.ds-stat--total .ds-stat__label,
+.ds-stat--total .ds-stat__value { font-weight: 700; color: var(--ds-text); }
+
+@media (max-width: 768px) {
+  .ds-card__head { padding: 11px var(--ds-sp-4); }
+  .ds-card__body { padding: var(--ds-sp-3) var(--ds-sp-4); }
+  .ds-meta { padding: 12px var(--ds-sp-4); }
+}
+
+/* ══════════════════════════════════════════════════════════
+   KPI COMPACT - satu definisi kanonik untuk SEMUA halaman.
+   ------------------------------------------------------------
+   Sebelumnya tiap halaman menulis ulang blok ini di <style>-nya
+   dengan nilai yang sedikit beda (radius ikon 8px vs 10px,
+   angka 1rem vs 1.05rem), sehingga kartu KPI terlihat tidak
+   seragam antar halaman. Kini hanya ada satu sumber.
+   ══════════════════════════════════════════════════════════ */
+.ds-kpi--compact {
+  padding: var(--ds-sp-3) var(--ds-sp-4);
+  display: flex;
+  align-items: center;
+  gap: var(--ds-sp-3);
+}
+.ds-kpi--compact .ds-kpi__label { margin-bottom: 2px; }
+.ds-kpi--compact .ds-kpi__value { font-size: var(--ds-fs-2xl); }
+.ds-kpi--compact .ds-kpi__hint { margin-top: 1px; }
+
+/* Ikon dalam kartu KPI. Dipakai bersama oleh class lama `.kpi-ico`
+   maupun nama baru `.ds-kpi__ico`, supaya halaman yang belum
+   dimigrasi tetap tampil identik. */
+.kpi-ico,
+.ds-kpi__ico {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  border-radius: var(--ds-r-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--ds-fs-lg);
+  flex: none;
+}
+.kpi-ico--blue,
+.ds-kpi__ico--blue { background: #eaf0f6; color: #16324f; }
+.kpi-ico--green,
+.ds-kpi__ico--green { background: #e6f4f1; color: #115e59; }
+.kpi-ico--rose,
+.ds-kpi__ico--rose { background: #fef0ee; color: #912018; }
+.kpi-ico--amber,
+.ds-kpi__ico--amber { background: #fdf6d8; color: #8a6d00; }
+.kpi-ico--violet,
+.ds-kpi__ico--violet { background: #ece4f7; color: #6a4fa3; }
+.kpi-ico--slate,
+.ds-kpi__ico--slate { background: #eef0f2; color: #4d5766; }
+
+/* Grid KPI standar: 3 kolom, turun ke 2 di tablet, 1 di ponsel.
+   Halaman boleh menimpanya (mis. grid 4/6 kolom) - tapi default-nya sama. */
+.ds-kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+@media (max-width: 1024px) { .ds-kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 768px)  { .ds-kpi-grid { grid-template-columns: 1fr; } }
+
+/* Judul grup KPI (pemisah "DPP — Harga Pokok", dsb.) */
+.ds-kpi-group-label {
+  font-size: var(--ds-fs-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--ds-text-soft);
+  margin: 2px 2px -6px;
+  display: flex;
+  align-items: center;
+  gap: var(--ds-sp-2);
+}
+.ds-kpi-group-label::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
 }
 
 /* ── Penetral gaya lama ──────────────────────────────────

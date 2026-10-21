@@ -49,7 +49,7 @@ EXPECTED_ON = [
     '#', 'NAMA LEVELANSIR', 'TGL BERKAS LENGKAP', 'NO. INVOICE',
     'NO. PO/KONTRAK', 'NILAI DPP', 'NILAI PPN', 'POT. PPH', 'RETENSI',
     'SISA HUTANG DPP', 'SISA HUTANG PPN', 'BAYAR DPP', 'TGL BAYAR DPP',
-    'BAYAR PPN', 'TGL BAYAR PPN', 'AKSI',
+    'BAYAR PPN', 'TGL BAYAR PPN', 'TGL JATUH TEMPO', 'AKSI',
 ]
 # Urutan relatif kolom bayar: BAYAR DPP → TGL BAYAR DPP → BAYAR PPN → TGL BAYAR PPN.
 EXPECTED_ORDER = ['BAYAR DPP', 'TGL BAYAR DPP', 'BAYAR PPN', 'TGL BAYAR PPN']
@@ -124,6 +124,23 @@ assert n_th == n_td, f"jumlah TH ({n_th}) != TD ({n_td})"
 datacols = [int(x) for x in re.findall(r'<th\b[^>]*data-col="(\d+)"', thead)]
 assert datacols == list(range(1, len(datacols) + 1)), f"data-col tak berurutan: {datacols}"
 print(f"[2c] {n_th} kolom, TH==TD, data-col 1..{len(datacols)} berurutan OK")
+
+
+# --- 2d. <tfoot> sejajar dengan <thead> (subtotal tidak bergeser) ---
+# applyColumns() di table-enhance.js memetakan sel tfoot PER POSISI, jadi jumlah
+# <td> footer harus sama persis dengan jumlah <th>. Kalau tidak, menambah kolom
+# baru membuat semua angka subtotal bergeser satu kolom ke kanan.
+tfoot_block = tpl[tpl.index('<tfoot'):tpl.index('</tfoot>')]
+n_tf = len(re.findall(r'<td\b', tfoot_block))
+assert n_tf == n_th, f"jumlah TD <tfoot> ({n_tf}) != TH ({n_th}) — subtotal akan bergeser"
+# Setiap <th> uang (text-end) harus punya pasangan sel footer uang di posisi sama.
+th_money = [bool(re.search(r'class="[^"]*text-end', m)) for m in
+            re.findall(r'<th\b([^>]*)', thead)]
+tf_money = ['cell-money' in m for m in re.findall(r'<td\b([^>]*)', tfoot_block)]
+assert th_money == tf_money, (
+    'sel footer uang tidak sejajar dengan kolom uang: '
+    f'{[(i, a, b) for i, (a, b) in enumerate(zip(th_money, tf_money)) if a != b]}')
+print(f"[2d] <tfoot> {n_tf} sel sejajar TH, kolom uang({sum(th_money)}) pas OK")
 
 
 # --- 4. Kolom sticky ditandai te-col-locked ---
@@ -253,12 +270,41 @@ print("[9] filter Sisa Hutang DPP + Sisa Hutang PPN (cluster 'Sisa Hutang') OK")
 
 # --- 10. Filter Bulan Jatuh Tempo (opsi = bulan JTH di data, label spt page JT) ---
 assert 'id="filterJtMonth"' in tpl, "select #filterJtMonth tidak ada di template"
-assert 'JT: Semua Bulan' in tpl, "opsi default 'JT: Semua Bulan' tidak ada"
+assert '<option value="">Semua Bulan</option>' in tpl, \
+    "opsi default 'Semua Bulan' tidak ada (label panjang dibuang agar ringkas)"
 assert 'for k, lbl in jt_month_options' in tpl, \
     "opsi bulan JT harus dirender dari jt_month_options"
 assert "tr.dataset.tglJthTempo || '').slice(0, 7) === jtMonth" in idx, \
     "JS belum mencocokkan bulan JT baris dengan filter"
-assert 'jtMatch && jtMonthMatch' in idx, "jtMonthMatch belum masuk kondisi match"
-print("[10] filter Bulan Jatuh Tempo (dropdown dari data) OK")
+assert 'bayarMatch && jtMonthMatch && revisiMatch' in idx, \
+    "jtMonthMatch belum masuk kondisi match"
+# Filter status jatuh tempo (overdue/due/safe) SENGAJA dihapus: status telat
+# sudah punya halaman sendiri (Laporan Jatuh Tempo). Yang tersisa hanya bulan.
+assert 'id="filterJatuhTempo"' not in tpl, \
+    "select #filterJatuhTempo harus dihapus (overdue sudah ada page sendiri)"
+assert 'jtFilter' not in idx, "variabel jtFilter masih tersisa di JS"
+print("[10] filter Bulan Jatuh Tempo saja (filter status JT dihapus) OK")
+
+
+# --- 11. Kolom TGL JATUH TEMPO bisa dimunculkan lewat panel "Kolom" ---
+# Panel Kolom dibangun dari header, jadi cukup kolomnya ada di <thead> + <tbody>
+# + <tfoot> (tfoot WAJIB sejajar, kalau tidak semua subtotal bergeser).
+assert 'TGL JATUH TEMPO' in labels_raw, \
+    "kolom 'TGL JATUH TEMPO' tidak ada di <thead> (tak akan muncul di panel Kolom)"
+_jt = labels_raw.index('TGL JATUH TEMPO')
+assert labels_raw[_jt - 1] == 'TGL BAYAR PPN', \
+    f"TGL JATUH TEMPO harus tepat setelah TGL BAYAR PPN, dapat: {labels_raw[_jt - 1]}"
+assert labels_raw[_jt + 1] == 'SISA HUTANG DPP', \
+    f"TGL JATUH TEMPO harus tepat sebelum SISA HUTANG DPP, dapat: {labels_raw[_jt + 1]}"
+# Default panel: kolom ini TAMPIL (tidak masuk daftar hidden default).
+assert 'tgl jatuh tempo' not in set(defaults), \
+    "TGL JATUH TEMPO tidak boleh default-hidden"
+# Nilai ter-render + data-type="date" (urutan sort ISO benar, kosong di bawah).
+assert "row['JTH TEMPO'] or '-'" in tpl, "sel TGL JATUH TEMPO tak merender nilai"
+assert re.search(r'data-type="date" data-v="\{\{ \(row\[\'JTH TEMPO\'\]', tpl), \
+    'sel TGL JATUH TEMPO harus data-type="date" agar sort-nya benar'
+assert 'data-tgl-jth-tempo="{{ row[\'JTH TEMPO\'] }}"' in tpl, \
+    "data-tgl-jth-tempo (dipakai filter bulan) hilang dari <tr>"
+print(f"[11] kolom 'TGL JATUH TEMPO' ada di posisi {_jt}, tampil default, sortable OK")
 
 print("\nALL CHECKS PASSED")

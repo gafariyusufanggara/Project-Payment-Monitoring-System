@@ -136,17 +136,10 @@
           <div class="ft-cluster">
             <span class="ft-cluster-label"><i class="bi bi-hourglass-split"></i> Jatuh Tempo</span>
             <select class="filter-select" id="filterJtMonth" aria-label="Filter bulan jatuh tempo">
-              <option value="">JT: Semua Bulan</option>
+              <option value="">Semua Bulan</option>
               {% for k, lbl in jt_month_options %}
               <option value="{{ k }}">{{ lbl }}</option>
               {% endfor %}
-            </select>
-            <select class="filter-select" id="filterJatuhTempo" aria-label="Filter jatuh tempo">
-              <option value="">JT: Semua</option>
-              <option value="overdue">Lewat Jatuh Tempo</option>
-              <option value="due">Jatuh Tempo &le; 30 hari</option>
-              <option value="safe">Aman (&gt; 30 hari)</option>
-              <option value="unpaid_no_due">Belum Bayar (tanpa JT)</option>
             </select>
           </div>
 
@@ -275,10 +268,13 @@
             <th class="th-sort" data-col="19" style="width: 95px">
               TGL BAYAR PPN <span class="sort-arrow">▲</span>
             </th>
-            <th class="th-sort text-end" data-col="20" style="width: 115px">
-              SISA HUTANG DPP <span class="sort-arrow">▲</span>
+            <th class="th-sort" data-col="20" style="width: 95px">
+              TGL JATUH TEMPO <span class="sort-arrow">▲</span>
             </th>
             <th class="th-sort text-end" data-col="21" style="width: 115px">
+              SISA HUTANG DPP <span class="sort-arrow">▲</span>
+            </th>
+            <th class="th-sort text-end" data-col="22" style="width: 115px">
               SISA HUTANG PPN <span class="sort-arrow">▲</span>
             </th>
             <th class="col-sticky-right text-center te-col-locked" style="width: 70px">
@@ -393,6 +389,7 @@
               {{ (row['PEMBAYARAN PPN']|default(0,true)|float)|money0 }}
             </td>
             <td class="cell-date" data-type="date" data-v="{{ row['TGL BAYAR PPN'] or '' }}">{{ row['TGL BAYAR PPN'] or '-' }}</td>
+            <td class="cell-date" data-type="date" data-v="{{ (row['JTH TEMPO'] or '')|string|trim }}">{{ row['JTH TEMPO'] or '-' }}</td>
             <td
               class="cell-money {% if (row['SISA HUTANG DPP']|default(0,true)|float) > 0 %}text-danger{% else %}text-success{% endif %}"
               style="font-weight: 700"
@@ -448,6 +445,7 @@
             <td class="cell-money text-end dt-foot-val"></td>
             <td></td>
             <td class="cell-money text-end dt-foot-val"></td>
+            <td></td>
             <td></td>
             <td class="cell-money text-end dt-foot-val"></td>
             <td class="cell-money text-end dt-foot-val"></td>
