@@ -8,7 +8,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 
 import db
-from services.laporan import _build_cum, _week_range_label
+from services.laporan import _build_cum, _week_range_label, _write_excel_date
 
 
 def build_ppn_data(project_id=None, cutoff_date=None):
@@ -336,8 +336,8 @@ def _render_ppn(wb, ws, mdata, now_key, period_of, title_suffix='', project_id=N
     """Render PPN export sheet in DPP-style hierarchical layout.
 
     Same geometry as DPP export (_render_lbp): starts at col C, title on
-    Excel row 4, 2-row header on rows 5-6, data from row 11 (rows 7-10
-    left blank for manual customization).
+    Excel row 4, 2-row header on rows 5-6, data from row 8 (row 7 left
+    blank for the filter row).
       Cols C-O  — NO, Vendor, Uraian, Kode, Item, PO/SPK/Invoice,
                   Metode Bayar, Tgl Berkas, Tgl Faktur Pajak,
                   Vol, Sat, Harga Satuan, Jumlah
@@ -389,6 +389,8 @@ def _render_ppn(wb, ws, mdata, now_key, period_of, title_suffix='', project_id=N
     vol_fmt = wb.add_format({'font_size': 9, 'border': 1, 'valign': 'vcenter',
                              'align': 'right', 'num_format': '#,##0.00'})
     cell_l_fmt = wb.add_format({'font_size': 9, 'border': 1, 'valign': 'vcenter', 'align': 'left'})
+    date_fmt = wb.add_format({'font_size': 9, 'num_format': 'dd/mm/yyyy', 'border': 1,
+                              'valign': 'vcenter', 'align': 'center'})
     cell_money_fmt = wb.add_format({'font_size': 9, 'num_format': acct, 'border': 1,
                                     'valign': 'vcenter', 'align': 'right'})
     num_h_fmt = wb.add_format({'font_size': 9, 'num_format': acct, 'border': 1,
@@ -426,8 +428,8 @@ def _render_ppn(wb, ws, mdata, now_key, period_of, title_suffix='', project_id=N
     ws.set_row(3, 26)
 
     # ── Header (2 rows) at Excel rows 5-6 (0-based 4-5) ──
-    # Rows 7-10 are intentionally left blank for manual customization.
-    # Data starts at Excel row 11 (0-based row 10).
+    # Row 7 is intentionally left blank for the filter row.
+    # Data starts at Excel row 8 (0-based row 7).
     hr = 4
     ws.merge_range(hr, 2, hr+1, 2, 'NO', hdr_fmt)
     ws.merge_range(hr, 3, hr+1, 3, 'Vendor', hdr_fmt)
@@ -454,7 +456,9 @@ def _render_ppn(wb, ws, mdata, now_key, period_of, title_suffix='', project_id=N
         fmt = grp_h_fmt if i < 3 else grp_p_fmt
         ws.write(leaf_row, 15 + i, lab, fmt)
     ws.set_row(leaf_row, 26)
-    row = 10  # Data starts at Excel row 11 (0-based row 10)
+    row = 7  # Data starts at Excel row 8 (0-based row 7)
+    ws.freeze_panes(7, 4)   # rows 1-7 + cols A-D: No (C) & Vendor (D) sticky
+    ws.hide_gridlines(2)    # hide Excel grid; sheet reads as table only
 
     # ── Data ─────────────────────────────────────────────
     vendor_rows = []
@@ -531,8 +535,8 @@ def _render_ppn(wb, ws, mdata, now_key, period_of, title_suffix='', project_id=N
             ws.write(row, 6, '', cell_fmt)      # Item — empty, manual input
             ws.write(row, 7, inv.get('NO PO / KONTRAK') or inv.get('NO INVOICE') or '', cell_l_fmt)
             ws.write(row, 8, inv.get('PEMBAYARAN PPN VIA') or inv.get('PEMBAYARAN DPP VIA DIVISI') or '', cell_l_fmt)
-            ws.write(row, 9, inv.get('TGL TERIMA') or '', cell_l_fmt)
-            ws.write(row, 10, inv.get('TGL FAKTUR PAJAK') or '', cell_l_fmt)
+            _write_excel_date(ws, row, 9, inv.get('TGL TERIMA'), date_fmt)
+            _write_excel_date(ws, row, 10, inv.get('TGL FAKTUR PAJAK'), date_fmt)
             ws.write(row, 11, vol if vol else '', vol_fmt)
             ws.write(row, 12, '', cell_fmt)      # Sat — no source column
             ws.write(row, 13, harga_satuan, num_h_fmt)
@@ -575,19 +579,25 @@ def _render_ppn(wb, ws, mdata, now_key, period_of, title_suffix='', project_id=N
 
     # ── TOTAL row ───────────────────────────────────────
     # SUM over the vendor subtotal cells only (same filter-aware SUMPRODUCT
-    # pattern as DPP, anchored on the Vendor column).
+    # pattern as DPP). The visibility anchor is ABSOLUTE ($C$8 = the NO column)
+    # so copying / moving the block never breaks the row test, while the value
+    # range stays RELATIVE so it follows the block to its new column.
     ws.write(row, 2, '', total_label_fmt)
     ws.merge_range(row, 3, row, 14, 'TOTAL', total_label_fmt)
     if vendor_rows:
         v_first = vendor_rows[0][0] + 1          # 1-based first vendor row
         v_last = vendor_rows[-1][0] + 1          # 1-based last vendor row
+        anchor_col = _col_letter(2)              # C — the NO column
+        anchor = f'${anchor_col}${v_first}'
+        anchor_row = f'${anchor_col}${v_first}'
+        anchor_rng = f'${anchor_col}${v_first}:${anchor_col}${v_last}'
         for c in PPN_VENDOR_SUBTOTAL_COLS:
             L = _col_letter(c)
             ws.write_formula(
                 row, c,
-                f'=SUMPRODUCT(SUBTOTAL(103,OFFSET({_col_letter(3)}{v_first},'
-                f'ROW({_col_letter(3)}{v_first}:{_col_letter(3)}{v_last})'
-                f'-ROW({_col_letter(3)}{v_first}),0)),'
+                f'=SUMPRODUCT(SUBTOTAL(103,OFFSET({anchor},'
+                f'ROW({anchor_rng})'
+                f'-ROW({anchor_row}),0)),'
                 f'{L}{v_first}:{L}{v_last})',
                 total_fmt,
             )

@@ -11,11 +11,30 @@ from flask import Blueprint, render_template, send_file, request, jsonify
 from services.laporan import (build_laporan_data, build_mingguan_data,
                               build_excel_export, build_weekly_excel_export,
                               build_jatuh_tempo_data,
-                              current_week_key, current_month_key)
+                              current_week_key, current_month_key,
+                              week_key_label)
 from services.jt_excel import build_jt_excel
 from services.laporan_ppn import build_ppn_data, build_ppn_mingguan_data
 
 bp = Blueprint('laporan', __name__)
+
+
+_MONTH_NAMES = {'01': 'Januari', '02': 'Februari', '03': 'Maret', '04': 'April',
+                '05': 'Mei', '06': 'Juni', '07': 'Juli', '08': 'Agustus',
+                '09': 'September', '10': 'Oktober', '11': 'November', '12': 'Desember'}
+
+
+def _parse_month_label(month_key):
+    """Convert 'YYYY-MM' to a human-readable month label, e.g. 'Agustus 2026'.
+    Falls back to the current month for invalid/missing keys.
+    """
+    raw = (month_key or '').strip()
+    try:
+        year, month = raw.split('-')
+        return f'{_MONTH_NAMES[month]} {year}'
+    except (ValueError, KeyError):
+        now = datetime.now()
+        return f'{_MONTH_NAMES[str(now.month).zfill(2)]} {now.year}'
 
 
 @bp.route('/laporan-bulanan')
@@ -99,12 +118,12 @@ def laporan_export():
     cutoff_date = _parse_cutoff(request.args.get('cutoff'))
     buf = build_excel_export(month_key=month_key, project_id=get_read_filter(),
                              cutoff_date=cutoff_date)
-    month_label = month_key or datetime.now().strftime('%Y-%m')
+    month_label = _parse_month_label(month_key)
     return send_file(
         buf,
         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         as_attachment=True,
-        download_name=f'LBP_Monitoring_Hutang_{month_label}.xlsx',
+        download_name=f'Rekap DPP Bulanan - {month_label}.xlsx',
     )
 
 
@@ -115,12 +134,12 @@ def laporan_mingguan_export():
     cutoff_date = _parse_cutoff(request.args.get('cutoff'))
     buf = build_weekly_excel_export(week_key=week_key, project_id=get_read_filter(),
                                     cutoff_date=cutoff_date)
-    label = week_key or datetime.now().strftime('%Y-W%V')
+    label = week_key_label(week_key) if week_key else week_key_label(current_week_key())
     return send_file(
         buf,
         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         as_attachment=True,
-        download_name=f'LBP_Mingguan_Hutang_{label}.xlsx',
+        download_name=f'Rekap DPP Mingguan - {label}.xlsx',
     )
 
 
@@ -129,12 +148,12 @@ def laporan_jatuh_tempo_export():
     from services.project_context import get_read_filter
     month_key = request.args.get('month') or None
     buf = build_jt_excel(month_key=month_key, project_id=get_read_filter())
-    label = month_key or date.today().strftime('%Y-%m')
+    label = _parse_month_label(month_key)
     return send_file(
         buf,
         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         as_attachment=True,
-        download_name=f'Jatuh_Tempo_Monitoring_Hutang_{label}.xlsx',
+        download_name=f'Rekap Jatuh Tempo - {label}.xlsx',
     )
 
 
@@ -182,12 +201,12 @@ def laporan_ppn_export():
     cutoff_date = _parse_cutoff(request.args.get('cutoff'))
     buf = build_ppn_excel_export(month_key=month_key, project_id=get_read_filter(),
                                  cutoff_date=cutoff_date)
-    month_label = month_key or date.today().strftime('%Y-%m')
+    month_label = _parse_month_label(month_key)
     return send_file(
         buf,
         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         as_attachment=True,
-        download_name=f'LPPN_Monitoring_Hutang_{month_label}.xlsx',
+        download_name=f'Rekap PPN Bulanan - {month_label}.xlsx',
     )
 
 
@@ -218,12 +237,12 @@ def laporan_ppn_mingguan_export():
     cutoff_date = _parse_cutoff(request.args.get('cutoff'))
     buf = build_ppn_mingguan_excel_export(week_key=week_key, project_id=get_read_filter(),
                                           cutoff_date=cutoff_date)
-    label = week_key or 'mingguan'
+    label = week_key_label(week_key) if week_key else week_key_label(current_week_key())
     return send_file(
         buf,
         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         as_attachment=True,
-        download_name=f'LPPM_Monitoring_Hutang_{label}.xlsx',
+        download_name=f'Rekap PPN Mingguan - {label}.xlsx',
     )
 
 

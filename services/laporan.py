@@ -403,6 +403,20 @@ def _week_key(dt):
     return f'{iso_year}-W{iso_week:02d}'
 
 
+def week_key_label(week_key):
+    """Return human-readable label for a week key, e.g. '14 Apr 2026 - 20 Apr 2026'.
+    Returns `week_key` itself when it cannot be parsed.
+    """
+    try:
+        iso_year, wnum = week_key.split('-W')
+        monday = datetime.fromisocalendar(int(iso_year), int(wnum), 1)
+        start = monday - timedelta(days=1)   # Sunday
+        end = start + timedelta(days=6)      # Saturday
+        return _week_range_label(start, end)
+    except (ValueError, TypeError, AttributeError):
+        return week_key
+
+
 def current_week_key(now=None):
     """Week key ('YYYY-Www') for the Sun–Sat week containing `now` (default: today).
 
@@ -706,6 +720,22 @@ def _col_letter(col):
 VENDOR_SUBTOTAL_COLS = (15, 16, 17, 18, 19, 20, 21, 22, 24, 25)
 
 
+def _write_excel_date(ws, row, col, value, fmt):
+    """Write a date string (YYYY-MM-DD) as a true Excel date so it renders
+    with the cell's ``dd/mm/yyyy`` format automatically (no Text-to-Column
+    dance needed). Non-date / empty values fall through to plain text."""
+    if not value:
+        ws.write(row, col, '', fmt)
+        return
+    try:
+        dt = datetime.strptime(str(value), '%Y-%m-%d').date()
+        ws.write_datetime(row, col, datetime(dt.year, dt.month, dt.day), fmt)
+        return
+    except (ValueError, TypeError):
+        pass
+    ws.write(row, col, value, fmt)
+
+
 def _render_lbp(wb, ws, mdata, now_key, period_of, title_suffix='', project_id=None,
                 cutoff_date=None):
     """Shared LBP sheet renderer for monthly & weekly exports.
@@ -770,6 +800,8 @@ def _render_lbp(wb, ws, mdata, now_key, period_of, title_suffix='', project_id=N
     vol_fmt = wb.add_format({'font_size': 9, 'border': 1, 'valign': 'vcenter',
                              'align': 'right', 'num_format': '#,##0.00'})
     cell_l_fmt = wb.add_format({'font_size': 9, 'border': 1, 'valign': 'vcenter', 'align': 'left'})
+    date_fmt = wb.add_format({'font_size': 9, 'num_format': 'dd/mm/yyyy', 'border': 1,
+                              'valign': 'vcenter', 'align': 'center'})
     cell_money_fmt = wb.add_format({'font_size': 9, 'num_format': acct, 'border': 1,
                                     'valign': 'vcenter', 'align': 'right'})
     num_h_fmt = wb.add_format({'font_size': 9, 'num_format': acct, 'border': 1,
@@ -819,8 +851,8 @@ def _render_lbp(wb, ws, mdata, now_key, period_of, title_suffix='', project_id=N
     ws.set_row(3, 26)
 
     # ── Header (2 rows) at Excel rows 5-6 (0-based 4-5) ──
-    # Rows 7-10 are intentionally left blank for manual customization.
-    # Data starts at Excel row 11 (0-based row 10).
+    # Row 7 is intentionally left blank for the filter row.
+    # Data starts at Excel row 8 (0-based row 7).
     hr = 4
     ws.merge_range(hr, 2, hr+1, 2, 'NO', hdr_fmt)
     ws.merge_range(hr, 3, hr+1, 3, 'Vendor', hdr_fmt)
@@ -850,7 +882,9 @@ def _render_lbp(wb, ws, mdata, now_key, period_of, title_suffix='', project_id=N
         fmt = grp_h_fmt if i < 3 else grp_p_fmt
         ws.write(leaf_row, 15 + i, lab, fmt)
     ws.set_row(leaf_row, 26)
-    row = 10  # Data starts at Excel row 11 (0-based row 10)
+    row = 7  # Data starts at Excel row 8 (0-based row 7)
+    ws.freeze_panes(7, 4)   # rows 1-7 + cols A-D: No (C) & Vendor (D) sticky
+    ws.hide_gridlines(2)    # hide Excel grid; sheet reads as table only
 
     # ── Data ─────────────────────────────────────────────
     t_lalu_h = t_si_h = 0
@@ -921,8 +955,8 @@ def _render_lbp(wb, ws, mdata, now_key, period_of, title_suffix='', project_id=N
             ws.write(row, 6, '', cell_fmt)      # Item — empty, manual input
             ws.write(row, 7, inv.get('NO PO / KONTRAK') or inv.get('NO INVOICE') or '', cell_l_fmt)
             ws.write(row, 8, inv.get('PEMBAYARAN DPP VIA DIVISI') or '', cell_l_fmt)
-            ws.write(row, 9, inv.get('TGL TERIMA') or '', cell_l_fmt)
-            ws.write(row, 10, inv.get('JTH TEMPO') or '', cell_l_fmt)
+            _write_excel_date(ws, row, 9, inv.get('TGL TERIMA'), date_fmt)
+            _write_excel_date(ws, row, 10, inv.get('JTH TEMPO'), date_fmt)
             vol = safe_float(inv.get('VOLUME PROGRESS'))
             harga_satuan = safe_float(inv.get('HARGA SATUAN'))
             ws.write(row, 11, vol if vol else '', vol_fmt)
@@ -1018,18 +1052,28 @@ def _render_lbp(wb, ws, mdata, now_key, period_of, title_suffix='', project_id=N
     # sitting inside the same column range. The SUBTOTAL(103,OFFSET(...)) term
     # is a per-row visibility test, so hidden/filtered-out vendors are excluded
     # just like the subtotals themselves are.
+    #
+    # The visibility anchor is written ABSOLUTELY ($C$8 = the NO column): it is
+    # always filled on vendor rows and is never touched by a column pivot, so
+    # the row test keeps working when the TOTAL block is copied or moved. The
+    # value range (P8:P274) stays RELATIVE on purpose, so moving the block
+    # re-points it at the column it now lives in.
     ws.write(row, 2, '', total_label_fmt)
     ws.merge_range(row, 3, row, 14, 'TOTAL', total_label_fmt)
     if vendor_rows:
         v_first = vendor_rows[0][0] + 1          # 1-based first vendor row
         v_last = vendor_rows[-1][0] + 1          # 1-based last vendor row
+        anchor_col = _col_letter(2)              # C — the NO column
+        anchor = f'${anchor_col}${v_first}'
+        anchor_row = f'${anchor_col}${v_first}'
+        anchor_rng = f'${anchor_col}${v_first}:${anchor_col}${v_last}'
         for c in VENDOR_SUBTOTAL_COLS:
             L = _col_letter(c)
             ws.write_formula(
                 row, c,
-                f'=SUMPRODUCT(SUBTOTAL(103,OFFSET({_col_letter(3)}{v_first},'
-                f'ROW({_col_letter(3)}{v_first}:{_col_letter(3)}{v_last})'
-                f'-ROW({_col_letter(3)}{v_first}),0)),'
+                f'=SUMPRODUCT(SUBTOTAL(103,OFFSET({anchor},'
+                f'ROW({anchor_rng})'
+                f'-ROW({anchor_row}),0)),'
                 f'{L}{v_first}:{L}{v_last})',
                 total_fmt,
             )
