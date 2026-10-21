@@ -31,7 +31,7 @@
   .kpi-ico--rose { background: #fef0ee; color: #912018; }
   .kpi-ico--amber { background: #fdf6d8; color: #8a6d00; }
   .kc-page { --c1w: 300px; }
-  .kc-page #kcTable { min-width: 1420px; }
+  .kc-page #kcTable { min-width: 1720px; }
   .kc-page #kcTable thead th.col-sticky-left,
   .kc-page #kcTable tbody td.col-sticky-left { width: 48px; min-width: 48px; max-width: 48px; text-align: center; }
   .kc-page #kcTable thead th.col-sticky-left-2,
@@ -65,6 +65,19 @@
   /* Hutang aktif pada baris Ada — pill merah muda di sel Belum Ditagih. */
   .kc-page #kcTable tbody td.kc-owe { background: #fef0ee; }
   .kc-page #kcTable tbody tr:hover td.kc-owe { background: #f8cfc9 !important; }
+  /* "Belum Ditagih" = pekerjaan yang belum ada invoice-nya, BUKAN utang.
+     Sengaja netral (tanpa tint merah) supaya tidak terbaca sebagai tagihan
+     yang menunggu pembayaran. */
+  .kc-page #kcTable tbody td.kc-belum { color: #667080; }
+  /* Pencocokan termin: pill "ditagih/total" dengan warna per status.
+     Warna hanya menandai KONDISI (pas / berjalan / perlu diperiksa / belum
+     bisa dicocokkan); angkanya tetap terbaca sebagai teks biasa. */
+  .kc-term-pill { display: inline-block; min-width: 40px; padding: 3px 8px; border-radius: 20px; font-size: .7rem; font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; cursor: help; }
+  .kc-term-pill--pas { background: #e6f4f1; color: #115e59; }
+  .kc-term-pill--berjalan { background: #eaf0f6; color: #244866; }
+  .kc-term-pill--lebih { background: #fef0ee; color: #912018; }
+  .kc-term-pill--belum { background: #f4f5f6; color: #667080; }
+  .kc-term-pill--none { background: #fdf6d8; color: #8a6d00; }
   .kc-prog { min-width: 130px; }
   .kc-prog-lbl { display: flex; justify-content: flex-end; font-size: .68rem; font-weight: 700; color: #667080; margin-bottom: 4px; font-variant-numeric: tabular-nums; }
   .kc-prog-lbl .pct { color: #333333; }
@@ -127,15 +140,15 @@
       <div><div class="ds-kpi__label">Terbayar PPN</div><div class="ds-kpi__value">{{ summary.total_dibayar_ppn|money }}</div>
         <div class="ds-kpi__hint">{% if summary.total_tertagih_ppn > 0 %}{{ (summary.total_dibayar_ppn / summary.total_tertagih_ppn * 100)|round(1) }}{% else %}0{% endif %}% dari yang ditagihkan</div></div>
     </div>
-    <div class="ds-kpi ds-kpi--compact{% if summary.total_sisa_dpp|has_sisa %} ds-kpi--warn{% endif %}" tabindex="0" title="Sisa Tagihan (DPP) = Nilai Kontrak (DPP) − Terbayar DPP, termasuk yang belum ditagih. {{ summary.belum_lunas }} invoice belum lunas.">
+    <div class="ds-kpi ds-kpi--compact{% if summary.total_sisa_dpp|has_sisa %} ds-kpi--warn{% endif %}" tabindex="0" title="Sisa Tagihan (DPP) = Nilai Kontrak (DPP) − Terbayar DPP. Sama dengan Belum Ditagih (DPP) + Sisa Hutang (DPP).">
       <div class="kpi-ico kpi-ico--rose"><i class="bi bi-wallet2"></i></div>
       <div><div class="ds-kpi__label">Sisa Tagihan (DPP)</div><div class="ds-kpi__value">{{ summary.total_sisa_dpp|money }}</div>
-        <div class="ds-kpi__hint">Belum ditagih: {{ summary.total_belum_ditagih|money }} &middot; Belum dibayar: {{ summary.total_belum_dibayar|money }}</div></div>
+        <div class="ds-kpi__hint">Belum ditagih: {{ summary.total_belum_ditagih|money }} &middot; Sisa hutang: {{ summary.total_sisa_hutang|money }}</div></div>
     </div>
-    <div class="ds-kpi ds-kpi--compact{% if summary.total_sisa_ppn|has_sisa or summary.jatuh_tempo > 0 %} ds-kpi--warn{% endif %}" tabindex="0" title="Sisa Tagihan (PPN) = PPN Kontrak − Terbayar PPN, termasuk yang belum ditagih. {{ summary.jatuh_tempo }} invoice jatuh tempo.">
+    <div class="ds-kpi ds-kpi--compact{% if summary.total_sisa_ppn|has_sisa or summary.jatuh_tempo > 0 %} ds-kpi--warn{% endif %}" tabindex="0" title="Sisa Tagihan (PPN) = PPN Kontrak − Terbayar PPN. Sama dengan Belum Ditagih (PPN) + Sisa Hutang (PPN).">
       <div class="kpi-ico kpi-ico--rose"><i class="bi bi-hourglass-split"></i></div>
       <div><div class="ds-kpi__label">Sisa Tagihan (PPN)</div><div class="ds-kpi__value">{{ summary.total_sisa_ppn|money }}</div>
-        <div class="ds-kpi__hint">Belum ditagih: {{ summary.total_belum_ditagih_ppn|money }} &middot; Belum dibayar: {{ summary.total_belum_dibayar_ppn|money }}</div></div>
+        <div class="ds-kpi__hint">Belum ditagih: {{ summary.total_belum_ditagih_ppn|money }} &middot; Sisa hutang: {{ summary.total_sisa_hutang_ppn|money }}</div></div>
     </div>
   </div>
 
@@ -211,8 +224,11 @@
               <th class="text-end" title="Jumlah PPN yang sudah dibayar">Bayar PPN (Rp)</th>
               <th title="Persentase PPN yang sudah dibayar terhadap PPN Kontrak">Bayar PPN (%)</th>
               <th class="text-center" title="PPN Include: PPN sudah termasuk dalam nilai kontrak. PPN Reimburse: PPN ditagih terpisah.">Metode Bayar</th>
-              <th class="text-end" title="Nilai kontrak DPP yang belum dibayar (Nilai Kontrak − Terbayar DPP, termasuk yang belum ditagih)">Sisa Tagihan (DPP)</th>
-              <th class="text-end" title="PPN kontrak yang belum dibayar (PPN Kontrak − Terbayar PPN, termasuk yang belum ditagih)">Sisa Tagihan (PPN)</th>
+              <th class="text-end" title="Nilai kontrak DPP yang belum ditagih ke vendor = DPP Kontrak − Tagihan DPP. Ini pekerjaan yang belum ada invoice-nya, BUKAN utang.">Belum Ditagih (DPP)</th>
+              <th class="text-end" title="DPP yang sudah ditagih tapi belum dibayar = Tagihan DPP − Bayar DPP. Inilah utang nyata ke vendor yang menunggu pembayaran.">Sisa Hutang (DPP)</th>
+              <th class="text-end" title="PPN kontrak yang belum ditagih = PPN Kontrak − Tagihan PPN. Bukan utang.">Belum Ditagih (PPN)</th>
+              <th class="text-end" title="PPN yang sudah ditagih tapi belum dibayar = Tagihan PPN − Bayar PPN. Inilah utang PPN nyata ke vendor.">Sisa Hutang (PPN)</th>
+              <th class="text-center" title="Pencocokan invoice ke jadwal termin kontrak. Menampilkan berapa termin yang sudah ditagih penuh dari total termin.">Termin Ditagih</th>
               <th class="text-center col-sticky-right">Stat. Invoice</th>
             </tr>
           </thead>
@@ -225,12 +241,17 @@
               {% set is_ada = c.status_invoice == 'Ada Invoice' %}
               {# Toleransi pembulatan Rp 1: sisa dari selisih floating point yang
                  sangat kecil (mis. -0.0000001) dianggap 0, bukan over-bayar.
-                 Sisa Tagihan = Nilai Kontrak - Terbayar (bagian kontrak yang
-                 belum dibayar, termasuk yang belum ditagih). Nilai negatif
-                 hanya bila pembayaran melebihi nilai kontrak. #}
+                 Empat angka sisa kontrak, dua konsep berbeda:
+                   belum_ditagih = DPP/PPN Kontrak - Tagihan  -> bukan utang
+                   sisa_hutang   = Tagihan - Bayar            -> utang nyata
+                 Dulu keduanya digabung di satu kolom "Sisa Tagihan" sehingga
+                 baris seperti PB.027 (tagih 44jt, bayar 0, kontrak 220jt)
+                 tampil 220jt padahal utangnya hanya 44jt. #}
               {% set eps = 1.0 %}
-              {% set sisa_dpp = c.sisa_tagihan|float %}
-              {% set sisa_ppn = c.sisa_tagihan_ppn|float %}
+              {% set belum_dpp = c.sisa_kontrak|float %}
+              {% set belum_ppn = c.sisa_ppn|float %}
+              {% set hutang_dpp = c.sisa_hutang|float %}
+              {% set hutang_ppn = c.sisa_hutang_ppn|float %}
               <td class="col-sticky-left" data-type="num" data-v="{{ loop.index }}">
                 <span class="row-num">{{ loop.index }}</span>
               </td>
@@ -260,8 +281,23 @@
                            'PPN Kontrak belum diisi.') }}
               </td>
               <td class="text-center kc-metode">{{ c.metode_pembayaran or '—' }}</td>
-              <td class="cell-money kc-sisa{% if sisa_dpp > eps %} kc-owe{% endif %}{% if sisa_dpp > eps %} text-danger{% elif sisa_dpp < -eps %} text-danger{% else %} text-success{% endif %}" style="font-weight:700">{{ (0 if sisa_dpp|abs <= eps else sisa_dpp)|money }}</td>
-              <td class="cell-money kc-sisa{% if sisa_ppn > eps %} kc-owe{% endif %}{% if sisa_ppn > eps %} text-danger{% elif sisa_ppn < -eps %} text-danger{% else %} text-success{% endif %}" style="font-weight:700">{{ (0 if sisa_ppn|abs <= eps else sisa_ppn)|money }}</td>
+              {# Belum ditagih: netral (abu). Ini pekerjaan yang belum ditagih,
+                 bukan hutang, jadi tidak diberi warna peringatan. Nilai
+                 negatif (menagih melebihi kontrak) tetap ditandai merah. #}
+              <td class="cell-money kc-belum{% if belum_dpp < -eps %} text-danger{% endif %}" style="font-weight:600">{{ (0 if belum_dpp|abs <= eps else belum_dpp)|money }}</td>
+              <td class="cell-money kc-sisa{% if hutang_dpp > eps %} kc-owe{% endif %}{% if hutang_dpp > eps %} text-danger{% elif hutang_dpp < -eps %} text-danger{% else %} text-success{% endif %}" style="font-weight:700">{{ (0 if hutang_dpp|abs <= eps else hutang_dpp)|money }}</td>
+              <td class="cell-money kc-belum{% if belum_ppn < -eps %} text-danger{% endif %}" style="font-weight:600">{{ (0 if belum_ppn|abs <= eps else belum_ppn)|money }}</td>
+              <td class="cell-money kc-sisa{% if hutang_ppn > eps %} kc-owe{% endif %}{% if hutang_ppn > eps %} text-danger{% elif hutang_ppn < -eps %} text-danger{% else %} text-success{% endif %}" style="font-weight:700">{{ (0 if hutang_ppn|abs <= eps else hutang_ppn)|money }}</td>
+              {% set tc = c.termin_cocok %}
+              <td class="text-center kc-termin">
+                {% if not tc or not tc.ada_jadwal %}
+                <span class="kc-term-pill kc-term-pill--none" title="Kontrak ini belum punya jadwal termin, jadi invoice tidak bisa dicocokkan ke termin">—</span>
+                {% else %}
+                <span class="kc-term-pill kc-term-pill--{{ tc.status }}" title="{{ tc.pesan }}">
+                  {{ tc.ditagih }}/{{ tc.jumlah }}
+                </span>
+                {% endif %}
+              </td>
               <td class="text-center col-sticky-right">
                 {% if is_ada %}
                 <span class="kc-stat-pill kc-stat-pill--ok" title="Ada Invoice ({{ c.jumlah_invoice }})">{{ c.jumlah_invoice }}</span>

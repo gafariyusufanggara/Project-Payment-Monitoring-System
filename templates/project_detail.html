@@ -1,404 +1,222 @@
-﻿{% extends "base.html" %} {% block title %}{% if project %}Edit {{
-project.kode_proyek }}{% else %}Proyek Baru{% endif %} - Project Payment Monitoring System{% endblock %} {% block topbar_title %}{% if project %}{{
-project.kode_proyek }}{% else %}Proyek Baru{% endif %}{% endblock %} {%
-block head_extra %}
+﻿{% extends "base.html" %} {% block title %}{% if project %}Edit {{ project.kode_proyek }}{% else %}Proyek Baru{% endif %} - Project Payment Monitoring System{% endblock %} {% block topbar_title %}{% if project %}{{ project.kode_proyek }}{% else %}Proyek Baru{% endif %}{% endblock %} {% block head_extra %}
+<link rel="stylesheet" href="{{ static_url(filename='css/project.css') }}">
 <style>
-  .pd-wrap {
-    max-width: 1240px;
-    margin: 0 auto;
-    padding: var(--ds-sp-5, 24px) var(--ds-sp-5, 24px);
+  /* Kekhususan halaman form; komponen dasar dari project.css. */
+  .pdt-layout {
+    display: grid; grid-template-columns: minmax(0, 1fr) 300px;
+    gap: var(--ds-sp-4); align-items: start;
   }
-  .pd-wrap::selection {
-    background: rgba(0, 86, 145, 0.18);
-  }
-  .pd-head {
-    margin-bottom: var(--ds-sp-5);
-  }
-  .pd-head__title {
-    margin: 0;
-    font-size: var(--ds-fs-xl);
-    font-weight: 700;
-    letter-spacing: -0.01em;
-    color: var(--ds-text);
-    display: flex;
-    align-items: center;
-    gap: var(--ds-sp-2);
-    flex-wrap: wrap;
-  }
-  .pd-head__title i {
-    color: var(--ds-accent);
-  }
-  .pd-head__sub {
-    margin: var(--ds-sp-1) 0 0;
-    font-size: var(--ds-fs-sm);
-    color: var(--ds-text-soft);
-  }
-  .pd-back {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 6px 14px;
-    border-radius: var(--ds-r-md);
-    font-size: var(--ds-fs-sm);
-    font-weight: 600;
-    color: var(--ds-text-soft);
-    text-decoration: none;
-    border: 1px solid var(--border);
-    background: var(--card);
-    transition: var(--transition-smooth);
-  }
-  .pd-back:hover {
-    border-color: var(--ds-accent);
-    color: var(--ds-accent);
-  }
-  .pd-status {
-    font-size: var(--ds-fs-xs);
-    font-weight: 700;
-    letter-spacing: 0.4px;
-    text-transform: uppercase;
-    padding: 3px 10px;
-    border-radius: 20px;
-    white-space: nowrap;
-  }
-  .pd-status--aktif {
-    background: #e6f4f1;
-    color: #115e59;
-  }
-  .pd-status--selesai {
-    background: #eef0f2;
-    color: #4d5766;
-  }
-  .pd-status--tangguh {
-    background: #fdf6d8;
-    color: #8a6d00;
-  }
-  /* Form identitas proyek: satu kolom terpusat. */
-  .pd-layout {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    max-width: 760px;
-    margin: 0 auto;
-    align-items: start;
-  }
-  .pd-card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: var(--ds-r-xl);
-    box-shadow: var(--ds-sh-1);
-    overflow: hidden;
-  }
-  .pd-card__head {
-    display: flex;
-    align-items: center;
-    gap: var(--ds-sp-2);
-    padding: var(--ds-sp-4) var(--ds-sp-5) var(--ds-sp-3);
-    border-bottom: 1px solid var(--border);
-    flex-wrap: wrap;
-  }
-  .pd-card__body {
-    padding: var(--ds-sp-4) var(--ds-sp-5) var(--ds-sp-5);
-  }
-  .pd-group {
-    margin-bottom: var(--ds-sp-4);
-  }
-  .pd-group:last-of-type {
-    margin-bottom: 0;
-  }
-  .pd-group__title {
-    font-size: var(--ds-fs-xs);
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-    color: var(--ds-text-soft);
-    margin: 0 0 var(--ds-sp-2);
-    display: flex;
-    align-items: center;
-    gap: var(--ds-sp-2);
-  }
-  .pd-group__title::after {
-    content: "";
-    flex: 1;
-    height: 1px;
-    background: var(--border);
-  }
-  .pd-grid {
-    display: grid;
-    grid-template-columns: repeat(12, 1fr);
-    gap: var(--ds-sp-2) var(--ds-sp-3);
-  }
-  .pd-grid > div {
-    min-width: 0;
-  }
-  .pd-s3 { grid-column: span 3; }
-  .pd-s4 { grid-column: span 4; }
-  .pd-s5 { grid-column: span 5; }
-  .pd-s6 { grid-column: span 6; }
-  .pd-s7 { grid-column: span 7; }
-  .pd-s8 { grid-column: span 8; }
-  .pd-s9 { grid-column: span 9; }
-  .pd-s12 { grid-column: span 12; }
-  .pd-label {
-    display: block;
-    font-size: var(--ds-fs-xs);
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-    color: var(--ds-text-soft);
-    margin-bottom: 4px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .pd-input,
-  .pd-select,
-  .pd-textarea {
-    width: 100%;
-    padding: 8px 12px;
-    border-radius: var(--ds-r-md);
-    border: 1px solid var(--border);
-    font-size: var(--ds-fs-md);
-    background: var(--card);
-    color: var(--ds-text);
-    font-family: inherit;
-    transition: var(--transition-smooth);
-    outline: none;
-  }
-  .pd-input:focus,
-  .pd-select:focus,
-  .pd-textarea:focus {
-    border-color: var(--ds-accent);
-    box-shadow: 0 0 0 3px rgba(0, 86, 145, 0.12);
-  }
-  .pd-input:focus-visible,
-  .pd-select:focus-visible,
-  .pd-textarea:focus-visible {
-    box-shadow: 0 0 0 3px rgba(0, 86, 145, 0.18);
-  }
-  .pd-textarea {
-    min-height: 64px;
-    resize: vertical;
-  }
-  .pd-money {
-    font-variant-numeric: tabular-nums;
-    text-align: right;
-  }
-  .pd-actions {
-    display: flex;
-    gap: var(--ds-sp-2);
-    margin-top: var(--ds-sp-4);
-    flex-wrap: wrap;
-    align-items: center;
-  }
-  .pd-actions .spacer {
-    flex: 1 1 auto;
-  }
-  .pd-danger-quiet {
-    color: #912018;
-  }
-  .pd-danger-quiet:hover {
-    background: #fef0ee;
-    border-color: #f8cfc9;
-    color: #912018;
-  }
+  .pdt-aside { display: flex; flex-direction: column; gap: var(--ds-sp-3); position: sticky; top: var(--ds-sp-4); }
+  .pdt-group + .pdt-group { margin-top: var(--ds-sp-4); padding-top: var(--ds-sp-4); border-top: 1px dashed var(--border); }
+  .pdt-hint { font-size: var(--ds-fs-xs); color: var(--ds-text-soft); margin-top: 4px; }
+  .pdt-req { color: #b42318; }
 
-  @media (max-width: 768px) {
-    .pd-wrap {
-      padding: var(--ds-sp-4) var(--ds-sp-3);
-    }
-    .pd-s3, .pd-s4, .pd-s5, .pd-s6,
-    .pd-s7, .pd-s8, .pd-s9 {
-      grid-column: span 12;
-    }
-    .pd-actions .ds-btn {
-      flex: 1 1 100%;
-      justify-content: center;
-      min-height: 38px;
-    }
-    .pd-actions .spacer {
-      display: none;
-    }
+  /* Ringkasan kecil di sidebar */
+  .pdt-sum { display: flex; flex-direction: column; gap: 2px; }
+  .pdt-sum__row { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0; border-bottom: 1px solid #eef0f2; font-size: var(--ds-fs-sm); }
+  .pdt-sum__row:last-child { border-bottom: none; }
+  .pdt-sum__label { color: var(--ds-text-soft); font-weight: 600; }
+  .pdt-sum__value { font-weight: 700; color: var(--ds-text); text-align: right; overflow-wrap: anywhere; }
+  .pdt-sum__value--money { font-family: var(--ds-font-mono, "JetBrains Mono", "SF Mono", monospace); font-variant-numeric: tabular-nums; font-size: var(--ds-fs-sm); }
+
+  /* Zona hapus dipisah agar tidak tertekan tak sengaja */
+  .pdt-danger { border: 1px solid #f8cfc9; background: #fff; border-radius: var(--ds-r-xl); overflow: hidden; }
+  .pdt-danger__head { padding: 11px var(--ds-sp-4); font-weight: 700; font-size: var(--ds-fs-sm); color: #912018; border-bottom: 1px solid #f8cfc9; display: flex; align-items: center; gap: 8px; background: #fef8f7; }
+  .pdt-danger__body { padding: var(--ds-sp-3) var(--ds-sp-4); }
+  .pdt-danger__text { font-size: var(--ds-fs-xs); color: var(--ds-text-soft); margin: 0 0 10px; line-height: 1.5; }
+  .pdt-danger .ds-btn { width: 100%; justify-content: center; color: #912018; border-color: #f8cfc9; }
+  .pdt-danger .ds-btn:hover { background: #fef0ee; border-color: #efb3ab; color: #912018; }
+
+  @media (max-width: 1024px) {
+    .pdt-layout { grid-template-columns: minmax(0, 1fr); }
+    .pdt-aside { position: static; }
   }
   @media (prefers-reduced-motion: reduce) {
-    .pd-wrap * {
-      animation: none !important;
-      transition: none !important;
-    }
+    .prj-page * { animation: none !important; transition: none !important; }
   }
 </style>
 {% endblock %} {% block content %}
-<div class="pd-wrap animate-in">
-  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-  <a href="{{ url_for('project.list_projects') }}" class="pd-back"><i class="bi bi-arrow-left"></i> Proyek</a>
-  {% if project %}
-  <span class="pd-status {% if project.status == 'Aktif' %}pd-status--aktif{% elif project.status == 'Selesai' %}pd-status--selesai{% else %}pd-status--tangguh{% endif %}">{{ project.status }}</span>
-  {% endif %}
-  {% if project %}
-  <span style="flex:1"></span>
-  <a href="{{ url_for('project.project_dashboard', project_id=project.id) }}" class="ds-btn"><i class="bi bi-speedometer2"></i> Dashboard</a>
-  {% endif %}
-</div>
-<div class="pd-layout">
-    <section
-      class="pd-card"
+<div class="prj-page animate-in">
+
+  <!-- ─── Toolbar ─── -->
+  <div class="prj-toolbar">
+    <a href="{{ url_for('project.list_projects') }}" class="ds-btn ds-btn--sm"><i class="bi bi-arrow-left"></i> Proyek</a>
+    {% if project %}
+      {% if project.status == 'Aktif' %}<span class="prj-badge prj-badge--aktif">{{ project.status }}</span>
+      {% elif project.status == 'Selesai' %}<span class="prj-badge prj-badge--selesai">{{ project.status }}</span>
+      {% else %}<span class="prj-badge prj-badge--lain">{{ project.status }}</span>{% endif %}
+    {% endif %}
+    <span class="prj-toolbar__spacer"></span>
+    {% if project %}
+    <a href="{{ url_for('project.project_dashboard', project_id=project.id) }}" class="ds-btn ds-btn--sm"><i class="bi bi-speedometer2"></i> Dashboard</a>
+    {% endif %}
+  </div>
+
+  <div class="pdt-layout">
+    <!-- ─── Form utama ─── -->
+    <form
+      class="prj-card"
+      method="POST"
+      action="{% if project %}{{ url_for('project.edit_project', project_id=project.id) }}{% else %}{{ url_for('project.create_project') }}{% endif %}"
       aria-label="Informasi proyek"
     >
-      <div class="pd-card__head ds-section-title">
-        <i class="bi bi-info-circle"></i> Informasi Proyek
+      <div class="prj-card__head">
+        <i class="bi bi-info-circle"></i>
+        {% if project %}Informasi Proyek{% else %}Proyek Baru{% endif %}
       </div>
-      <div class="pd-card__body">
-        <form
-          method="POST"
-          action="{% if project %}{{ url_for('project.edit_project', project_id=project.id) }}{% else %}{{ url_for('project.create_project') }}{% endif %}"
-        >
-          <div class="pd-group">
-            <h2 class="pd-group__title">Identitas</h2>
-            <div class="pd-grid">
-              <div class="pd-s7">
-                <label class="pd-label" for="kode_proyek">Kode Proyek *</label>
-                <input
-                  class="pd-input"
-                  id="kode_proyek"
-                  name="kode_proyek"
-                  required
-                  value="{{ project.kode_proyek if project else '' }}"
-                  placeholder="PRJ-001"
-                />
-              </div>
-              <div class="pd-s5">
-                <label class="pd-label" for="status">Status</label>
-                <select class="pd-select" id="status" name="status">
-                  <option value="Aktif" {% if project and project.status == "Aktif" %}selected{% endif %}>Aktif</option>
-                  <option value="Selesai" {% if project and project.status == "Selesai" %}selected{% endif %}>Selesai</option>
-                  <option value="Ditangguhkan" {% if project and project.status == "Ditangguhkan" %}selected{% endif %}>Ditangguhkan</option>
-                </select>
-              </div>
-              <div class="pd-s12">
-                <label class="pd-label" for="nama_proyek"
-                  >Nama Proyek *</label
-                >
-                <input
-                  class="pd-input"
-                  id="nama_proyek"
-                  name="nama_proyek"
-                  required
-                  value="{{ project.nama_proyek if project else '' }}"
-                  placeholder="Proyek Pembangunan Gedung"
-                />
-              </div>
+
+      <div class="prj-card__body">
+        <!-- Grup 1: Identitas -->
+        <section class="pdt-group">
+          <h2 class="prj-group-label" style="margin-bottom:10px">Identitas</h2>
+          <div class="prj-grid-12">
+            <div class="prj-field prj-col-4">
+              <label class="prj-field__label" for="kode_proyek">Kode Proyek <span class="pdt-req">*</span></label>
+              <input class="prj-input" id="kode_proyek" name="kode_proyek" required
+                     value="{{ project.kode_proyek if project else '' }}" placeholder="PRJ-001">
+            </div>
+            <div class="prj-field prj-col-8">
+              <label class="prj-field__label" for="nama_proyek">Nama Proyek <span class="pdt-req">*</span></label>
+              <input class="prj-input" id="nama_proyek" name="nama_proyek" required
+                     value="{{ project.nama_proyek if project else '' }}" placeholder="Proyek Pembangunan Gedung">
+            </div>
+            <div class="prj-field prj-col-4">
+              <label class="prj-field__label" for="status">Status</label>
+              <select class="prj-select" id="status" name="status">
+                <option value="Aktif" {% if project and project.status == "Aktif" %}selected{% endif %}>Aktif</option>
+                <option value="Selesai" {% if project and project.status == "Selesai" %}selected{% endif %}>Selesai</option>
+                <option value="Ditangguhkan" {% if project and project.status == "Ditangguhkan" %}selected{% endif %}>Ditangguhkan</option>
+              </select>
+            </div>
+            <div class="prj-field prj-col-4">
+              <label class="prj-field__label" for="lokasi">Lokasi</label>
+              <input class="prj-input" id="lokasi" name="lokasi"
+                     value="{{ project.lokasi if project else '' }}" placeholder="Jakarta">
+            </div>
+            <div class="prj-field prj-col-4">
+              <label class="prj-field__label" for="pemilik">Pemilik Proyek</label>
+              <input class="prj-input" id="pemilik" name="pemilik"
+                     value="{{ project.pemilik if project else '' }}" placeholder="PT. Pemilik Proyek">
             </div>
           </div>
+        </section>
 
-          <div class="pd-group">
-            <h2 class="pd-group__title">Kontrak &amp; Jadwal</h2>
-            <div class="pd-grid">
-              <div class="pd-s12">
-                <label class="pd-label" for="nilai_kontrak"
-                  >Nilai Kontrak (Rp)</label
-                >
-                <input
-                  class="pd-input pd-money"
-                  id="nilai_kontrak"
-                  name="nilai_kontrak"
-                  type="number"
-                  min="0"
-                  step="1"
-                  value="{{ project.nilai_kontrak|int if project and project.nilai_kontrak else '' }}"
-                  placeholder="0"
-                />
-              </div>
-              <div class="pd-s6">
-                <label class="pd-label" for="tgl_mulai">Tanggal Mulai</label>
-                <input
-                  class="pd-input"
-                  id="tgl_mulai"
-                  name="tgl_mulai"
-                  type="date"
-                  value="{{ project.tgl_mulai if project else '' }}"
-                />
-              </div>
-              <div class="pd-s6">
-                <label class="pd-label" for="tgl_selesai"
-                  >Selesai (Rencana)</label
-                >
-                <input
-                  class="pd-input"
-                  id="tgl_selesai"
-                  name="tgl_selesai"
-                  type="date"
-                  value="{{ project.tgl_selesai if project else '' }}"
-                />
-              </div>
-              <div class="pd-s6">
-                <label class="pd-label" for="lokasi">Lokasi</label>
-                <input
-                  class="pd-input"
-                  id="lokasi"
-                  name="lokasi"
-                  value="{{ project.lokasi if project else '' }}"
-                  placeholder="Jakarta"
-                />
-              </div>
-              <div class="pd-s6">
-                <label class="pd-label" for="pemilik">Pemilik Proyek</label>
-                <input
-                  class="pd-input"
-                  id="pemilik"
-                  name="pemilik"
-                  value="{{ project.pemilik if project else '' }}"
-                  placeholder="PT. Pemilik Proyek"
-                />
-              </div>
+        <!-- Grup 2: Kontrak & Jadwal -->
+        <section class="pdt-group">
+          <h2 class="prj-group-label" style="margin-bottom:10px">Kontrak &amp; Jadwal</h2>
+          <div class="prj-grid-12">
+            <div class="prj-field prj-col-12">
+              <label class="prj-field__label" for="nilai_kontrak">Nilai Kontrak (Rp)</label>
+              <input class="prj-input prj-input--money" id="nilai_kontrak" name="nilai_kontrak"
+                     type="number" min="0" step="1"
+                     value="{{ project.nilai_kontrak|int if project and project.nilai_kontrak else '' }}"
+                     placeholder="0">
+              <p class="pdt-hint">akumulasi kontrak vendor — bukan porsi yang sudah direalisasi.</p>
+            </div>
+            <div class="prj-field prj-col-6">
+              <label class="prj-field__label" for="tgl_mulai">Tanggal Mulai</label>
+              <input class="prj-input" id="tgl_mulai" name="tgl_mulai" type="date"
+                     value="{{ project.tgl_mulai if project else '' }}">
+            </div>
+            <div class="prj-field prj-col-6">
+              <label class="prj-field__label" for="tgl_selesai">Selesai (Rencana)</label>
+              <input class="prj-input" id="tgl_selesai" name="tgl_selesai" type="date"
+                     value="{{ project.tgl_selesai if project else '' }}">
             </div>
           </div>
+        </section>
 
-          <div class="pd-group">
-            <h2 class="pd-group__title">Catatan</h2>
-            <div class="pd-grid">
-              <div class="pd-s12">
-                <label class="pd-label" for="catatan">Catatan</label>
-                <textarea
-                  class="pd-textarea"
-                  id="catatan"
-                  name="catatan"
-                  placeholder="Catatan proyek..."
-                >
-{{ project.catatan if project else '' }}</textarea
-                >
-              </div>
+        <!-- Grup 3: Catatan -->
+        <section class="pdt-group">
+          <h2 class="prj-group-label" style="margin-bottom:10px">Catatan</h2>
+          <div class="prj-grid-12">
+            <div class="prj-field prj-col-12">
+              <label class="prj-field__label" for="catatan">Catatan</label>
+              <textarea class="prj-textarea" id="catatan" name="catatan"
+                        placeholder="Catatan proyek...">{{ project.catatan if project else '' }}</textarea>
             </div>
           </div>
+        </section>
+      </div>
 
-          <div class="pd-actions">
-            <button
-              type="submit"
-              name="action"
-              value="update"
-              class="ds-btn ds-btn--primary"
-            >
-              <i class="bi bi-check-lg"></i> {% if project %}Simpan{% else
-              %}Buat Proyek{% endif %}
-            </button>
-            <a
-              href="{{ url_for('project.list_projects') }}"
-              class="ds-btn"
-              >Batal</a
-            >
+      <div class="prj-form-actions">
+        <button type="submit" name="action" value="update" class="ds-btn ds-btn--primary">
+          <i class="bi bi-check-lg"></i> {% if project %}Simpan Perubahan{% else %}Buat Proyek{% endif %}
+        </button>
+        <a href="{{ url_for('project.list_projects') }}" class="ds-btn">Batal</a>
+      </div>
+    </form>
+
+    <!-- ─── Sidebar: ringkasan + zona hapus ─── -->
+    <aside class="pdt-aside">
+      <div class="prj-card">
+        <div class="prj-card__head"><i class="bi bi-clipboard-data"></i> Ringkasan</div>
+        <div class="prj-card__body" style="padding-top:6px;padding-bottom:6px">
+          <div class="pdt-sum">
+            <div class="pdt-sum__row">
+              <span class="pdt-sum__label">Kode</span>
+              <span class="pdt-sum__value">{{ project.kode_proyek if project else '—' }}</span>
+            </div>
+            <div class="pdt-sum__row">
+              <span class="pdt-sum__label">Status</span>
+              <span class="pdt-sum__value">{{ project.status if project else '—' }}</span>
+            </div>
+            <div class="pdt-sum__row">
+              <span class="pdt-sum__label">Nilai Kontrak</span>
+              <span class="pdt-sum__value pdt-sum__value--money">{{ project.nilai_kontrak|money if project else '—' }}</span>
+            </div>
             {% if project %}
-            <span class="spacer"></span>
-            <button
-              type="submit"
-              name="action"
-              value="delete"
-              class="ds-btn pd-danger-quiet"
-              onclick="return confirm('Hapus proyek {{ project.kode_proyek }}? Semua data terkait akan dihapus.')"
-            >
-              <i class="bi bi-trash3"></i> Hapus
-            </button>
+            <div class="pdt-sum__row">
+              <span class="pdt-sum__label">Realisasi</span>
+              <span class="pdt-sum__value pdt-sum__value--money">{{ project.total_realisasi|money }}</span>
+            </div>
+            <div class="pdt-sum__row">
+              <span class="pdt-sum__label">Sisa Hutang</span>
+              <span class="pdt-sum__value pdt-sum__value--money{% if project.total_sisa|has_sisa %} prj-num--neg{% endif %}">{{ project.total_sisa|money }}</span>
+            </div>
             {% endif %}
           </div>
-        </form>
+        </div>
       </div>
-    </section>
+
+      {% if project %}
+      <div class="pdt-danger">
+        <div class="pdt-danger__head"><i class="bi bi-exclamation-triangle"></i> Zona Berbahaya</div>
+        <div class="pdt-danger__body">
+          <p class="pdt-danger__text">
+            Menghapus proyek <strong>{{ project.kode_proyek }}</strong> juga menghapus seluruh
+            data invoice terkait. Tindakan ini tidak dapat dibatalkan.
+          </p>
+          <button type="submit" form="" name="action" value="delete" class="ds-btn ds-btn--sm"
+                  onclick="return submitDelete(event)"
+                  data-action="{{ url_for('project.edit_project', project_id=project.id) }}"
+                  data-kode="{{ project.kode_proyek }}">
+            <i class="bi bi-trash3"></i> Hapus Proyek
+          </button>
+        </div>
+      </div>
+      {% endif %}
+    </aside>
   </div>
 </div>
+
+{% if project %}
+<form id="pdtDeleteForm" method="POST"
+      action="{{ url_for('project.edit_project', project_id=project.id) }}"
+      style="display:none">
+  <input type="hidden" name="action" value="delete">
+</form>
+<script>
+  /* Tombol Hapus ada di sidebar (di luar <form> utama), jadi kirim lewat form
+     tersembunyi agar tidak perlu nesting <form> yang tidak valid. */
+  function submitDelete(ev) {
+    ev.preventDefault();
+    var kode = ev.currentTarget.dataset.kode;
+    if (confirm('Hapus proyek ' + kode + '? Semua data terkait akan dihapus.')) {
+      document.getElementById('pdtDeleteForm').submit();
+    }
+    return false;
+  }
+</script>
+{% endif %}
 {% endblock %}

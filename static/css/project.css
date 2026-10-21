@@ -1,0 +1,219 @@
+/* ============================================================================
+   project.css — komponen bersama halaman Proyek (Ledger Desk / DESIGN.md).
+
+   Dipakai oleh:
+     * templates/projects.html          (daftar kartu)
+     * templates/project_dashboard.html (dashboard detail)
+     * templates/project_detail.html    (form tambah/ubah)
+
+   Hanya berisi token & komponen yang DIPAKAI BERSAMA. Kekhususan halaman tetap
+   tinggal di <style> masing-masing template. Semua warna memakai token --ds-*
+   dari app.css agar tidak muncul lagi kelas "liar" (mis. ds-kpi--warn yang
+   tidak pernah didefinisikan).
+   ========================================================================== */
+
+/* ── 1. Kerangka halaman ─────────────────────────────────────────────────── */
+.prj-page { display: flex; flex-direction: column; gap: var(--ds-sp-4); max-width: 1200px; margin: 0 auto; }
+
+/* ── 2. Toolbar / baris aksi ─────────────────────────────────────────────── */
+.prj-toolbar { display: flex; align-items: center; gap: var(--ds-sp-2); flex-wrap: wrap; }
+.prj-toolbar__spacer { flex: 1 1 auto; }
+
+/* ── 3. Badge status berdot (satu tampilan untuk semua halaman proyek) ───── */
+.prj-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 10px; border-radius: 999px;
+  font-size: var(--ds-fs-xs); font-weight: 700; white-space: nowrap;
+  background: #eef0f2; color: #4d5766;
+}
+.prj-badge::before {
+  content: ""; width: 6px; height: 6px; border-radius: 50%;
+  background: currentColor; flex: none;
+}
+.prj-badge--aktif { background: #e6f4f1; color: #115e59; }
+.prj-badge--selesai { background: #eaf0f6; color: #16324f; }
+.prj-badge--lain { background: #fdf6d8; color: #8a6d00; }
+
+/* ── 4. Kartu dasar ──────────────────────────────────────────────────────── */
+.prj-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--ds-r-xl); box-shadow: var(--ds-sh-1);
+  overflow: hidden; display: flex; flex-direction: column;
+}
+.prj-card__head {
+  display: flex; align-items: center; gap: var(--ds-sp-2);
+  padding: 13px var(--ds-sp-5); border-bottom: 1px solid var(--border);
+  font-weight: 700; font-size: var(--ds-fs-md); color: var(--ds-text);
+  flex-wrap: wrap; min-height: 46px;
+}
+.prj-card__head > i { color: var(--ds-accent); font-size: .95rem; }
+.prj-card__head-count {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 5px;
+  padding: 2px 9px; border-radius: 999px; background: #eef0f2; color: #4d5766;
+  font-size: var(--ds-fs-xs); font-weight: 700; white-space: nowrap;
+}
+.prj-card__body { padding: var(--ds-sp-4) var(--ds-sp-5); }
+.prj-card__body--flush { padding: 0; }
+
+/* ── 5. Hero navy (Total Sisa Hutang) ────────────────────────────────────── */
+.prj-hero {
+  background: var(--ds-accent); border: 1px solid var(--ds-accent);
+  border-radius: var(--ds-r-xl); color: #fff;
+  padding: var(--ds-sp-5) var(--ds-sp-5);
+  display: flex; gap: var(--ds-sp-5); flex-wrap: wrap;
+  align-items: center; justify-content: space-between;
+  box-shadow: var(--ds-sh-1);
+}
+.prj-hero__label { font-size: var(--ds-fs-xs); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #cfe3f0; }
+.prj-hero__value { font-family: var(--ds-font-display); font-size: 2rem; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; letter-spacing: -.01em; margin: 4px 0 6px; }
+.prj-hero__sub { font-size: var(--ds-fs-sm); color: rgba(255,255,255,.65); display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.prj-hero__sub .dot { opacity: .4; }
+.prj-hero__bars { min-width: 260px; flex: 1 1 280px; max-width: 420px; display: flex; flex-direction: column; gap: 10px; }
+.prj-bar-row { display: flex; align-items: center; gap: 10px; font-size: var(--ds-fs-sm); }
+.prj-bar-row .lbl { width: 74px; font-weight: 700; color: rgba(255,255,255,.7); text-transform: uppercase; font-size: var(--ds-fs-xs); letter-spacing: .6px; }
+.prj-bar-row .pct { width: 42px; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+.prj-bar { flex: 1; height: 8px; border-radius: 6px; background: rgba(255,255,255,.14); overflow: hidden; }
+.prj-bar > span { display: block; height: 100%; border-radius: 6px; }
+.prj-bar__paid { background: #5fd76e; }
+.prj-bar__sisa { background: #E5B800; }
+
+/* ── 6. Grup KPI ─────────────────────────────────────────────────────────── */
+.prj-group-label {
+  font-size: var(--ds-fs-xs); font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1px; color: var(--ds-text-soft);
+  margin: 2px 2px -6px; display: flex; align-items: center; gap: var(--ds-sp-2);
+}
+.prj-group-label::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+.prj-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.prj-kpi {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--ds-r-lg); padding: 12px 14px;
+  display: flex; align-items: center; gap: 12px;
+  position: relative; overflow: hidden;
+  transition: box-shadow .2s ease, border-color .2s ease;
+}
+.prj-kpi::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 3px; background: transparent; }
+.prj-kpi--ok::before { background: #0f766e; }
+.prj-kpi--err::before { background: #b42318; }
+.prj-kpi:hover { box-shadow: var(--ds-sh-1); }
+.prj-kpi__ico {
+  width: 36px; height: 36px; min-width: 36px; border-radius: var(--ds-r-md);
+  display: flex; align-items: center; justify-content: center; font-size: .95rem;
+}
+.prj-kpi__ico--blue { background: #eaf0f6; color: #16324f; }
+.prj-kpi__ico--green { background: #e6f4f1; color: #115e59; }
+.prj-kpi__ico--rose { background: #fef0ee; color: #912018; }
+.prj-kpi__ico--amber { background: #fdf6d8; color: #8a6d00; }
+.prj-kpi__main { min-width: 0; }
+.prj-kpi__label { font-size: var(--ds-fs-xs); font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--ds-text-soft); margin-bottom: 2px; }
+.prj-kpi__value { font-family: var(--ds-font-display); font-size: 1.05rem; font-weight: 700; line-height: 1.2; color: var(--ds-text); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.prj-kpi__hint { font-size: var(--ds-fs-xs); color: var(--ds-text-soft); margin-top: 1px; }
+
+/* ── 7. Strip meta (label/nilai) ─────────────────────────────────────────── */
+.prj-meta {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--ds-sp-3); padding: 14px var(--ds-sp-5);
+}
+.prj-meta__label { font-size: var(--ds-fs-xs); font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--ds-text-soft); }
+.prj-meta__value { font-size: var(--ds-fs-md); font-weight: 600; color: var(--ds-text); }
+.prj-meta__value--money { font-family: var(--ds-font-mono, "JetBrains Mono", "SF Mono", monospace); font-size: var(--ds-fs-sm); font-variant-numeric: tabular-nums; }
+.prj-meta__note { font-size: .66rem; color: #8a929c; font-weight: 500; margin-top: 1px; }
+
+/* ── 8. Tabel ────────────────────────────────────────────────────────────── */
+.prj-table-wrap { overflow: auto; }
+.prj-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: var(--ds-fs-sm); }
+.prj-table thead th {
+  position: sticky; top: 0; z-index: 2;
+  background: #f7f8f9; color: #3d434c;
+  font-size: var(--ds-fs-xs); font-weight: 700; text-transform: uppercase;
+  letter-spacing: .7px; padding: 9px 12px;
+  border-bottom: 2px solid var(--border); white-space: nowrap;
+}
+.prj-table tbody td { padding: 9px 12px; border-bottom: 1px solid #eef0f2; vertical-align: middle; }
+.prj-table tbody tr:last-child td { border-bottom: none; }
+.prj-table tbody tr:hover td { background: #f7f8f9; }
+.prj-table tfoot td {
+  padding: 10px 12px; font-weight: 700; background: #f7f8f9;
+  border-top: 2px solid var(--border);
+}
+.prj-num { font-family: var(--ds-font-mono, "JetBrains Mono", "SF Mono", monospace); font-variant-numeric: tabular-nums; font-weight: 600; font-size: .75rem; white-space: nowrap; text-align: right; }
+.prj-num--pos { color: #115e59; }
+.prj-num--neg { color: #912018; }
+.prj-row-idx { font-family: var(--ds-font-mono, "JetBrains Mono", monospace); font-size: var(--ds-fs-xs); color: var(--ds-text-soft); font-weight: 600; }
+.prj-empty { text-align: center; color: var(--ds-text-soft); padding: var(--ds-sp-6) var(--ds-sp-4); }
+.prj-empty i { font-size: 1.6rem; color: #c9ccd1; display: block; margin-bottom: var(--ds-sp-2); }
+
+/* ── 9. Bar progres di dalam tabel (cash flow) ───────────────────────────── */
+.prj-prog { display: flex; align-items: center; gap: 8px; }
+.prj-prog__track { flex: 1; height: 7px; border-radius: 6px; background: #eef0f2; overflow: hidden; display: flex; min-width: 60px; }
+.prj-prog__track > span { display: block; height: 100%; }
+.prj-prog__pct { min-width: 34px; text-align: right; font-size: var(--ds-fs-xs); font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ds-text); }
+
+/* ── 10. Grid dua kolom (PPh + info) ─────────────────────────────────────── */
+.prj-split { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--ds-sp-3); }
+.prj-stat-list { display: flex; flex-direction: column; }
+.prj-stat {
+  display: flex; align-items: baseline; justify-content: space-between; gap: var(--ds-sp-3);
+  padding: 9px 0; border-bottom: 1px solid #eef0f2;
+}
+.prj-stat:last-child { border-bottom: none; }
+.prj-stat__label { font-size: var(--ds-fs-sm); color: var(--ds-text-soft); font-weight: 600; }
+.prj-stat__value { font-family: var(--ds-font-mono, "JetBrains Mono", "SF Mono", monospace); font-size: var(--ds-fs-sm); font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ds-text); }
+.prj-stat--total { border-top: 2px solid var(--border); margin-top: 2px; padding-top: 10px; }
+.prj-stat--total .prj-stat__label,
+.prj-stat--total .prj-stat__value { font-weight: 700; color: var(--ds-text); }
+
+/* ── 11. Form ────────────────────────────────────────────────────────────── */
+.prj-field { min-width: 0; }
+.prj-field__label { display: block; font-size: var(--ds-fs-xs); font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--ds-text-soft); margin-bottom: 4px; }
+.prj-input, .prj-select, .prj-textarea {
+  width: 100%; padding: 8px 12px; border-radius: var(--ds-r-md);
+  border: 1px solid var(--border); font-size: var(--ds-fs-md);
+  background: var(--card); color: var(--ds-text); font-family: inherit;
+  transition: border-color .15s ease, box-shadow .15s ease; outline: none;
+}
+.prj-input:focus, .prj-select:focus, .prj-textarea:focus {
+  border-color: var(--ds-accent); box-shadow: 0 0 0 3px rgba(0, 86, 145, .12);
+}
+.prj-input:focus-visible, .prj-select:focus-visible, .prj-textarea:focus-visible {
+  box-shadow: 0 0 0 3px rgba(0, 86, 145, .18);
+}
+.prj-textarea { min-height: 76px; resize: vertical; }
+.prj-input--money { font-variant-numeric: tabular-nums; text-align: right; }
+.prj-grid-12 { display: grid; grid-template-columns: repeat(12, 1fr); gap: 10px 12px; }
+.prj-grid-12 > * { min-width: 0; }
+.prj-col-4 { grid-column: span 4; }
+.prj-col-6 { grid-column: span 6; }
+.prj-col-8 { grid-column: span 8; }
+.prj-col-12 { grid-column: span 12; }
+.prj-form-actions {
+  display: flex; gap: var(--ds-sp-2); flex-wrap: wrap; align-items: center;
+  padding: 13px var(--ds-sp-5); background: #f7f8f9; border-top: 1px solid var(--border);
+}
+.prj-form-actions .prj-spacer { flex: 1 1 auto; }
+
+/* ── 12. Fokus keyboard seragam ──────────────────────────────────────────── */
+.prj-card a:focus-visible, .prj-kpi:focus-visible, .prj-hero a:focus-visible {
+  outline: none; box-shadow: 0 0 0 3px rgba(0, 86, 145, .18);
+}
+
+/* ── 13. Responsif ───────────────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .prj-kpis { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 768px) {
+  .prj-page { gap: var(--ds-sp-3); }
+  .prj-hero { padding: var(--ds-sp-4); }
+  .prj-hero__value { font-size: 1.6rem; }
+  .prj-kpis { grid-template-columns: 1fr; }
+  .prj-card__body { padding: var(--ds-sp-3) var(--ds-sp-4); }
+  .prj-card__head { padding: 11px var(--ds-sp-4); }
+  .prj-meta { padding: 12px var(--ds-sp-4); }
+  .prj-col-4, .prj-col-6, .prj-col-8 { grid-column: span 12; }
+  .prj-form-actions { padding: 12px var(--ds-sp-4); }
+  .prj-form-actions .ds-btn { flex: 1 1 100%; justify-content: center; min-height: 38px; }
+  .prj-form-actions .prj-spacer { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .prj-kpi { transition: none; }
+}

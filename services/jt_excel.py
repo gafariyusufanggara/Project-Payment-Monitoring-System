@@ -6,7 +6,7 @@ import io
 from datetime import date, datetime
 
 from constants import sisa_belum_lunas
-from services.laporan import _col_letter, build_jatuh_tempo_data
+from services.laporan import _col_letter, build_jatuh_tempo_data, jt_aging_bucket
 
 
 ACCOUNTING = '#,##0_);(#,##0);-'
@@ -24,14 +24,36 @@ COL_PPH = 11
 COL_TGL_BAYAR = 12
 COL_BAYAR = 13
 COL_SISA = 14
-COL_STATUS = 15
+# ── Overdue block: one column per past-due bucket ──
+# "Due today" is deliberately absent: an invoice that is due *today* is not
+# overdue yet, so giving it a column implied ageing that hasn't happened.
+COL_AGE_1_30 = 15        # P
+COL_AGE_31_60 = 16       # Q
+COL_AGE_61_90 = 17       # R
+COL_AGE_90PLUS = 18      # S
+COL_STATUS = 19          # T — Status JT
+
+# Aging column ↔ bucket key. The bucket keys are the ones produced by
+# services.laporan.jt_aging_bucket, i.e. the SAME classification the web
+# Laporan Jatuh Tempo strip uses, so export and screen always agree.
+JT_AGING_COLS = (
+    ('d1_30', COL_AGE_1_30),
+    ('d31_60', COL_AGE_31_60),
+    ('d61_90', COL_AGE_61_90),
+    ('d90plus', COL_AGE_90PLUS),
+)
+
+# The bucket value columns, i.e. every overdue column.
+JT_AGING_ALL_COLS = tuple(c for _, c in JT_AGING_COLS)
 
 # Columns on a vendor row that carry a SUBTOTAL over that vendor's invoice
 # rows — the same concept as VENDOR_SUBTOTAL_COLS in services/laporan.py.
-# J = Hutang DPP, K = PPN, L = PPH, N = Bayar DPP, O = Sisa Hutang DPP.
-# Column P (Status JT) is deliberately excluded: it is a server-computed
+# J = Hutang DPP, K = PPN, L = PPH, N = Bayar DPP, O = Sisa Hutang DPP,
+# P..T = the aging buckets.
+# Column U (Status JT) is deliberately excluded: it is a server-computed
 # label, not an arithmetic result.
-JT_SUBTOTAL_COLS = (COL_HUTANG, COL_PPN, COL_PPH, COL_BAYAR, COL_SISA)
+JT_SUBTOTAL_COLS = ((COL_HUTANG, COL_PPN, COL_PPH, COL_BAYAR, COL_SISA)
+                    + JT_AGING_ALL_COLS)
 
 
 def _parse_date_safe(val):
@@ -65,6 +87,30 @@ def _status_fmt(key, overdue_fmt, late_fmt, ok_fmt, neutral_fmt):
     return neutral_fmt
 
 
+def invoice_aging(inv):
+    """Return {bucket_key: amount} for one invoice.
+
+    Only outstanding money is aged: an invoice that is fully paid (or overpaid)
+    has no DPP left, so it contributes nothing and is simply absent from every
+    bucket. The bucket is chosen with ``jt_aging_bucket`` — the same helper the
+    web Laporan Jatuh Tempo strip uses — so screen and Excel can never disagree
+    on where an invoice lands.
+
+    An invoice with no column of its own — not due yet ('belum_jt') or due today
+    ('due_today') — contributes nothing to the overdue block: neither is late
+    yet. Their outstanding amount still shows in the Sisa Hutang DPP column and
+    their status still reads in Status JT, so nothing is hidden.
+    """
+    sisa = max(0, inv.get('harga_excl', 0) - inv.get('bayar_dpp', 0))
+    buckets = {key: 0 for key, _ in JT_AGING_COLS}
+    if not sisa_belum_lunas(sisa):
+        return buckets
+    bucket = inv.get('aging_bucket') or jt_aging_bucket(inv.get('hari_lebih', 0))
+    if bucket in buckets:
+        buckets[bucket] = sisa
+    return buckets
+
+
 def build_jt_excel(month_key=None, project_id=None):
     """Build Excel export for Laporan Jatuh Tempo with vendor-breakdown detail.
 
@@ -75,11 +121,20 @@ def build_jt_excel(month_key=None, project_id=None):
     Money columns carry formulas, exactly like the DPP / PPN Rekap exports:
 
       detail row  O  =MAX(0,J-N)                      (Sisa Hutang DPP)
-      vendor row  J..O (JT_SUBTOTAL_COLS)
+      vendor row  J..S (JT_SUBTOTAL_COLS)
                      =SUBTOTAL(109,J{first}:J{last})  (its own invoice block)
-      TOTAL row   J..O (JT_SUBTOTAL_COLS)
+      TOTAL row   J..S (JT_SUBTOTAL_COLS)
                      =SUMPRODUCT(SUBTOTAL(103,OFFSET($C$8,
                         ROW($C$8:$C$last)-ROW($C$8),0)),J{first}:J{last})
+
+    Overdue block (P..S) mirrors the web Laporan Jatuh Tempo strip: each unpaid
+    past-due invoice is placed in exactly one bucket using the SAME helper the
+    web view uses (services.laporan.jt_aging_bucket), and the bucket keeps its
+    Sisa DPP. Past-due days are measured against *today*, so a file re-opened
+    next month re-buckets itself — identical to the screen. Invoices that are
+    not late yet (not due, or due today) carry no bucket money; their
+    outstanding amount still shows in the Sisa Hutang DPP column, so nothing is
+    hidden.
 
     The TOTAL visibility anchor is ABSOLUTE ($C$8 = the NO column) so copying
     or moving the block never breaks the row test; the value range stays
@@ -135,15 +190,15 @@ def build_jt_excel(month_key=None, project_id=None):
                                          'font_color': '#10b981',
                                          'valign': 'vcenter', 'align': 'right'})
 
+    # Status JT on invoice rows: colour lives in the TEXT only. A filled cell per
+    # invoice row turned the sheet into a patchwork, so the verdict now reads
+    # from red / amber / green lettering instead of a block of background.
     status_overdue_fmt = wb.add_format({'font_size': 9, 'border': 1, 'font_color': '#dc2626',
-                                        'bold': True, 'valign': 'vcenter', 'align': 'center',
-                                        'bg_color': '#fef2f2'})
+                                        'bold': True, 'valign': 'vcenter', 'align': 'center'})
     status_late_fmt = wb.add_format({'font_size': 9, 'border': 1, 'font_color': '#a16207',
-                                     'bold': True, 'valign': 'vcenter', 'align': 'center',
-                                     'bg_color': '#fefce8'})
+                                     'bold': True, 'valign': 'vcenter', 'align': 'center'})
     status_ok_fmt = wb.add_format({'font_size': 9, 'border': 1, 'font_color': '#10b981',
-                                   'bold': True, 'valign': 'vcenter', 'align': 'center',
-                                   'bg_color': '#f0fdf4'})
+                                   'bold': True, 'valign': 'vcenter', 'align': 'center'})
     status_neutral_fmt = wb.add_format({'font_size': 9, 'border': 1, 'font_color': '#475569',
                                         'bold': True, 'valign': 'vcenter', 'align': 'center'})
 
@@ -175,8 +230,47 @@ def build_jt_excel(month_key=None, project_id=None):
         'paid_ok': band_formats('#f0fdf4', '#10b981'),
     }
 
-    # ── Column widths (C..P) ─────────────────────────────
-    widths = [5, 32, 14, 18, 24, 14, 38, 16, 14, 12, 14, 16, 16, 24]
+    # Aging header + per-bucket detail formats. The tone escalates with age the
+    # same way the web strip does (amber → orange → red → dark red) so the eye
+    # finds the oldest money first.
+    grp_age_fmt = wb.add_format({'bold': True, 'font_size': 9, 'font_color': '#7c2d12',
+                                 'bg_color': '#fed7aa', 'border': 1, 'align': 'center',
+                                 'valign': 'vcenter', 'text_wrap': True})
+    age_fmt = wb.add_format({'font_size': 9, 'num_format': ACCOUNTING, 'border': 1,
+                             'valign': 'vcenter', 'align': 'right'})
+    age_1_30_fmt = wb.add_format({'font_size': 9, 'num_format': ACCOUNTING, 'border': 1,
+                                 'font_color': '#c2410c', 'valign': 'vcenter', 'align': 'right'})
+    age_31_60_fmt = wb.add_format({'font_size': 9, 'num_format': ACCOUNTING, 'border': 1,
+                                   'font_color': '#dc2626', 'bold': True,
+                                   'valign': 'vcenter', 'align': 'right'})
+    age_61_90_fmt = wb.add_format({'font_size': 9, 'num_format': ACCOUNTING, 'border': 1,
+                                   'font_color': '#b42318', 'bold': True,
+                                   'valign': 'vcenter', 'align': 'right'})
+    age_90plus_fmt = wb.add_format({'font_size': 9, 'num_format': ACCOUNTING, 'border': 1,
+                                    'font_color': '#8b1a10', 'bold': True,
+                                    'valign': 'vcenter', 'align': 'right'})
+    AGE_BUCKET_FMTS = {
+        'd1_30': age_1_30_fmt,
+        'd31_60': age_31_60_fmt,
+        'd61_90': age_61_90_fmt,
+        'd90plus': age_90plus_fmt,
+    }
+    # Invoice rows are deliberately UNPAINTED: only vendor summary rows carry a
+    # band. Stacking an extra tint behind every invoice line made the sheet read
+    # as a block of colour instead of a table. Colour is kept where it carries
+    # meaning — the status text and the aging tone — so it stays a signal.
+    inv_cell_fmt = wb.add_format({'font_size': 9, 'border': 1, 'valign': 'vcenter',
+                                  'align': 'right'})
+    inv_left_fmt = wb.add_format({'font_size': 9, 'border': 1, 'valign': 'vcenter',
+                                  'align': 'left'})
+    inv_date_fmt = wb.add_format({'font_size': 9, 'num_format': 'dd/mm/yyyy', 'border': 1,
+                                  'valign': 'vcenter', 'align': 'center'})
+    inv_num_fmt = wb.add_format({'font_size': 9, 'num_format': ACCOUNTING, 'border': 1,
+                                 'valign': 'vcenter', 'align': 'right'})
+
+    # ── Column widths (C..T) ─────────────────────────────
+    widths = [5, 32, 14, 18, 24, 14, 38, 16, 14, 12, 14, 16, 16, 22,
+              11, 11, 11, 12, 18]
     for i, w in enumerate(widths):
         ws.set_column(COL_NO + i, COL_NO + i, w)
 
@@ -193,6 +287,8 @@ def build_jt_excel(month_key=None, project_id=None):
     ws.merge_range(hr, COL_HUTANG, hr, COL_PPH, 'Nilai', hdr_fmt)
     ws.merge_range(hr, COL_TGL_BAYAR, hr, COL_BAYAR, 'Pembayaran', hdr_fmt)
     ws.merge_range(hr, COL_SISA, hr + 1, COL_SISA, 'Sisa Hutang DPP', hdr_fmt)
+    # Aging block: grouped header over the past-due buckets.
+    ws.merge_range(hr, COL_AGE_1_30, hr, COL_AGE_90PLUS, 'Overdue', grp_age_fmt)
     ws.merge_range(hr, COL_STATUS, hr + 1, COL_STATUS, 'Status JT', hdr_fmt)
     ws.set_row(hr, 20)
 
@@ -202,11 +298,15 @@ def build_jt_excel(month_key=None, project_id=None):
         (COL_PO, 'PO / Kontrak'),
         (COL_JTH, 'Tgl Jatuh Tempo'),
         (COL_DESKRIPSI, 'Deskripsi'),
-        (COL_HUTANG, 'Hutang DPP'),
+        (COL_HUTANG, 'Nilai DPP'),
         (COL_PPN, 'PPN'),
         (COL_PPH, 'PPH'),
         (COL_TGL_BAYAR, 'Tgl Bayar DPP'),
         (COL_BAYAR, 'Bayar DPP'),
+        (COL_AGE_1_30, '1-30\nHari'),
+        (COL_AGE_31_60, '31-60\nHari'),
+        (COL_AGE_61_90, '61-90\nHari'),
+        (COL_AGE_90PLUS, '> 90\nHari'),
     ]
     for col, label in leaf:
         ws.write(hr + 1, col, label, hdr_fmt)
@@ -262,18 +362,24 @@ def build_jt_excel(month_key=None, project_id=None):
             status_f = _status_fmt(inv.get('status_key', ''), status_overdue_fmt,
                                    status_late_fmt, status_ok_fmt, status_neutral_fmt)
 
-            ws.write(row, COL_NO, '', cell_fmt)
-            ws.write(row, COL_REKANAN, '', cell_fmt)
-            _write_date(ws, row, COL_TGL_BERKAS, inv.get('tgl_berkas'), date_fmt)
-            ws.write(row, COL_INVOICE, inv.get('invoice', '-'), cell_l_fmt)
-            ws.write(row, COL_PO, inv.get('po', '-'), cell_l_fmt)
-            _write_date(ws, row, COL_JTH, inv.get('jth_tempo'), date_fmt)
-            ws.write(row, COL_DESKRIPSI, inv.get('deskripsi', '-'), cell_l_fmt)
-            ws.write(row, COL_HUTANG, inv['harga_excl'], num_fmt)
-            ws.write(row, COL_PPN, inv['ppn'], num_fmt)
-            ws.write(row, COL_PPH, inv['pot_pph'], num_fmt)
-            _write_date(ws, row, COL_TGL_BAYAR, inv.get('tgl_bayar_dpp'), date_fmt)
-            ws.write(row, COL_BAYAR, inv['bayar_dpp'], num_fmt)
+            ws.write(row, COL_NO, '', inv_cell_fmt)
+            ws.write(row, COL_REKANAN, '', inv_cell_fmt)
+            _write_date(ws, row, COL_TGL_BERKAS, inv.get('tgl_berkas'), inv_date_fmt)
+            ws.write(row, COL_INVOICE, inv.get('invoice', '-'), inv_left_fmt)
+            ws.write(row, COL_PO, inv.get('po', '-'), inv_left_fmt)
+            _write_date(ws, row, COL_JTH, inv.get('jth_tempo'), inv_date_fmt)
+            ws.write(row, COL_DESKRIPSI, inv.get('deskripsi', '-'), inv_left_fmt)
+            ws.write(row, COL_HUTANG, inv['harga_excl'], inv_num_fmt)
+            ws.write(row, COL_PPN, inv['ppn'], inv_num_fmt)
+            ws.write(row, COL_PPH, inv['pot_pph'], inv_num_fmt)
+            _write_date(ws, row, COL_TGL_BAYAR, inv.get('tgl_bayar_dpp'), inv_date_fmt)
+            ws.write(row, COL_BAYAR, inv['bayar_dpp'], inv_num_fmt)
+            # Aging: one bucket gets this invoice's outstanding DPP; the rest
+            # stay 0 so the row reads like a tally (which column lights up tells
+            # the reader how late the money is).
+            buckets = invoice_aging(inv)
+            for bucket_key, col in JT_AGING_COLS:
+                ws.write(row, col, buckets.get(bucket_key, 0), AGE_BUCKET_FMTS[bucket_key])
             # Sisa is derived, not imported: keep it as a live formula so editing
             # Hutang (J) or Bayar (N) by hand immediately fixes the outstanding
             # amount. MAX(0, …) mirrors the Python max(0, harga_excl - bayar_dpp)
@@ -302,6 +408,12 @@ def build_jt_excel(month_key=None, project_id=None):
             ws.write(vrow, COL_BAYAR, s['bayar_dpp'], band['num'])
             sisa_fmt = band['sisa_pos'] if sisa_belum_lunas(s['sisa_dpp']) else band['sisa_zero']
             ws.write(vrow, COL_SISA, s['sisa_dpp'], sisa_fmt)
+            # No invoice rows → no detail rows to sum, so the aging block is
+            # written as static zeros (a SUBTOTAL over an inverted range would
+            # emit #REF!). Zero is correct here: the vendor's outstanding DPP
+            # cannot be classified without an invoice to date it from.
+            for col in JT_AGING_ALL_COLS:
+                ws.write(vrow, col, 0, band['num'])
             continue
         for col in JT_SUBTOTAL_COLS:
             L = _col_letter(col)
@@ -340,7 +452,6 @@ def build_jt_excel(month_key=None, project_id=None):
             ws.write(row, col, 0, total_fmt)
     ws.write(row, COL_TGL_BAYAR, '', total_label_fmt)
     ws.write(row, COL_STATUS, '', total_label_fmt)
-
     # ── Sheet / print setup ──────────────────────────────
     ws.freeze_panes(7, 4)   # rows 1-7 + cols A-D: No (C) & Levelansir (D) sticky
     ws.hide_gridlines(2)

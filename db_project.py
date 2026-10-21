@@ -287,6 +287,24 @@ def _sum_realisasi(project_id):
     return sum(safe_float(r.get('HARGA (EXLD)')) for r in rows)
 
 
+def _sisa_per_vendor(rows, kolom_nilai, kolom_bayar):
+    """Sisa hutang = Σ per-vendor max(0, Σ nilai − Σ bayar).
+
+    Satu-satunya tempat klip per-vendor didefinisikan, dipakai bersama oleh
+    Sisa DPP & Sisa PPN. Klip dilakukan PER VENDOR (bukan per invoice, bukan
+    pada total) supaya kelebihan bayar satu vendor tidak menutupi utang vendor
+    lain — sama seperti Laporan DPP/PPN dan dashboard utama
+    (services/dashboard.py).
+    """
+    per_vendor = {}
+    for r in rows:
+        rek = (r.get('NAMA LEVELANSIR / REKANAN') or 'Unknown').strip() or 'Unknown'
+        per_vendor[rek] = (per_vendor.get(rek, 0.0)
+                           + safe_float(r.get(kolom_nilai))
+                           - safe_float(r.get(kolom_bayar)))
+    return sum(max(0.0, v) for v in per_vendor.values())
+
+
 def _sum_sisa(project_id):
     """Sisa hutang DPP = per-vendor max(0, sum HARGA(EXLD) - sum PEMBAYARAN DPP).
 
@@ -296,13 +314,74 @@ def _sum_sisa(project_id):
     grand total.
     """
     rows = _dedup_hutang_rows(_project_rows(project_id))
-    per_vendor = {}
-    for r in rows:
-        rek = (r.get('NAMA LEVELANSIR / REKANAN') or 'Unknown').strip() or 'Unknown'
-        per_vendor[rek] = (per_vendor.get(rek, 0.0)
-                           + safe_float(r.get('HARGA (EXLD)'))
-                           - safe_float(r.get('PEMBAYARAN DPP')))
-    return sum(max(0.0, v) for v in per_vendor.values())
+    return _sisa_per_vendor(rows, 'HARGA (EXLD)', 'PEMBAYARAN DPP')
+
+
+def get_project_finansial(project_id):
+    """Ringkasan keuangan satu proyek, sebanding dgn dashboard utama.
+
+    Memakai scope yang sama dengan laporan (TGL TERIMA wajib, baris ter-exclude
+    dibuang, invoice di-dedup) dan metodologi persen yang sama dengan
+    services/dashboard.py, sehingga:
+      * total_dpp  == project['total_realisasi']  (angka di daftar proyek)
+      * sisa_dpp   == project['total_sisa']       (angka di daftar proyek)
+    Dijaga oleh smoke_project_dashboard_check.py agar tidak melenceng.
+
+    Catatan PPN: total_ppn diambil dari kolom 'PPN' per baris — BUKAN 11% x DPP
+    — supaya konsisten dengan dashboard utama & Laporan PPN.
+    """
+    rows = _dedup_hutang_rows(_project_rows(project_id))
+
+    total_dpp = sum(safe_float(r.get('HARGA (EXLD)')) for r in rows)
+    bayar_dpp = sum(safe_float(r.get('PEMBAYARAN DPP')) for r in rows)
+    sisa_dpp = _sisa_per_vendor(rows, 'HARGA (EXLD)', 'PEMBAYARAN DPP')
+
+    total_ppn = sum(safe_float(r.get('PPN')) for r in rows)
+    bayar_ppn = sum(safe_float(r.get('PEMBAYARAN PPN')) for r in rows)
+    sisa_ppn = _sisa_per_vendor(rows, 'PPN', 'PEMBAYARAN PPN')
+
+    # Retensi & PPh adalah uang yang DITAHAN/DISETOR (pengurang tagihan), bukan
+    # utang ke vendor — dihitung dari baris proyek yg sama, dgn aturan yang
+    # sama seperti get_retensi_rows (tanpa syarat TGL TERIMA) agar angka
+    # retensi proyek cocok dgn halaman Levelansir/Retensi.
+    import db as _db
+    retensi_rows = _db.read_data(project_id)
+    total_retensi = sum(safe_float(r.get('POT. RETENSI')) for r in retensi_rows)
+    total_pph = sum(safe_float(r.get('POT. PPH')) for r in rows)
+    total_pph_paid = sum(safe_float(r.get('PEMBAYARAN POT. PPH')) for r in rows)
+    total_tagihan = sum(safe_float(r.get('TOTAL (INCLD)')) for r in rows)
+
+    vendor = {(r.get('NAMA LEVELANSIR / REKANAN') or 'Unknown').strip() or 'Unknown'
+              for r in rows}
+    lunas = sum(1 for r in rows if r.get('STATUS TERHADAP DPP') == 'Lunas')
+
+    # Persen: basis sama dgn dashboard utama (nilai total, bukan sisanya).
+    dpp_pct = round(bayar_dpp / total_dpp * 100) if total_dpp else 0
+    ppn_pct = round(bayar_ppn / total_ppn * 100) if total_ppn else 0
+    sisa_dpp_pct = round(sisa_dpp / total_dpp * 100) if total_dpp else 0
+    sisa_ppn_pct = round(sisa_ppn / total_ppn * 100) if total_ppn else 0
+
+    return {
+        'total_dpp': float(total_dpp),
+        'bayar_dpp': float(bayar_dpp),
+        'sisa_dpp': float(sisa_dpp),
+        'total_ppn': float(total_ppn),
+        'bayar_ppn': float(bayar_ppn),
+        'sisa_ppn': float(sisa_ppn),
+        'sisa_hutang': float(sisa_dpp + sisa_ppn),
+        'total_tagihan': float(total_tagihan),
+        'total_pph': float(total_pph),
+        'total_pph_paid': float(total_pph_paid),
+        'total_retensi': float(total_retensi),
+        'jumlah_invoice': len(rows),
+        'jumlah_vendor': len(vendor),
+        'lunas_count': lunas,
+        'belum_count': len(rows) - lunas,
+        'dpp_pct': dpp_pct,
+        'ppn_pct': ppn_pct,
+        'sisa_dpp_pct': sisa_dpp_pct,
+        'sisa_ppn_pct': sisa_ppn_pct,
+    }
 
 
 def get_realisasi_by_month(project_id):

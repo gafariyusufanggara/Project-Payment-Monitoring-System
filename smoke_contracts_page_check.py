@@ -55,29 +55,38 @@ print(f'[2] fallback DPP OK: {len(fallback)} kontrak dg Total DPP kosong')
 
 # --- 3. Pembulatan "Sisa Tagih": FP noise & over-tagih ---
 def render_sisa(sisa):
-    """Return (class_table, text) untuk sel sisa DPP/PPN dg nilai tertentu."""
+    """Return (class_sel, text) untuk sel "Sisa Hutang (DPP)" dg nilai tertentu.
+
+    `sisa` = nilai utang (tagihan - bayar). Belum ditagih diset 0 supaya sel
+    yang diuji hanya kolom Sisa Hutang.
+    """
     c = {
         'id': 1, 'no_kontrak': 'T/1', 'vendor': 'PT X', 'item_pekerjaan': 'Y',
         'nilai_dpp': 100.0, 'nilai_ppn': 11.0,
-        'tertagih': 100.0 - sisa, 'tertagih_ppn': 11.0 - sisa,
-        'sisa_kontrak': sisa, 'sisa_ppn': sisa, 'dibayar': 0.0, 'dibayar_ppn': 0.0,
+        'tertagih': sisa, 'tertagih_ppn': sisa,
+        'sisa_kontrak': 0.0, 'sisa_ppn': 0.0, 'dibayar': 0.0, 'dibayar_ppn': 0.0,
+        'sisa_hutang': sisa, 'sisa_hutang_ppn': sisa,
         'sisa_tagihan': sisa, 'sisa_tagihan_ppn': sisa,
         'progres': 0.0, 'progres_ppn': 0.0, 'over': False, 'over_ppn': False,
         'status_invoice': 'Ada Invoice', 'jumlah_invoice': 2, 'total_dpp': 100.0,
         'project_id': '', 'ppn_rate': 11.0,
+        # Pencocokan termin — pill dirender dari dict ini (bukan query ulang).
+        'termin_cocok': db_contract.termin_progress(
+            [{'nilai': 100.0, 'label': 'Termin 1', 'urutan_no': 1}], sisa),
     }
     summ = {'total_kontrak': 1, 'total_dpp': 100.0, 'total_ppn': 11.0,
-            'total_tertagih': 100 - sisa, 'total_tertagih_ppn': 11 - sisa,
+            'total_tertagih': sisa, 'total_tertagih_ppn': sisa,
             'total_sisa': sisa, 'total_dibayar': 0.0, 'total_dibayar_ppn': 0.0,
             'total_sisa_dpp': sisa, 'total_sisa_ppn': sisa, 'belum_lunas': 0,
-            'total_belum_ditagih': sisa, 'total_belum_ditagih_ppn': sisa,
-            'total_belum_dibayar': 0.0, 'total_belum_dibayar_ppn': 0.0,
+            'total_sisa_hutang': sisa, 'total_sisa_hutang_ppn': sisa,
+            'total_belum_ditagih': 0.0, 'total_belum_ditagih_ppn': 0.0,
+            'total_belum_dibayar': sisa, 'total_belum_dibayar_ppn': sisa,
             'jatuh_tempo': 0, 'belum_invoice': 0}
     with app.test_request_context('/'):
         html = render_template('contracts.html', contracts=[c], summary=summ,
                                project_labels={}, project_list=[])
-    # Ambil hanya sel "Sisa Tagih" (satu-satunya cell-money yg membawa kelas warna
-    # text-success/text-danger dan bukan kc-owe-only).
+    # Sel "Sisa Hutang (DPP)" = satu-satunya cell-money kc-sisa yang membawa
+    # kelas warna text-success/text-danger.
     td = re.search(r'<td class="cell-money kc-sisa(?: kc-owe)? (text-(?:success|danger))"[^>]*>([^<]*)</td>', html)
     return td.group(1), td.group(2)
 
@@ -93,34 +102,77 @@ cls, txt = render_sisa(0)
 assert txt == '0' and 'text-success' in cls, "sisa 0 harus hijau"
 
 cls, txt = render_sisa(-50)
-assert txt == '-50' and 'text-danger' in cls, "over-tagih nyata harus merah & negatif"
+assert txt == '-50' and 'text-danger' in cls, "sisa negatif nyata harus merah & negatif"
 
 cls, txt = render_sisa(50)
-assert txt == '50' and 'text-danger' in cls, "ada sisa harus merah"
-print('[3] pembulatan & warna Sisa Tagihan OK')
+assert txt == '50' and 'text-danger' in cls, "ada sisa hutang harus merah"
+print('[3] pembulatan & warna Sisa Hutang OK')
 
 
-# --- 4. Label kolom tidak bentrok dg KPI ---
+# --- 3b. "Belum Ditagih" TIDAK boleh diberi warna peringatan ---
+# Pekerjaan yang belum ditagih bukan utang; menandainya merah akan membuat
+# angka besar (mis. 176 jt pada kontrak yang baru ditagih 20%) terbaca
+# seolah tagihan menumpuk.
+_c_belum = {
+    'id': 2, 'no_kontrak': 'T/2', 'vendor': 'PT Y', 'item_pekerjaan': 'Z',
+    'nilai_dpp': 220.0, 'nilai_ppn': 24.2, 'tertagih': 44.0, 'tertagih_ppn': 4.84,
+    'dibayar': 0.0, 'dibayar_ppn': 0.0, 'sisa_hutang': 44.0, 'sisa_hutang_ppn': 4.84,
+    'sisa_kontrak': 176.0, 'sisa_ppn': 19.36,
+    'sisa_tagihan': 220.0, 'sisa_tagihan_ppn': 24.2,
+    'progres': 0.0, 'progres_ppn': 0.0, 'over': False, 'over_ppn': False,
+    'status_invoice': 'Ada Invoice', 'jumlah_invoice': 1, 'total_dpp': 220.0,
+    'project_id': '', 'ppn_rate': 11.0,
+    'termin_cocok': db_contract.termin_progress(
+        [{'nilai': 44.0, 'label': 'Termin 1', 'urutan_no': 1},
+         {'nilai': 176.0, 'label': 'Termin 2', 'urutan_no': 2}], 44.0),
+}
+_summ_belum = {'total_kontrak': 1, 'total_dpp': 220.0, 'total_ppn': 24.2,
+               'total_tertagih': 44.0, 'total_tertagih_ppn': 4.84,
+               'total_sisa': 44.0, 'total_dibayar': 0.0, 'total_dibayar_ppn': 0.0,
+               'total_sisa_dpp': 220.0, 'total_sisa_ppn': 24.2, 'belum_lunas': 1,
+               'total_sisa_hutang': 44.0, 'total_sisa_hutang_ppn': 4.84,
+               'total_belum_ditagih': 176.0, 'total_belum_ditagih_ppn': 19.36,
+               'total_belum_dibayar': 44.0, 'total_belum_dibayar_ppn': 4.84,
+               'jatuh_tempo': 0, 'belum_invoice': 0}
+with app.test_request_context('/'):
+    _h_belum = render_template('contracts.html', contracts=[_c_belum],
+                               summary=_summ_belum,
+                               project_labels={}, project_list=[])
+_belum_tds = re.findall(r'<td class="cell-money kc-belum[^"]*"[^>]*>([^<]*)</td>',
+                        _h_belum)
+assert _belum_tds, 'sel "Belum Ditagih" (kelas kc-belum) tidak ditemukan'
+assert 'text-danger' not in _h_belum.split('kc-belum')[1][:120], \
+    'sel Belum Ditagih tidak boleh merah (bukan utang)'
+assert '.kc-page #kcTable tbody td.kc-belum { color: #667080; }' in _h_belum, \
+    'CSS netral utk kc-belum (belum ditagih) tidak ada'
+print(f'[3b] Belum Ditagih netral (bukan utang) OK: {_belum_tds[:2]}')
+
+
+# --- 4. Label kolom: total tetap "Sisa Tagihan", pecahannya dua kolom ---
 with app.test_request_context('/'):
     html = render_template('contracts.html', contracts=contracts, summary=summary,
                            project_labels={}, project_list=[])
 assert 'Sisa Tagihan (DPP)' in html and 'Sisa Tagihan (PPN)' in html, \
-    "label 'Sisa Tagihan' tidak ditemukan"
-assert 'Belum Ditagih (DPP)' not in html, "label lama 'Belum Ditagih' masih ada"
+    "label KPI 'Sisa Tagihan' tidak ditemukan"
+# "Belum Ditagih" dan "Sisa Hutang" kini kolom tersendiri (dipisah dari total).
+assert 'Belum Ditagih (DPP)' in html and 'Sisa Hutang (DPP)' in html, \
+    "kolom 'Belum Ditagih (DPP)' / 'Sisa Hutang (DPP)' tidak ditemukan"
 assert 'Sisa Tagih (' not in html, "label lama 'Sisa Tagih' masih ada"
-print('[4] label kolom OK (Sisa Tagihan, bukan Belum Ditagih)')
+print('[4] label kolom OK: Sisa Tagihan (total) + Belum Ditagih/Sisa Hutang (rincian)')
 
 # --- 4b. Urutan kolom: blok DPP, blok PPN, sisa di akhir ---
 _hdr = [re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', ' ', th)).strip() for th in
         re.findall(r'<th[^>]*>(.*?)</th>', html, re.S)]
-_hdr = [_h for _h in _hdr if _h][:15]
+_hdr = [_h for _h in _hdr if _h][:18]
 _expected = ['No.', 'Vendor / Rekanan', 'Item Pekerjaan',
              'DPP Kontrak', 'Tagihan DPP', 'Bayar DPP (Rp)', 'Bayar DPP (%)',
              'PPN Kontrak', 'Tagihan PPN', 'Bayar PPN (Rp)', 'Bayar PPN (%)',
              'Metode Bayar',
-             'Sisa Tagihan (DPP)', 'Sisa Tagihan (PPN)', 'Stat. Invoice']
+             'Belum Ditagih (DPP)', 'Sisa Hutang (DPP)',
+             'Belum Ditagih (PPN)', 'Sisa Hutang (PPN)',
+             'Termin Ditagih', 'Stat. Invoice']
 assert _hdr == _expected, f'urutan kolom salah:\n{_hdr}\n!=\n{_expected}'
-print('[4b] urutan kolom OK: DPP -> PPN, Sisa Tagihan di akhir')
+print('[4b] urutan kolom OK: DPP -> PPN, Belum Ditagih + Sisa Hutang per pajak')
 
 # --- 4c. Filter Metode Bayar (setelah filter Status) ---
 assert 'id="filterMetode"' in html, 'select filterMetode tidak ada'
@@ -238,57 +290,76 @@ print(f'[7] detail kontrak: {len(_invs)} invoice, No. Invoice + Deskripsi clicka
       f'Tgl Jatuh Tempo OK')
 
 
-# --- 8. Detail kontrak: KPI Sisa Tagihan = Nilai Kontrak - Terbayar ---
+# --- 8. Detail kontrak: KPI + rincian memakai istilah yang sama dgn daftar ---
 _det2 = _client.get(f'/kontrak/{_cid}').get_data(as_text=True)
-assert 'Sisa Tagihan (DPP)' in _det2 and 'Sisa Tagihan (PPN)' in _det2, \
-    'label Sisa Tagihan (DPP/PPN) tidak ditemukan di detail'
+assert 'Sisa Hutang (DPP)' in _det2 and 'Sisa Hutang (PPN)' in _det2, \
+    'label Sisa Hutang (DPP/PPN) tidak ditemukan di detail'
+assert 'Belum Ditagih (DPP)' in _det2, \
+    'label Belum Ditagih (DPP) tidak ditemukan di detail'
 assert 'Sisa Hutang Kontrak' not in _det2, \
     'label lama Sisa Hutang Kontrak masih ada di detail'
 _cd = db_contract.get_contract(_cid)
 _money_f = appmod.app.jinja_env.filters['money']
 _kpi = dict(re.findall(
-    r'Sisa Tagihan \((DPP|PPN)\)</div><div class="ds-kpi__value">([^<]+)</div>',
+    r'Sisa Hutang \((DPP|PPN)\)</div><div class="ds-kpi__value">([^<]+)</div>',
     _det2))
-assert _kpi, 'nilai KPI Sisa Tagihan tak terbaca dari HTML'
-for _tax, _nilai, _bayar in (('DPP', _cd['nilai_dpp'], _cd['dibayar']),
-                             ('PPN', _cd['nilai_ppn'], _cd['dibayar_ppn'])):
-    _expect = _money_f((_nilai or 0) - (_bayar or 0))
+assert _kpi, 'nilai KPI Sisa Hutang tak terbaca dari HTML'
+# Sisa Hutang = yang SUDAH DITAGIH tapi belum dibayar (bukan nilai - bayar).
+for _tax, _tagih, _bayar in (('DPP', _cd['tertagih'], _cd['dibayar']),
+                             ('PPN', _cd['tertagih_ppn'], _cd['dibayar_ppn'])):
+    _expect = _money_f(max(0.0, (_tagih or 0) - (_bayar or 0)))
     assert _kpi.get(_tax) == _expect, \
-        f'Sisa Tagihan {_tax} = {_kpi.get(_tax)} != nilai-dibayar {_expect}'
-print(f'[8] KPI Sisa Tagihan OK: DPP {_kpi["DPP"]}, PPN {_kpi["PPN"]}')
+        f'Sisa Hutang {_tax} = {_kpi.get(_tax)} != tagih-bayar {_expect}'
+print(f'[8] KPI Sisa Hutang OK: DPP {_kpi["DPP"]}, PPN {_kpi["PPN"]}')
 
-# --- 9. Daftar kontrak: KPI Sisa Tagihan = Σ kolom Sisa Tagihan ---
-# Definisi: bagian kontrak yang belum dibayar (Nilai Kontrak - Terbayar),
-# termasuk yang belum ditagih. KPI harus sama persis dengan jumlah kolom.
+# --- 9. Daftar kontrak: tiga angka sisa konsisten dgn kolom ---
+# Sisa Tagihan (total) = Belum Ditagih + Sisa Hutang. Identitas ini yang
+# membuat pemecahan dua kolom tidak mengubah angka total.
 _sum_dpp = sum(c['nilai_dpp'] - c['dibayar'] for c in contracts)
 _sum_ppn = sum(c['nilai_ppn'] - c['dibayar_ppn'] for c in contracts)
 assert abs(summary['total_sisa_dpp'] - _sum_dpp) < 0.5, \
     f"KPI Sisa Tagihan DPP {summary['total_sisa_dpp']:,.0f} != Σ kolom {_sum_dpp:,.0f}"
 assert abs(summary['total_sisa_ppn'] - _sum_ppn) < 0.5, \
     f"KPI Sisa Tagihan PPN {summary['total_sisa_ppn']:,.0f} != Σ kolom {_sum_ppn:,.0f}"
-assert abs(summary['total_belum_ditagih'] + summary['total_belum_dibayar']
+assert abs(summary['total_belum_ditagih'] + summary['total_sisa_hutang']
            - summary['total_sisa_dpp']) < 0.5, \
-    'rincian hint DPP (belum ditagih + belum dibayar) != KPI Sisa Tagihan DPP'
-assert abs(summary['total_belum_ditagih_ppn'] + summary['total_belum_dibayar_ppn']
+    'Belum Ditagih DPP + Sisa Hutang DPP != Sisa Tagihan DPP'
+assert abs(summary['total_belum_ditagih_ppn'] + summary['total_sisa_hutang_ppn']
            - summary['total_sisa_ppn']) < 0.5, \
-    'rincian hint PPN (belum ditagih + belum dibayar) != KPI Sisa Tagihan PPN'
+    'Belum Ditagih PPN + Sisa Hutang PPN != Sisa Tagihan PPN'
 for c in contracts:
     assert abs((c['nilai_dpp'] - c['dibayar']) - c['sisa_tagihan']) < 0.5, \
         f"{c['no_kontrak']}: sisa_tagihan != nilai_dpp - dibayar"
     assert abs((c['nilai_ppn'] - c['dibayar_ppn']) - c['sisa_tagihan_ppn']) < 0.5, \
         f"{c['no_kontrak']}: sisa_tagihan_ppn != nilai_ppn - dibayar_ppn"
+    # Inti perbaikan: Sisa Hutang HANYA dari yang sudah ditagih.
+    assert abs(max(0.0, c['tertagih'] - c['dibayar']) - c['sisa_hutang']) < 0.5, \
+        f"{c['no_kontrak']}: sisa_hutang != max(0, tertagih - dibayar)"
+    assert abs(max(0.0, c['tertagih_ppn'] - c['dibayar_ppn'])
+               - c['sisa_hutang_ppn']) < 0.5, \
+        f"{c['no_kontrak']}: sisa_hutang_ppn != max(0, tertagih_ppn - dibayar_ppn)"
+    assert abs(c['sisa_kontrak'] + c['sisa_hutang'] - c['sisa_tagihan']) < 0.5, \
+        f"{c['no_kontrak']}: belum_ditagih + sisa_hutang != sisa_tagihan"
 with app.test_request_context('/'):
     _html9 = render_template('contracts.html', contracts=contracts, summary=summary,
                              project_labels={}, project_list=[])
 assert 'Sisa Tagihan (DPP)</div>' in _html9 and 'Sisa Tagihan (PPN)</div>' in _html9, \
     'label KPI Sisa Tagihan (DPP/PPN) tidak ditemukan'
+for _lbl in ('DPP', 'PPN'):
+    for _nm in ('Belum Ditagih', 'Sisa Hutang'):
+        assert f'{_nm} ({_lbl})</th>' in _html9, \
+            f'kolom "{_nm} ({_lbl})" tidak ditemukan'
 assert 'Sisa Hutang DPP</div>' not in _html9, 'label lama Sisa Hutang DPP masih ada'
 _money9 = appmod.app.jinja_env.filters['money']
 for _lbl, _val in (('DPP', summary['total_sisa_dpp']),
                    ('PPN', summary['total_sisa_ppn'])):
     assert f'Sisa Tagihan ({_lbl})</div><div class="ds-kpi__value">{_money9(_val)}</div>' \
         in _html9, f'nilai KPI Sisa Tagihan {_lbl} tidak sesuai summary'
-print(f'[9] KPI Sisa Tagihan = jumlah kolom OK: DPP {_sum_dpp:,.0f}, PPN {_sum_ppn:,.0f}')
+# Hint KPI menyebut "Sisa hutang", bukan lagi "Sudah ditagih belum dibayar".
+assert 'Sisa hutang: ' in _html9, 'hint KPI harus menyebut "Sisa hutang"'
+print(f'[9] Sisa Tagihan = Belum Ditagih + Sisa Hutang OK: '
+      f'hutang DPP {summary["total_sisa_hutang"]:,.0f}, '
+      f'PPN {summary["total_sisa_hutang_ppn"]:,.0f}')
 
 # --- 10. Kolom Bayar DPP/PPN (Rp): merah hanya bila nominal > 0 ---
 _paid_red = _html9.count('class="cell-money text-danger" style="font-weight:700"')
@@ -300,6 +371,77 @@ _zero_rows = [c for c in contracts if not (c['dibayar'] or 0) > 1.0]
 assert _zero_rows, 'data uji tidak punya baris bayar DPP = 0'
 print(f'[10] Bayar DPP/PPN merah hanya bila > 0 OK: {_paid_red} sel '
       f'({len(_zero_rows)} baris bayar 0 tanpa highlight)')
+
+
+# --- 11. Pencocokan invoice ke jadwal termin (kolom "Termin Ditagih") ---
+# Inti halaman Progress Kontrak: invoice yang masuk harus bisa dicocokkan ke
+# termin kontrak. Diuji dengan termin nyata Sulzer (10/27/54/9 dari 20,1 M).
+_term = [{'nilai': 2010000000.0, 'label': 'Uang Muka', 'urutan_no': 1},
+         {'nilai': 5427000000.0, 'label': 'FAT', 'urutan_no': 2},
+         {'nilai': 10854000000.0, 'label': 'Material on Site/BASTB', 'urutan_no': 3},
+         {'nilai': 1809000000.0, 'label': 'Commisioning', 'urutan_no': 4}]
+_cases = [
+    (0,                     0, 'belum'),
+    (1005000000,            0, 'berjalan'),   # separuh Uang Muka
+    (2010000000,            1, 'pas'),        # Uang Muka lunas
+    (4723500000,            1, 'berjalan'),   # Uang Muka + separuh FAT
+    (7437000000,            2, 'pas'),        # Uang Muka + FAT
+    (20100000000,           4, 'pas'),        # semua termin
+    (20210000000,           4, 'lebih'),      # melebihi total termin
+]
+for _x, _n, _st in _cases:
+    _r = db_contract.termin_progress(_term, _x)
+    assert _r['status'] == _st, f'tertagih {_x:,.0f}: status {_r["status"]} != {_st}'
+    assert _r['ditagih'] == _n, f'tertagih {_x:,.0f}: ditagih {_r["ditagih"]} != {_n}'
+    assert _r['pesan'], 'setiap status harus punya pesan penjelasan'
+# Menagih sebagian termin adalah NORMAL, bukan temuan: status 'berjalan'.
+assert db_contract.termin_progress(_term, 4723500000)['selisih'] == 0, \
+    'tagihan sebagian termin tidak boleh dihitung sebagai selisih/temuan'
+# Tanpa jadwal termin -> tidak bisa dicocokkan (bukan 0/0).
+_none = db_contract.termin_progress([], 5000000)
+assert _none['status'] == 'tanpa_jadwal' and not _none['ada_jadwal'], \
+    'kontrak tanpa termin harus berstatus tanpa_jadwal'
+print(f'[11] termin_progress OK: {len(_cases)} kasus + tanpa_jadwal')
+
+# --- 11b. Tampilan: semua kontrak nyata ter-render dengan pill yang benar ---
+for _c in contracts:
+    _tc = _c.get('termin_cocok')
+    assert _tc is not None, f"{_c['no_kontrak']}: termin_cocok tidak terpasang"
+    assert _tc['status'] in ('tanpa_jadwal', 'belum', 'pas', 'berjalan', 'lebih'), \
+        f"{_c['no_kontrak']}: status tak dikenal {_tc['status']}"
+    assert _tc['status'] != 'tanpa_jadwal' or not _tc['ada_jadwal'], \
+        f"{_c['no_kontrak']}: status tanpa_jadwal tapi ada_jadwal True"
+_pills = re.findall(r'kc-term-pill kc-term-pill--(\w+)"[^>]*>\s*([\d/—]+)', _html9)
+_pill_contracts = [c for c in contracts if c['id'] in
+                   {c2['id'] for c2 in contracts}]
+assert len(_pills) == len(contracts), \
+    f'pill termin harus satu per kontrak: {len(_pills)} != {len(contracts)}'
+for _c, (_, _txt) in zip(contracts, _pills):
+    _tc = _c['termin_cocok']
+    _want = '—' if not _tc['ada_jadwal'] else f"{_tc['ditagih']}/{_tc['jumlah']}"
+    assert _txt == _want, f"{_c['no_kontrak']}: pill '{_txt}' != '{_want}'"
+print(f'[11b] pill Termin Ditagih ter-render benar untuk {len(contracts)} kontrak')
+
+# --- 11c. Istilah "Belum Ditagih" vs "Sisa Hutang" tidak tertukar ---
+# Ini inti perbaikan: pekerjaan yang belum ditagih BUKAN utang. Tooltip dan
+# label harus memakai istilah yang sama di daftar maupun detail, dan frasa
+# lama yang menggabungkan keduanya tidak boleh muncul lagi.
+for _cls in ('contracts.html', 'contract_detail.html'):
+    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                           'templates', _cls), encoding='utf-8') as _f:
+        _src = _f.read()
+    assert 'Sisa Hutang (' in _src, f'{_cls}: label "Sisa Hutang" tidak ada'
+    assert 'Belum Ditagih (' in _src, f'{_cls}: label "Belum Ditagih" tidak ada'
+    # Tooltip Sisa Hutang harus menyebut "sudah ditagih".
+    assert 'sudah ditagih' in _src.lower(), \
+        f'{_cls}: tooltip Sisa Hutang harus menegaskan "sudah ditagih"'
+    assert 'termasuk yang belum ditagih' not in _src, \
+        f'{_cls}: frasa lama "termasuk yang belum ditagih" masih ada'
+    assert 'Terdiri dari' not in _src, \
+        f'{_cls}: penjelasan lama "Terdiri dari ..." sudah digantikan kolom terpisah'
+assert 'Sisa hutang: ' in _html9, \
+    'hint KPI harus memakai label "Sisa hutang"'
+print('[11c] istilah Belum Ditagih vs Sisa Hutang konsisten OK')
 
 
 print('ALL CHECKS PASSED')

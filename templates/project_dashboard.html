@@ -1,140 +1,331 @@
-{% extends "base.html" %} {% block title %}Dashboard {{ project.kode_proyek }} - Project Payment Monitoring System{% endblock %}{% block topbar_title %}{{ project.kode_proyek }}{% endblock %} {% block content %}
+{% extends "base.html" %} {% block title %}Dashboard {{ project.kode_proyek }} - Project Payment Monitoring System{% endblock %}{% block topbar_title %}{{ project.kode_proyek }}{% endblock %} {% block head_extra %}
+<link rel="stylesheet" href="{{ static_url(filename='css/project.css') }}">
+{% endblock %} {% block content %}
 <!--
   Project Dashboard — Ledger Desk world (DESIGN.md).
-  THESIS: ringkasan keuangan per proyek — hero identitas, 4 KPI, PPh, cash flow.
-  OWN-WORLD: navy/paper, satu aksen biru, serif hanya angka KPI, mono sel uang.
-  STORY: manajer proyek lihat posisi kontrak lalu arus kas bulanan.
-  FIRST VIEWPORT: header + info strip + 4 KPI.
-  FORM: refinement Operate, mirror tokens projects.html / _dashboard.html.
+  THESIS: posisi keuangan satu proyek dalam satu pandangan — hero sisa hutang,
+    progres DPP/PPN, 9 KPI dalam 3 grup, potongan, arus kas bulanan.
+  OWN-WORLD: navy/paper, satu aksen biru, mono untuk uang, badge berdot.
+  STORY: manajer proyek lihat sisa hutang -> progres DPP/PPN -> potongan ->
+    arus kas bulanan.
+  FIRST VIEWPORT: toolbar + strip identitas + hero Total Sisa Hutang.
+  FORM: refinement Operate, mirror tokens partials/_dashboard.html.
+  Komponen bersama ada di static/css/project.css (dipakai juga oleh
+  projects.html & project_detail.html).
+
+  CATATAN KPI: Nilai Kontrak SENGAJA tidak masuk blok KPI. Ia menjumlah semua
+  kontrak vendor (25 kontrak), sedangkan Total DPP berasal dari baris invoice,
+  sehingga menyandingkannya terbaca seolah "kontrak baru terserap 8%".
+  Nilai Kontrak tetap ada di strip identitas (satu tempat, tanpa duplikasi).
 -->
 <style>
-  .pd-wrap { display: flex; flex-direction: column; gap: 16px; max-width: 1200px; margin: 0 auto; }
-  .pd-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-  .ds-kpi--compact { padding: 12px 14px; display: flex; align-items: center; gap: 12px; }
-  .ds-kpi--compact .ds-kpi__value { font-size: 1.05rem; }
-  .ds-kpi--compact .ds-kpi__hint { margin-top: 1px; }
-  .kpi-ico { width: 38px; height: 38px; min-width: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1rem; }
-  .kpi-ico--blue { background: #eaf0f6; color: #16324f; }
-  .kpi-ico--green { background: #e6f4f1; color: #115e59; }
-  .kpi-ico--rose { background: #fef0ee; color: #912018; }
-  .kpi-ico--amber { background: #fdf6d8; color: #8a6d00; }
-  .ds-card { background: #fff; border: 1px solid #e3e5e8; border-radius: 16px; box-shadow: 0 1px 3px rgba(51, 51, 51,.05); overflow: hidden; }
-  .ds-card-body { padding: 20px; }
-  .ds-card-title { padding: 14px 20px; font-weight: 700; font-size: 1rem; border-bottom: 1px solid #e3e5e8; display: flex; align-items: center; gap: 8px; }
-  .ds-card-title i { color: #16324f; }
-  .pd-info { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; padding: 14px 20px; }
-  .pd-info-label { font-size: .7rem; color: #667080; text-transform: uppercase; font-weight: 700; letter-spacing: .6px; }
-  .pd-info-value { font-size: .85rem; font-weight: 600; color: #333333; }
-  .pd-info-value--money { font-family: "JetBrains Mono", "SF Mono", monospace; font-size: .78rem; font-variant-numeric: tabular-nums; }
-  .ds-table { width: 100%; font-size: .78rem; border-collapse: separate; border-spacing: 0; }
-  .ds-table thead th { background: #f7f8f9; color: #3d434c; font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .7px; padding: 10px 12px; border-bottom: 2px solid #e3e5e8; white-space: nowrap; }
-  .ds-table tbody td { padding: 9px 12px; vertical-align: middle; border-bottom: 1px solid #eef0f2; }
-  .ds-table tbody tr:hover td { background: #f7f8f9; }
-  .ds-table tfoot td { padding: 10px 12px; font-weight: 700; border-top: 2px solid #e3e5e8; background: #f7f8f9; }
-  .cell-money { font-family: "JetBrains Mono", "SF Mono", monospace; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; font-size: .75rem; white-space: nowrap; }
-  .cell-pos { color: #115e59; }
-  .cell-neg { color: #912018; }
-  .ds-badge { padding: 3px 10px; border-radius: 6px; font-size: .7rem; font-weight: 700; display: inline-block; white-space: nowrap; }
-  .ds-badge-green { background: #e6f4f1; color: #115e59; }
-  .ds-badge-blue { background: #eaf0f6; color: #16324f; }
-  .ds-badge-amber { background: #fdf6d8; color: #8a6d00; }
-  .ds-badge-red { background: #fef0ee; color: #912018; }
-  .pd-cf-row { display: flex; align-items: center; gap: 10px; }
-  .pd-cf-bar { flex: 1; height: 8px; border-radius: 6px; background: #eef0f2; overflow: hidden; display: flex; }
-  .pd-cf-bar > span { display: block; height: 100%; }
-  .pd-cf-bayar { background: #16324f; }
-  .pd-cf-sisa { background: #E5B800; }
-  .pd-cf-pct { min-width: 44px; text-align: right; font-size: .7rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  /* Kekhususan halaman ini saja; sisanya dari project.css. */
+  .pd-head-meta { display: flex; align-items: center; gap: var(--ds-sp-2); flex-wrap: wrap; }
+  .pd-head-meta__name { font-size: var(--ds-fs-md); font-weight: 700; color: var(--ds-text); }
 
-  .pd-pph-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-  .pd-pph-label { font-size: .7rem; color: #667080; text-transform: uppercase; font-weight: 700; letter-spacing: .6px; }
-  .pd-pph-value { font-size: 1.05rem; font-weight: 700; color: #333333; font-variant-numeric: tabular-nums; }
-  .pd-pph-value--money { font-family: "JetBrains Mono", "SF Mono", monospace; font-size: .85rem; }
-  .pd-pph-rate { font-family: "Inter", Georgia, serif; font-size: 1.45rem; color: #16324f; line-height: 1.15; }
-  .ds-btn:focus-visible, .ds-kpi:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 86, 145,.18); }
-  @media (max-width: 1024px) { .pd-kpis { grid-template-columns: repeat(2, 1fr); } }
-  @media (max-width: 768px) { .pd-kpis { grid-template-columns: 1fr 1fr; } .ds-card-body { padding: 14px; } .ds-kpi--compact .ds-kpi__value { font-size: 1rem; } }
-  @media (prefers-reduced-motion: reduce) { .ds-card { transition: none; } }
+  /* Cash flow: nama bulan & angka rata kanan, bar progres di kolom terakhir. */
+  .pd-cf-month { font-weight: 700; white-space: nowrap; }
+  .pd-cf-total td { background: #f7f8f9; }
+
+  /* PPh: angka besar + daftar rincian. */
+  .pd-pph-rate-box {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; border-radius: var(--ds-r-md);
+    background: #eaf0f6; border: 1px solid #dbe6ef;
+  }
+  .pd-pph-rate-box__value {
+    font-family: var(--ds-font-display); font-size: 1.35rem; font-weight: 700;
+    color: var(--ds-accent); line-height: 1; font-variant-numeric: tabular-nums;
+  }
+  .pd-pph-rate-box__label { font-size: var(--ds-fs-xs); color: var(--ds-text-soft); font-weight: 700; text-transform: uppercase; letter-spacing: .5px; }
+  .pd-pph-note { font-size: var(--ds-fs-xs); color: var(--ds-text-soft); margin-top: 2px; }
+
+  @media (max-width: 768px) {
+    .pd-cf-month { font-size: var(--ds-fs-xs); }
+  }
 </style>
-<div class="pd-wrap animate-in">
-  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+
+<div class="prj-page animate-in">
+  <!-- ─── Toolbar: navigasi + status ─── -->
+  <div class="prj-toolbar">
     <a href="{{ url_for('project.list_projects') }}" class="ds-btn ds-btn--sm"><i class="bi bi-arrow-left"></i> Proyek</a>
+    <span class="prj-toolbar__spacer"></span>
+    {% if project.status == 'Aktif' %}<span class="prj-badge prj-badge--aktif">Aktif</span>
+    {% elif project.status == 'Selesai' %}<span class="prj-badge prj-badge--selesai">Selesai</span>
+    {% else %}<span class="prj-badge prj-badge--lain">{{ project.status }}</span>{% endif %}
     <a href="{{ url_for('project.edit_project', project_id=project.id) }}" class="ds-btn ds-btn--sm"><i class="bi bi-pencil-square"></i> Edit</a>
-    {% if project.status == 'Aktif' %}<span class="ds-badge ds-badge-green">Aktif</span>
-    {% elif project.status == 'Selesai' %}<span class="ds-badge ds-badge-blue">Selesai</span>
-    {% else %}<span class="ds-badge ds-badge-amber">{{ project.status }}</span>{% endif %}
   </div>
 
-  <div class="ds-card">
-    <div class="pd-info">
-      <div><div class="pd-info-label">Lokasi</div><div class="pd-info-value">{{ project.lokasi or '—' }}</div></div>
-      <div><div class="pd-info-label">Pemilik</div><div class="pd-info-value">{{ project.pemilik or '—' }}</div></div>
-      <div><div class="pd-info-label">Nilai Kontrak</div><div class="pd-info-value pd-info-value--money">{{ project.nilai_kontrak|money }}</div></div>
-      <div><div class="pd-info-label">Mulai</div><div class="pd-info-value">{{ project.tgl_mulai or '—' }}</div></div>
-      <div><div class="pd-info-label">Selesai (Rencana)</div><div class="pd-info-value">{{ project.tgl_selesai or '—' }}</div></div>
-    </div>
-  </div>
-
-  <div class="pd-kpis">
-    <div class="ds-kpi ds-kpi--compact" tabindex="0">
-      <div class="kpi-ico kpi-ico--blue"><i class="bi bi-file-earmark-text"></i></div>
-      <div><div class="ds-kpi__label">Nilai Kontrak</div><div class="ds-kpi__value">{{ project.nilai_kontrak|money }}</div></div>
-    </div>
-    <div class="ds-kpi ds-kpi--compact" tabindex="0">
-      <div class="kpi-ico kpi-ico--amber"><i class="bi bi-graph-up"></i></div>
-      <div><div class="ds-kpi__label">Total Realisasi</div><div class="ds-kpi__value">{{ total_realisasi|money }}</div></div>
-    </div>
-    <div class="ds-kpi ds-kpi--compact{% if project.total_sisa|has_sisa %} ds-kpi--warn{% else %} ds-kpi--ok{% endif %}" tabindex="0">
-      <div class="kpi-ico kpi-ico--rose"><i class="bi bi-exclamation-circle"></i></div>
-      <div><div class="ds-kpi__label">Sisa Hutang</div><div class="ds-kpi__value">{{ project.total_sisa|money }}</div></div>
-    </div>
-    <div class="ds-kpi ds-kpi--compact{% if retensi_outstanding > 0 %} ds-kpi--warn{% else %} ds-kpi--ok{% endif %}" tabindex="0">
-      <div class="kpi-ico kpi-ico--amber"><i class="bi bi-lock"></i></div>
-      <div><div class="ds-kpi__label">Retensi Dipotong</div><div class="ds-kpi__value">{{ retensi_total|money }}</div><div class="ds-kpi__hint">{{ retensi_outstanding }} invoice</div></div>
-    </div>
-  </div>
-
-  <div class="ds-card">
-    <div class="ds-card-title ds-section-title"><i class="bi bi-percent"></i> PPh Final Summary</div>
-    <div class="ds-card-body">
-      <div class="pd-pph-grid">
-        <div><div class="pd-pph-label">Total PPh Dipotong</div><div class="pd-pph-value pd-pph-value--money">{{ pph_total|money }}</div></div>
-        <div><div class="pd-pph-label">Total DPP</div><div class="pd-pph-value pd-pph-value--money">{{ pph_dpp|money }}</div></div>
-        <div><div class="pd-pph-label">Rata-rata Tarif</div><div class="pd-pph-rate">{{ '%.2f'|format(pph_rate) }}%</div></div>
-        <div><div class="pd-pph-label">Estimasi Final</div><div style="font-size:.7rem;color:#667080">2%: {{ (pph_dpp * 0.02)|money }}<br>4%: {{ (pph_dpp * 0.04)|money }}</div></div>
+  <!-- ─── Strip identitas ─── -->
+  <div class="prj-card">
+    <div class="prj-meta">
+      <div>
+        <div class="prj-meta__label">Proyek</div>
+        <div class="prj-meta__value">{{ project.nama_proyek }}</div>
+      </div>
+      <div>
+        <div class="prj-meta__label">Lokasi</div>
+        <div class="prj-meta__value">{{ project.lokasi or '—' }}</div>
+      </div>
+      <div>
+        <div class="prj-meta__label">Pemilik</div>
+        <div class="prj-meta__value">{{ project.pemilik or '—' }}</div>
+      </div>
+      <div>
+        <div class="prj-meta__label">Nilai Kontrak</div>
+        <div class="prj-meta__value prj-meta__value--money">{{ project.nilai_kontrak|money }}</div>
+        <div class="prj-meta__note">akumulasi kontrak vendor</div>
+      </div>
+      <div>
+        <div class="prj-meta__label">Periode</div>
+        <div class="prj-meta__value">{{ project.tgl_mulai|tgl }} &ndash; {{ project.tgl_selesai|tgl }}</div>
       </div>
     </div>
   </div>
 
-  <div class="ds-card">
-    <div class="ds-card-title ds-section-title"><i class="bi bi-cash-stack"></i> Cash Flow — Realisasi per Bulan</div>
-    <div style="overflow-x:auto">
-    <table class="ds-table" style="min-width:700px">
-      <thead><tr><th>Bulan</th><th style="text-align:right">Nilai Invoice</th><th style="text-align:right">Pembayaran</th><th style="text-align:right">Cum. Nilai</th><th style="text-align:right">Cum. Bayar</th><th style="text-align:right">Cum. Sisa</th><th style="width:34%">Progress Bayar</th></tr></thead>
-      <tbody>
-        {% if cash_flow %}{% for cf in cash_flow %}{% set pct = (cf.cum_bayar / total_cf_amount * 100) if total_cf_amount > 0 else 0 %}
-        <tr>
-          <td style="font-weight:600">{{ cf.bulan }}</td>
-          <td class="cell-money">{{ cf.amount|money }}</td>
-          <td class="cell-money cell-pos">{{ cf.bayar|money }}</td>
-          <td class="cell-money">{{ cf.cum_realisasi|money }}</td>
-          <td class="cell-money cell-pos">{{ cf.cum_bayar|money }}</td>
-          <td class="cell-money">{{ cf.cum_sisa|money }}</td>
-          <td>
-            <div class="pd-cf-row">
-              <div class="pd-cf-bar" role="progressbar" aria-valuenow="{{ '%.0f'|format(pct) }}" aria-valuemin="0" aria-valuemax="100" aria-label="Progress bayar {{ cf.bulan }}">
-                <span class="pd-cf-bayar" style="width:{{ pct }}%"></span>
-                {% if cf.cum_sisa|has_sisa %}<span class="pd-cf-sisa" style="width:{{ (cf.cum_sisa / total_cf_amount * 100) if total_cf_amount > 0 else 0 }}%"></span>{% endif %}
-              </div>
-              <span class="pd-cf-pct">{{ '%.0f'|format(pct) }}%</span>
-            </div>
-          </td>
-        </tr>
-        {% endfor %}{% else %}
-        <tr><td colspan="7" style="text-align:center;color:#667080;padding:24px">Belum ada data realisasi.</td></tr>
-        {% endif %}
-      </tbody>
-    </table>
+  <!-- ─── HERO: total sisa hutang + progres DPP/PPN ─── -->
+  <section class="prj-hero" aria-label="Ringkasan sisa hutang proyek">
+    <div>
+      <div class="prj-hero__label">Total Sisa Hutang (Include PPN)</div>
+      <div class="prj-hero__value">Rp {{ keu.sisa_hutang|money }}</div>
+      <div class="prj-hero__sub">
+        <span>{{ keu.jumlah_invoice }} invoice</span><span class="dot">•</span>
+        <span>{{ keu.jumlah_vendor }} levelansir</span><span class="dot">•</span>
+        <span>{{ keu.belum_count }} belum lunas</span><span class="dot">•</span>
+        <span>{{ keu.lunas_count }} lunas</span>
+      </div>
+    </div>
+    <div class="prj-hero__bars">
+      <div class="prj-bar-row">
+        <span class="lbl">DPP</span>
+        <div class="prj-bar" role="progressbar" aria-valuenow="{{ keu.dpp_pct }}" aria-valuemin="0" aria-valuemax="100" aria-label="Progres pembayaran DPP {{ project.kode_proyek }}">
+          <span style="width:{{ keu.dpp_pct }}%;background:#0f766e"></span>
+        </div>
+        <span class="pct">{{ keu.dpp_pct }}%</span>
+      </div>
+      <div class="prj-bar-row">
+        <span class="lbl">PPN</span>
+        <div class="prj-bar" role="progressbar" aria-valuenow="{{ keu.ppn_pct }}" aria-valuemin="0" aria-valuemax="100" aria-label="Progres pembayaran PPN {{ project.kode_proyek }}">
+          <span style="width:{{ keu.ppn_pct }}%;background:#5fd76e"></span>
+        </div>
+        <span class="pct">{{ keu.ppn_pct }}%</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── GRUP DPP ─── -->
+  <div class="prj-group-label">DPP — Harga Pokok</div>
+  <div class="prj-kpis">
+    <div class="prj-kpi" tabindex="0">
+      <div class="prj-kpi__ico prj-kpi__ico--blue"><i class="bi bi-cash"></i></div>
+      <div class="prj-kpi__main">
+        <div class="prj-kpi__label">Total DPP</div>
+        <div class="prj-kpi__value">{{ keu.total_dpp|money }}</div>
+        <div class="prj-kpi__hint">Retensi: {{ keu.total_retensi|money }}</div>
+      </div>
+    </div>
+    <div class="prj-kpi prj-kpi--ok" tabindex="0">
+      <div class="prj-kpi__ico prj-kpi__ico--green"><i class="bi bi-check2-circle"></i></div>
+      <div class="prj-kpi__main">
+        <div class="prj-kpi__label">Terbayar DPP</div>
+        <div class="prj-kpi__value">{{ keu.bayar_dpp|money }}</div>
+        <div class="prj-kpi__hint">{{ keu.dpp_pct }}% dari total</div>
+      </div>
+    </div>
+    <div class="prj-kpi prj-kpi--err" tabindex="0">
+      <div class="prj-kpi__ico prj-kpi__ico--rose"><i class="bi bi-exclamation-triangle"></i></div>
+      <div class="prj-kpi__main">
+        <div class="prj-kpi__label">Sisa Hutang DPP</div>
+        <div class="prj-kpi__value">{{ keu.sisa_dpp|money }}</div>
+        <div class="prj-kpi__hint">{{ keu.sisa_dpp_pct }}% dari total</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── GRUP PPN ─── -->
+  <div class="prj-group-label">PPN — Pajak</div>
+  <div class="prj-kpis">
+    <div class="prj-kpi" tabindex="0">
+      <div class="prj-kpi__ico prj-kpi__ico--blue"><i class="bi bi-receipt"></i></div>
+      <div class="prj-kpi__main">
+        <div class="prj-kpi__label">Total PPN</div>
+        <div class="prj-kpi__value">{{ keu.total_ppn|money }}</div>
+        <div class="prj-kpi__hint">Potongan PPh: {{ keu.total_pph|money }}</div>
+      </div>
+    </div>
+    <div class="prj-kpi prj-kpi--ok" tabindex="0">
+      <div class="prj-kpi__ico prj-kpi__ico--green"><i class="bi bi-check2-circle"></i></div>
+      <div class="prj-kpi__main">
+        <div class="prj-kpi__label">Terbayar PPN</div>
+        <div class="prj-kpi__value">{{ keu.bayar_ppn|money }}</div>
+        <div class="prj-kpi__hint">{{ keu.ppn_pct }}% dari total</div>
+      </div>
+    </div>
+    <div class="prj-kpi prj-kpi--err" tabindex="0">
+      <div class="prj-kpi__ico prj-kpi__ico--rose"><i class="bi bi-exclamation-triangle"></i></div>
+      <div class="prj-kpi__main">
+        <div class="prj-kpi__label">Sisa Hutang PPN</div>
+        <div class="prj-kpi__value">{{ keu.sisa_ppn|money }}</div>
+        <div class="prj-kpi__hint">{{ keu.sisa_ppn_pct }}% dari total</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── GRUP UMUM ─── -->
+  <div class="prj-group-label">Umum — Volume Data</div>
+  <div class="prj-kpis">
+    <div class="prj-kpi" tabindex="0">
+      <div class="prj-kpi__ico prj-kpi__ico--blue"><i class="bi bi-people"></i></div>
+      <div class="prj-kpi__main">
+        <div class="prj-kpi__label">Levelansir</div>
+        <div class="prj-kpi__value">{{ keu.jumlah_vendor }}</div>
+      </div>
+    </div>
+    <div class="prj-kpi" tabindex="0">
+      <div class="prj-kpi__ico prj-kpi__ico--blue"><i class="bi bi-person-badge"></i></div>
+      <div class="prj-kpi__main">
+        <div class="prj-kpi__label">Total Invoice</div>
+        <div class="prj-kpi__value">{{ keu.jumlah_invoice }}</div>
+        <div class="prj-kpi__hint">{{ keu.lunas_count }} lunas • {{ keu.belum_count }} belum</div>
+      </div>
+    </div>
+    <div class="prj-kpi" tabindex="0">
+      <div class="prj-kpi__ico prj-kpi__ico--blue"><i class="bi bi-wallet2"></i></div>
+      <div class="prj-kpi__main">
+        <div class="prj-kpi__label">Total Tagihan (Incld PPN)</div>
+        <div class="prj-kpi__value">{{ keu.total_tagihan|money }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── PPh Final + struktur tagihan (dua kartu sejajar) ─── -->
+  <div class="prj-split">
+    <div class="prj-card">
+      <div class="prj-card__head"><i class="bi bi-percent"></i> PPh Final</div>
+      <div class="prj-card__body">
+        <div class="prj-stat-list">
+          <div class="prj-stat">
+            <span class="prj-stat__label">Total DPP</span>
+            <span class="prj-stat__value">{{ pph_dpp|money }}</span>
+          </div>
+          <div class="prj-stat">
+            <span class="prj-stat__label">PPh Dipotong</span>
+            <span class="prj-stat__value">{{ pph_total|money }}</span>
+          </div>
+          <div class="prj-stat">
+            <span class="prj-stat__label">PPh Disetor</span>
+            <span class="prj-stat__value prj-num--pos">{{ keu.total_pph_paid|money }}</span>
+          </div>
+          <div class="prj-stat prj-stat--total">
+            <span class="prj-stat__label">Rata-rata Tarif</span>
+            <span class="prj-stat__value">{{ '%.2f'|format(pph_rate) }}%</span>
+          </div>
+        </div>
+        <div class="pd-pph-rate-box" style="margin-top:12px">
+          <i class="bi bi-calculator" style="color:#16324f"></i>
+          <div>
+            <div class="pd-pph-rate-box__label">Estimasi final</div>
+            <div class="pd-pph-note">2%: {{ (pph_dpp * 0.02)|money }} &nbsp;•&nbsp; 4%: {{ (pph_dpp * 0.04)|money }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="prj-card">
+      <div class="prj-card__head"><i class="bi bi-scissors"></i> Struktur Tagihan</div>
+      <div class="prj-card__body">
+        <div class="prj-stat-list">
+          <div class="prj-stat">
+            <span class="prj-stat__label">Total DPP</span>
+            <span class="prj-stat__value">{{ keu.total_dpp|money }}</span>
+          </div>
+          <div class="prj-stat">
+            <span class="prj-stat__label">Total PPN</span>
+            <span class="prj-stat__value">{{ keu.total_ppn|money }}</span>
+          </div>
+          <div class="prj-stat">
+            <span class="prj-stat__label">PPh Dipotong</span>
+            <span class="prj-stat__value">({{ keu.total_pph|money }})</span>
+          </div>
+          <div class="prj-stat">
+            <span class="prj-stat__label">Retensi Ditahan</span>
+            <span class="prj-stat__value">({{ keu.total_retensi|money }})</span>
+          </div>
+          <div class="prj-stat prj-stat--total">
+            <span class="prj-stat__label">Terkonfirmasi</span>
+            <span class="prj-stat__value">{{ (keu.total_dpp + keu.total_ppn - keu.total_pph - keu.total_retensi)|money }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Cash flow bulanan ─── -->
+  <div class="prj-card">
+    <div class="prj-card__head">
+      <i class="bi bi-cash-stack"></i> Cash Flow — Realisasi per Bulan
+      {% if cash_flow %}<span class="prj-card__head-count"><i class="bi bi-calendar3"></i> {{ cash_flow|length }} bulan</span>{% endif %}
+    </div>
+    <div class="prj-card__body prj-card__body--flush">
+      <div class="prj-table-wrap" style="max-height:460px">
+        <table class="prj-table">
+          <thead>
+            <tr>
+              <th>Bulan</th>
+              <th style="text-align:right">Nilai Invoice</th>
+              <th style="text-align:right">Pembayaran</th>
+              <th style="text-align:right">Cum. Nilai</th>
+              <th style="text-align:right">Cum. Bayar</th>
+              <th style="text-align:right">Cum. Sisa</th>
+              <th style="width:26%;min-width:140px">Progress Bayar</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if cash_flow %}{% for cf in cash_flow %}{% set pct = (cf.cum_bayar / total_cf_amount * 100) if total_cf_amount > 0 else 0 %}
+            <tr>
+              <td class="pd-cf-month">{{ cf.bulan }}</td>
+              <td class="prj-num">{{ cf.amount|money }}</td>
+              <td class="prj-num prj-num--pos">{{ cf.bayar|money }}</td>
+              <td class="prj-num">{{ cf.cum_realisasi|money }}</td>
+              <td class="prj-num prj-num--pos">{{ cf.cum_bayar|money }}</td>
+              <td class="prj-num{% if cf.cum_sisa|has_sisa %} prj-num--neg{% endif %}">{{ cf.cum_sisa|money }}</td>
+              <td>
+                <div class="prj-prog">
+                  <div class="prj-prog__track" role="progressbar" aria-valuenow="{{ '%.0f'|format(pct) }}" aria-valuemin="0" aria-valuemax="100" aria-label="Progress bayar {{ cf.bulan }}">
+                    <span style="width:{{ pct }}%;background:#0f766e"></span>
+                  </div>
+                  <span class="prj-prog__pct">{{ '%.0f'|format(pct) }}%</span>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}{% else %}
+            <tr>
+              <td colspan="7">
+                <div class="prj-empty"><i class="bi bi-inbox"></i>Belum ada data realisasi.</div>
+              </td>
+            </tr>
+            {% endif %}
+          </tbody>
+          {% if cash_flow %}
+          <tfoot>
+            <tr class="pd-cf-total">
+              <td>Total</td>
+              <td class="prj-num">{{ total_cf_amount|money }}</td>
+              <td class="prj-num prj-num--pos">{{ keu.bayar_dpp|money }}</td>
+              <td class="prj-num">{{ total_cf_amount|money }}</td>
+              <td class="prj-num prj-num--pos">{{ keu.bayar_dpp|money }}</td>
+              <td class="prj-num{% if keu.sisa_dpp|has_sisa %} prj-num--neg{% endif %}">{{ keu.sisa_dpp|money }}</td>
+              <td>
+                <div class="prj-prog">
+                  <div class="prj-prog__track"><span style="width:{{ keu.dpp_pct }}%;background:#0f766e"></span></div>
+                  <span class="prj-prog__pct">{{ keu.dpp_pct }}%</span>
+                </div>
+              </td>
+            </tr>
+          </tfoot>
+          {% endif %}
+        </table>
+      </div>
     </div>
   </div>
 </div>

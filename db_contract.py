@@ -270,10 +270,19 @@ def get_contracts(project_id=None):
         c['sisa_hutang'] = a['sisa_hutang']
         c['jumlah_invoice'] = a['jumlah_invoice']
         c['sisa_kontrak'] = dpp - tertagih
+        # Tiga angka sisa yang HARUS dibedakan (lihat catatan di get_summary):
+        #   sisa_kontrak      = dpp - tertagih          -> belum ditagih
+        #   sisa_hutang       = tertagih - dibayar       -> utang tagihan nyata
+        #   sisa_tagihan      = dpp - dibayar            -> jumlah keduanya
         # Sisa Tagihan (kolom tabel & KPI daftar kontrak) = bagian kontrak
         # yang belum dibayar, termasuk yang belum ditagih.
         c['sisa_tagihan'] = dpp - a['dibayar']
         c['sisa_tagihan_ppn'] = c['nilai_ppn'] - a['dibayar_ppn']
+        # Sisa hutang PPN = PPN yang SUDAH DITAGIH tapi belum dibayar.
+        # Sengaja memakai tertagih_ppn (bukan nilai_ppn): PPN yang belum
+        # ditagih bukan hutang. Di-clip 0 per kontrak supaya kelebihan bayar
+        # tidak tampil sebagai angka negatif.
+        c['sisa_hutang_ppn'] = max(0.0, a['tertagih_ppn'] - a['dibayar_ppn'])
         # Progres = pembayaran (PEMBAYARAN DPP), bukan nilai invoice —
         # invoice belum dibayar tidak menaikkan progres.
         c['progres'] = (a['dibayar'] / dpp * 100) if dpp > 0 else 0.0
@@ -294,6 +303,13 @@ def get_contracts(project_id=None):
                if str(c.get('project_id') or '') == pid
                or str(c.get('project_id') or '') == ''
                or (c.get('jumlah_invoice') or 0) > 0]
+
+    # Pencocokan termin vs invoice per kontrak. Satu query untuk semua termin
+    # (bukan per kontrak) supaya halaman daftar tidak kena N+1.
+    cocok = get_termin_progress_map(
+        {c['id']: (c.get('tertagih') or 0.0) for c in out})
+    for c in out:
+        c['termin_cocok'] = cocok.get(c['id'])
     return out
 
 
@@ -325,9 +341,13 @@ def get_contract(contract_id):
     c['sisa_kontrak'] = dpp - tertagih
     c['sisa_tagihan'] = dpp - a['dibayar']
     c['sisa_tagihan_ppn'] = c['nilai_ppn'] - a['dibayar_ppn']
+    # Sisa hutang PPN = PPN sudah ditagih tapi belum dibayar (bukan nilai_ppn).
+    c['sisa_hutang_ppn'] = max(0.0, a['tertagih_ppn'] - a['dibayar_ppn'])
     c['progres'] = (a['dibayar'] / dpp * 100) if dpp > 0 else 0.0
     c['progres_ppn'] = ((a['dibayar_ppn'] / c['nilai_ppn'] * 100)
                         if c['nilai_ppn'] > 0 else 0.0)
+    # Pencocokan termin vs invoice (dipasang setelah semua nominal siap).
+    c['termin_cocok'] = termin_progress(get_termins(contract_id), tertagih)
     c['over_ppn'] = bool(c['nilai_ppn'] > 0 and a['dibayar_ppn'] > c['nilai_ppn'])
     c['status_invoice'] = 'Ada Invoice' if a['jumlah_invoice'] > 0 else 'Belum Ada Invoice'
     c['over'] = bool(dpp > 0 and a['dibayar'] > dpp)
@@ -500,6 +520,7 @@ def enrich_termins(termins, contract=None):
     rate_pct = safe_float((contract or {}).get('ppn_rate'))
     rate = rate_pct / 100.0 if rate_pct > 0 else PPN_RATE
     out = []
+    kumulatif = 0.0
     for i, t in enumerate(termins or [], start=1):
         d = dict(t)
         nilai = safe_float(d.get('nilai'))
@@ -518,8 +539,181 @@ def enrich_termins(termins, contract=None):
             d['ppn_persen'] = round(d['normalisasi'] * rate, 4)
         d['total_bayar'] = nilai + d['ppn'] if include else nilai
         d['urutan_no'] = i
+        d['kumulatif'] = kumulatif + nilai
+        kumulatif += nilai
         out.append(d)
+
+    # Tandai status pencocokan tiap termin terhadap invoice yang sudah masuk
+    # (tertagih). Dipakai halaman detail untuk menampilkan kolom Status.
+    tertagih_pagu = safe_float((contract or {}).get('tertagih'))
+    for d in out:
+        if d['kumulatif'] <= tertagih_pagu + TERMIN_EPS:
+            d['cocok_status'] = 'ditagih'
+        elif d['kumulatif'] - safe_float(d.get('nilai')) < tertagih_pagu - TERMIN_EPS:
+            d['cocok_status'] = 'sebagian'
+        else:
+            d['cocok_status'] = 'belum'
     return out
+
+
+# Toleransi Rp 1 untuk semua perbandingan nominal kontrak/termin (konsisten
+# dengan EPS tabel: selisih floating point bukan temuan).
+TERMIN_EPS = 1.0
+
+def termin_progress(termins, tertagih):
+    """Cocokkan nilai invoice yang sudah ditagih dengan jadwal termin kontrak.
+
+    Inilah inti halaman Progress Kontrak: memastikan invoice yang masuk
+    sejalan dengan termin yang disepakati di kontrak. Tanpa pencocokan ini
+    pengguna hanya melihat tiga deret angka (Nilai Kontrak, Ditagih, Dibayar)
+    dan harus menyimpulkan sendiri termin mana yang sudah ditagih.
+
+    Cara kerja: termin dijalankan berurutan (sesuai urutan kontrak). Sebuah
+    termin dianggap SUDAH DITAGIH bila nilai kumulatifnya masih tertutup oleh
+    nilai invoice yang sudah masuk. Termin pertama yang melewati nilai itu
+    adalah termin BERJALAN (sebagian tertagih); sisanya belum ditagih.
+
+    Args:
+        termins: hasil get_termins() atau enrich_termins(); nilai per termin
+            dibaca dari key 'nilai'.
+        tertagih: total HARGA (EXLD) invoice yang memakai nomor kontrak ini.
+
+    Returns:
+        dict:
+          ada_jadwal   False bila kontrak tidak punya baris termin.
+          jumlah       banyak termin.
+          ditagih      jumlah termin yang tertutup penuh invoice.
+          berjalan     label termin yang sedang berjalan (sebagian tertagih),
+                       None bila tagihan tepat di batas termin.
+          pagu         nilai kumulatif termin yang sudah ditagih penuh.
+          persen_pagu  pagu / total termin x 100.
+          selisih      tertagih - pagu. Hanya berarti saat status 'lebih'.
+          status       lihat catatan di bawah.
+          pesan        kalimat siap tampil yang menjelaskan kondisinya.
+
+    Status:
+        'tanpa_jadwal'  kontrak belum punya baris termin; tidak bisa dicocokkan.
+        'belum'         belum ada invoice sama sekali.
+        'pas'           tagihan tepat di batas termin.
+        'berjalan'      tagihan menutup sebagian termin berikutnya. Ini NORMAL:
+                        vendor menagih sebagian termin adalah hal biasa.
+        'lebih'         tagihan melewati termin berikutnya secara penuh, jadi
+                        jumlahnya tidak bisa dijelaskan oleh jadwal termin.
+                        Inilah temuan yang layak diperiksa (mis. nilai termin
+                        belum lengkap diimport, atau vendor menagih lebih cepat).
+    """
+    terms = list(termins or [])
+    tertagih = safe_float(tertagih)
+
+    if not terms:
+        return {'ada_jadwal': False, 'jumlah': 0, 'ditagih': 0,
+                'berjalan': None, 'pagu': 0.0, 'persen_pagu': 0.0,
+                'selisih': 0.0, 'status': 'tanpa_jadwal',
+                'pesan': 'Kontrak ini belum punya jadwal termin, jadi invoice '
+                         'tidak bisa dicocokkan ke termin.'}
+
+    nilai_termin = [safe_float(t.get('nilai')) for t in terms]
+    total_nilai = sum(nilai_termin)
+
+    # Jalan berurutan: berapa termin yang tertutup penuh, dan termin mana
+    # (bila ada) yang baru tertagih sebagian.
+    pagu = 0.0
+    ditagih = 0
+    berjalan = None
+    for idx, nilai in enumerate(nilai_termin):
+        if pagu + nilai <= tertagih + TERMIN_EPS:
+            ditagih += 1
+            pagu += nilai
+            continue
+        if tertagih > pagu + TERMIN_EPS:
+            t = terms[idx]
+            berjalan = t.get('label') or f"Termin {t.get('urutan_no') or idx + 1}"
+        break
+
+    persen_pagu = (pagu / total_nilai * 100) if total_nilai > 0 else 0.0
+    sisa_untuk_termin = (pagu + nilai_termin[ditagih] - tertagih
+                         if ditagih < len(nilai_termin) else 0.0)
+    if tertagih <= TERMIN_EPS:
+        status = 'belum'
+    elif tertagih > pagu + sisa_untuk_termin + TERMIN_EPS:
+        # Tagihan melompati termin berjalan secara penuh (atau melewati total
+        # termin) sehingga jumlahnya tidak bisa dijelaskan jadwal termin.
+        status = 'lebih'
+    elif berjalan is None:
+        status = 'pas'
+    else:
+        status = 'berjalan'
+    selisih = (tertagih - pagu) if status == 'lebih' else 0.0
+
+    if status == 'belum':
+        pesan = f"Belum ada invoice. {len(terms)} termin belum ditagih."
+    elif status == 'lebih':
+        pesan = (f"Tagihan Rp {tertagih:,.0f} melewati jadwal termin sebesar "
+                 f"Rp {selisih:,.0f} — periksa nilai termin atau urutan tagihan.")
+    elif status == 'berjalan':
+        sisa_termin = pagu + nilai_termin[ditagih] - tertagih
+        pesan = (f"{ditagih} dari {len(terms)} termin sudah ditagih penuh. "
+                 f"Termin berjalan: {berjalan} — kurang Rp {sisa_termin:,.0f} "
+                 f"lagi untuk melunasi termin ini.")
+    elif ditagih >= len(terms):
+        pesan = f"Semua {len(terms)} termin sudah ditagih penuh."
+    else:
+        pesan = (f"{ditagih} dari {len(terms)} termin sudah ditagih penuh, "
+                 f"tepat di batas termin.")
+    return {
+        'ada_jadwal': True,
+        'jumlah': len(terms),
+        'ditagih': ditagih,
+        'berjalan': berjalan,
+        'pagu': pagu,
+        'persen_pagu': persen_pagu,
+        'selisih': selisih,
+        'status': status,
+        'pesan': pesan,
+    }
+
+
+def get_termin_progress_map(tertagih_by_id):
+    """termin_progress untuk banyak kontrak sekaligus (dipakai halaman daftar).
+
+    Daftar kontrak butuh pencocokan termin per baris; memanggil get_termins
+    per kontrak berarti N+1 query. Di sini termin diambil dalam SATU query
+    lalu dikelompokkan per contract_id.
+
+    Args:
+        tertagih_by_id: {contract_id: nilai tertagih (Σ HARGA EXLD)} — sudah
+            dihitung oleh get_contracts, jadi tidak perlu query invoice lagi.
+
+    Returns: {contract_id: dict hasil termin_progress(...)}
+    """
+    pairs = [(int(cid), safe_float(val))
+             for cid, val in (tertagih_by_id or {}).items() if cid is not None]
+    if not pairs:
+        return {}
+    ids = [cid for cid, _ in pairs]
+    try:
+        with _conn() as conn:
+            conn.row_factory = _dict_factory
+            marks = ','.join('?' * len(ids))
+            termin_rows = conn.execute(
+                f'SELECT * FROM vendor_contract_termin WHERE contract_id IN ({marks}) '
+                'ORDER BY contract_id, urutan, id', ids).fetchall()
+            contract_rows = conn.execute(
+                f'SELECT id, metode_pembayaran, ppn_rate, total_dpp, nilai_kontrak '
+                f'FROM vendor_contracts WHERE id IN ({marks})', ids).fetchall()
+    except sqlite3.Error:
+        # Tabel termin/kontrak belum dibuat — halaman tetap bisa dirender.
+        return {cid: termin_progress([], 0) for cid in ids}
+
+    by_contract = {}
+    for row in termin_rows:
+        by_contract.setdefault(row['contract_id'], []).append(row)
+    contracts = {row['id']: row for row in contract_rows}
+
+    return {cid: termin_progress(enrich_termins(by_contract.get(cid, []),
+                                                contracts.get(cid)),
+                                 tertagih)
+            for cid, tertagih in pairs}
 
 
 def upsert_contract(no_kontrak, vendor, project_id='', nilai_kontrak=0,
@@ -992,18 +1186,22 @@ def get_summary(project_id=None):
     # Pembayaran — DPP dan PPN selalu dipisah, tidak pernah digabung.
     total_dibayar = sum(float(c.get('dibayar') or 0) for c in contracts)
     total_dibayar_ppn = sum(float(c.get('dibayar_ppn') or 0) for c in contracts)
-    # Sisa Tagihan = bagian kontrak yang belum dibayar (termasuk belum ditagih).
-    # KPI "Sisa Hutang DPP/PPN" = Σ kolom Sisa Tagihan, supaya angka kartu
-    # selalu sama dengan jumlah kolom yang terlihat pengguna.
-    total_sisa_dpp = sum(float(c.get('sisa_tagihan') or 0) for c in contracts)
-    total_sisa_ppn = sum(float(c.get('sisa_tagihan_ppn') or 0) for c in contracts)
-    # Rincian untuk hint KPI: belum ditagih + sudah ditagih belum dibayar.
+    # TIGA angka sisa yang berbeda dan tidak boleh tertukar:
+    #   total_belum_ditagih  = Σ (dpp - tertagih)      -> pekerjaan belum ditagih
+    #   total_sisa_hutang    = Σ max(0, tertagih-dibayar) -> utang tagihan nyata
+    #   total_sisa_dpp       = Σ (dpp - dibayar)       -> jumlah keduanya
+    # total_sisa_dpp sengaja TETAP = belum_ditagih + sisa_hutang supaya angka
+    # lama (dan KPI yang sudah dilaporkan) tidak berubah; yang berubah hanya
+    # cara halaman memecahnya menjadi dua kolom.
     total_belum_ditagih = sum(float(c.get('sisa_kontrak') or 0) for c in contracts)
     total_belum_ditagih_ppn = sum(float(c.get('sisa_ppn') or 0) for c in contracts)
-    total_belum_dibayar = sum(float(c.get('sisa_hutang') or 0) for c in contracts)
-    total_belum_dibayar_ppn = sum(max(0.0, float(c.get('tertagih_ppn') or 0)
-                                      - float(c.get('dibayar_ppn') or 0))
-                                  for c in contracts)
+    total_sisa_hutang = sum(float(c.get('sisa_hutang') or 0) for c in contracts)
+    total_sisa_hutang_ppn = sum(float(c.get('sisa_hutang_ppn') or 0)
+                                for c in contracts)
+    total_sisa_dpp = sum(float(c.get('sisa_tagihan') or 0) for c in contracts)
+    total_sisa_ppn = sum(float(c.get('sisa_tagihan_ppn') or 0) for c in contracts)
+    total_belum_dibayar = total_sisa_hutang
+    total_belum_dibayar_ppn = total_sisa_hutang_ppn
     known_keys = {_norm_kontrak(c.get('no_kontrak')) for c in contracts}
     belum_lunas, jatuh_tempo = _linked_invoice_counts(project_id, known_keys)
     belum = sum(1 for c in contracts if c.get('status_invoice') == 'Belum Ada Invoice')
@@ -1018,6 +1216,8 @@ def get_summary(project_id=None):
         'total_dibayar_ppn': total_dibayar_ppn,
         'total_sisa_dpp': total_sisa_dpp,
         'total_sisa_ppn': total_sisa_ppn,
+        'total_sisa_hutang': total_sisa_hutang,
+        'total_sisa_hutang_ppn': total_sisa_hutang_ppn,
         'total_belum_ditagih': total_belum_ditagih,
         'total_belum_ditagih_ppn': total_belum_ditagih_ppn,
         'total_belum_dibayar': total_belum_dibayar,

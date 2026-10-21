@@ -147,16 +147,21 @@ def project_dashboard(project_id):
         })
 
     pph_rate = (pph['total_pph'] / pph['total_dpp'] * 100) if pph['total_dpp'] > 0 else 0
+    # Ringkasan keuangan bergaya dashboard utama (DPP/PPN dipisah, klip
+    # per-vendor). total_dpp/sisa_dpp dijamin sama dengan angka di daftar
+    # proyek — lihat db_project.get_project_finansial.
+    keu = db_project.get_project_finansial(project_id)
     # Retensi otomatis dari POT. RETENSI: seluruhnya masih ditahan (belum ada
     # pelacakan pengembalian), jadi outstanding = total potongan.
     retensi_count = sum(g['jumlah_invoice'] for g in retensi_groups)
-    retensi_total = sum(float(g['total_retensi']) for g in retensi_groups)
+    retensi_total = keu['total_retensi']
 
     return render_template('project_dashboard.html',
                            project=p,
                            total_realisasi=total_realisasi,
                            cash_flow=cash_flow,
                            total_cf_amount=total_cf_amount,
+                           keu=keu,
                            pph_total=pph['total_pph'],
                            pph_dpp=pph['total_dpp'],
                            pph_rate=pph_rate,

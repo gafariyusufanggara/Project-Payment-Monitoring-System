@@ -1148,6 +1148,42 @@ def build_weekly_excel_export(week_key=None, project_id=None, cutoff_date=None):
 # LAPORAN JATUH TEMPO
 # ═══════════════════════════════════════════════════════════════
 
+# Aging buckets, ordered from the freshest to the most critical. The FIRST entry
+# is also the bucket an invoice falls into when it is not past due at all
+# (`belum_jt`), which is why every row always lands in exactly one bucket:
+# Σ bucket == Sisa Hutang DPP, with nothing silently dropped.
+#
+# Used by the web Laporan Jatuh Tempo strip AND by the Excel export, so a file
+# downloaded today reports exactly the numbers on screen.
+JT_AGING_BUCKETS = ('belum_jt', 'due_today', 'd1_30', 'd31_60', 'd61_90', 'd90plus')
+
+# The buckets that actually represent money *past* due. Total Overdue in the
+# Excel export sums these five, which must equal the Sisa Hutang DPP column.
+JT_OVERDUE_BUCKETS = ('due_today', 'd1_30', 'd31_60', 'd61_90', 'd90plus')
+
+
+def jt_aging_bucket(hari_lebih):
+    """Map overdue days (positive = late) to its aging bucket key.
+
+    Bucket edges mirror the web Laporan Jatuh Tempo strip exactly:
+      <0 → belum_jt · 0 → due_today · 1-30 · 31-60 · 61-90 · >90.
+    Keeping this in one place stops the export from drifting away from the
+    on-screen aging whenever somebody edits a threshold.
+    """
+    h = hari_lebih or 0
+    if h < 0:
+        return 'belum_jt'
+    if h == 0:
+        return 'due_today'
+    if h <= 30:
+        return 'd1_30'
+    if h <= 60:
+        return 'd31_60'
+    if h <= 90:
+        return 'd61_90'
+    return 'd90plus'
+
+
 def _jt_status(hari_lebih, sisa_dpp):
     """Human-readable jatuh tempo status.
 
@@ -1320,6 +1356,9 @@ def build_jatuh_tempo_data(project_id=None):
             'sisa_dpp': sisa_dpp,
             'sisa_ppn': sisa_ppn,
             'hari_lebih': hari_lebih,
+            # Pre-classified so the Excel export reuses the SAME threshold logic
+            # as the web strip (see jt_aging_bucket) instead of re-deriving it.
+            'aging_bucket': jt_aging_bucket(hari_lebih),
             'status_label': status_label,
             'status_key': status_key,
             'tgl_bayar_dpp': g['tgl_bayar_dpp'],
@@ -1387,18 +1426,8 @@ def build_jatuh_tempo_data(project_id=None):
                 if not sisa_belum_lunas(inv['sisa_dpp']):
                     continue
                 h = inv['hari_lebih']
-                if h < 0:
-                    b = 'belum_jt'
-                elif h == 0:
-                    b = 'due_today'
-                elif h <= 30:
-                    b = 'd1_30'
-                elif h <= 60:
-                    b = 'd31_60'
-                elif h <= 90:
-                    b = 'd61_90'
-                else:
-                    b = 'd90plus'
+                b = jt_aging_bucket(h)
+                inv['aging_bucket'] = b
                 aging[b] += inv['sisa_dpp']
                 aging_count[b] += 1
                 if h > 0:
