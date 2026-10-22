@@ -57,6 +57,7 @@
   .kd-table .cell-dim { font-family: "JetBrains Mono", monospace; font-size: 0.78rem; color: #4d5766; font-variant-numeric: tabular-nums; }
   .kd-table .cell-desc { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
   .kd-table .cell-invno { max-width: 140px; }
+  .kd-excl-flag { display: inline-flex; align-items: center; justify-content: center; margin-left: 6px; width: 18px; height: 18px; border-radius: 50%; background: #8a6d00; color: #fff; font-size: 0.62rem; vertical-align: middle; }
   .kd-table [data-full].cx-on { cursor: pointer; }
   .kd-table [data-full].cx-on:hover { text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 2px; }
   .kd-scroll { overflow-x: auto; }
@@ -93,6 +94,8 @@
     <span style="font-weight:700;font-size: 1rem">{{ contract.no_kontrak }}</span>
     {% if contract.status_invoice == 'Ada Invoice' %}
     <span class="ds-badge ds-badge-green">Ada Invoice</span>
+    {% elif contract.status_invoice == 'Semua Invoice Ter-exclude' %}
+    <span class="ds-badge ds-badge-amber" title="Semua invoice kontrak ini ter-exclude dari perhitungan (Exclude Invoice)">Semua Invoice Ter-exclude</span>
     {% else %}
     <span class="ds-badge ds-badge-amber">Belum Ada Invoice</span>
     {% endif %}
@@ -110,6 +113,7 @@
   {% set eps = 1.0 %}
   {# Total = belum ditagih + sisa hutang (identitas yg sama dgn kolom daftar). #}
   {% set sisa_tagihan_dpp = nilai_dpp_k - (contract.dibayar or 0) %}
+  {% set sisa_tagihan_ppn = nilai_ppn_k - (contract.dibayar_ppn or 0) %}
   <div class="kd-kpis">
     <div class="ds-kpi ds-kpi--compact" tabindex="0">
       <div class="kpi-ico kpi-ico--amber"><i class="bi bi-cash-coin"></i></div>
@@ -132,12 +136,12 @@
     <div class="ds-kpi ds-kpi--compact{% if belum_dibayar_dpp|has_sisa %} ds-kpi--warn{% endif %}" tabindex="0" title="Sisa Hutang (DPP) = Tagihan DPP − Terbayar DPP. Hanya DPP yang SUDAH DITAGIH tapi belum dibayar — inilah utang nyata ke vendor.">
       <div class="kpi-ico kpi-ico--rose"><i class="bi bi-wallet2"></i></div>
       <div><div class="ds-kpi__label">Sisa Hutang (DPP)</div><div class="ds-kpi__value">{{ (0 if belum_dibayar_dpp|abs <= eps else belum_dibayar_dpp)|money }}</div>
-        <div class="ds-kpi__hint">Sudah ditagih, belum dibayar &middot; Belum ditagih: {{ belum_ditagih_dpp|money }}</div></div>
+        <div class="ds-kpi__hint">Belum ditagih: {{ belum_ditagih_dpp|money }} &middot; Sisa tagihan: {{ sisa_tagihan_dpp|money }}</div></div>
     </div>
     <div class="ds-kpi ds-kpi--compact{% if belum_dibayar_ppn|has_sisa %} ds-kpi--warn{% endif %}" tabindex="0" title="Sisa Hutang (PPN) = Tagihan PPN − Terbayar PPN. Hanya PPN yang SUDAH DITAGIH tapi belum dibayar — inilah utang PPN nyata ke vendor.">
       <div class="kpi-ico kpi-ico--rose"><i class="bi bi-hourglass-split"></i></div>
       <div><div class="ds-kpi__label">Sisa Hutang (PPN)</div><div class="ds-kpi__value">{{ (0 if belum_dibayar_ppn|abs <= eps else belum_dibayar_ppn)|money }}</div>
-        <div class="ds-kpi__hint">Sudah ditagih, belum dibayar &middot; Belum ditagih: {{ belum_ditagih_ppn|money }}</div></div>
+        <div class="ds-kpi__hint">Belum ditagih: {{ belum_ditagih_ppn|money }} &middot; Sisa tagihan: {{ sisa_tagihan_ppn|money }}</div></div>
     </div>
   </div>
   {% endif %}
@@ -398,7 +402,7 @@
     <div class="kd-card__body">
       <p class="kd-hint" style="margin-bottom:10px">
         Cocok otomatis dengan kolom <strong>NO PO / KONTRAK</strong> pada data invoice
-        ({{ invoices|length }} baris).
+        ({{ invoices|length }} baris{% set _exc_n = invoices|selectattr('excluded', 'equalto', true)|list|length %}{% if _exc_n %} &middot; {{ _exc_n }} ter-exclude, tidak dihitung{% endif %}).
       </p>
       {% if invoices %}
       <div class="kd-scroll">
@@ -424,7 +428,7 @@
             {% set sisa_inv = (inv.harga or 0) - (inv.bayar or 0) %}
             {% set sisa_ppn_inv = (inv.nilai_ppn or 0) - (inv.bayar_ppn or 0) %}
             <tr>
-              <td class="cell-dim"><div class="cell-desc cell-invno" data-full="{{ inv.no_invoice or '' }}">{{ inv.no_invoice or '-' }}</div></td>
+              <td class="cell-dim"><div class="cell-desc cell-invno" data-full="{{ inv.no_invoice or '' }}">{{ inv.no_invoice or '-' }}</div>{% if inv.excluded %}<span class="kd-excl-flag" title="Kategori/rekanan di-exclude dari perhitungan (Exclude Invoice)"><i class="bi bi-eye-slash"></i></span>{% endif %}</td>
               <td>{{ inv.tgl_terima or '-' }}</td>
               <td>{{ inv.jth_tempo or '-' }}</td>
               <td><div class="cell-desc" data-full="{{ inv.deskripsi or '' }}">{{ inv.deskripsi or '-' }}</div></td>

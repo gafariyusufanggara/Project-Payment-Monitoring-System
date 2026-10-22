@@ -351,9 +351,12 @@ def _render_ppn(wb, ws, mdata, now_key, period_of, title_suffix='', project_id=N
     """
     from services.dashboard import _dedup_debt_rows
     from services.laporan import _col_letter, _po_sort_key, _resolve_pay_period
-    from constants import safe_float
+    from constants import safe_float, is_excluded_row
 
     raw = db.read_data(project_id=project_id)
+    # Exclude Invoice: samakan dengan ringkasan (_build_cum) — baris ter-exclude
+    # tidak boleh muncul lagi di detail export.
+    raw = [r for r in raw if not is_excluded_row(r)]
     raw = [r for r in raw if (r.get('STATUS TERHADAP PPN') or '').strip() not in ('Tidak ada PPN', '')]
     hist = defaultdict(list)
     for row in _dedup_debt_rows(raw):

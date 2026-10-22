@@ -18,7 +18,7 @@ Nominal penting (DPP / PPN / PPh / Retensi / Total) ikut dihitung per baris
 dan sebagai akumulasi, agar pengguna tahu berapa nilai dokumen yang masih
 dalam proses revisi.
 """
-from constants import safe_float
+from constants import safe_float, is_excluded_row
 
 import db
 
@@ -148,6 +148,9 @@ def get_document_status(project_id=None, data=None):
     if ignored:
         data = [row for row in data if row.get('_row') not in ignored]
 
+    # Exclude Invoice: baris ter-exclude tidak ikut perhitungan nominal.
+    data = [row for row in data if not is_excluded_row(row)]
+
     return _get_document_status(data, project_id=project_id)
 
 
@@ -166,6 +169,8 @@ def count_document_revisi(project_id=None):
     n = 0
     for row in data:
         if row.get('_row') in ignored:
+            continue
+        if is_excluded_row(row):
             continue
         if _is_blank(row.get(_COL_TGL_TERIMA)):
             n += 1

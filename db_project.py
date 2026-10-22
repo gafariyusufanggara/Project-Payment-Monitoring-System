@@ -9,7 +9,7 @@ import os
 import sqlite3
 from datetime import datetime
 
-from constants import safe_float, effective_invoice, status_retensi
+from constants import safe_float, effective_invoice, status_retensi, is_excluded_values, is_excluded_row
 
 DB_DIR = os.environ.get('DATA_DIR', os.path.dirname(os.path.abspath(__file__)))
 DB_FILE = os.path.join(DB_DIR, 'monitoring_hutang.db')
@@ -154,9 +154,8 @@ def get_retensi_rows(project_id=None):
 
     Sama seperti halaman Levelansir/Retensi (db.get_levelansir_retensi):
     retensi adalah uang yang ditahan (bukan utang aktif), sehingga TIDAK
-    disyaratkan TGL TERIMA dan TIDAK menerapkan aturan exclude. Semua baris
-    dengan POT. RETENSI > 0 dihitung, agar KPI retensi proyek mencakup
-    seluruh retensi.
+    disyaratkan TGL TERIMA. Aturan Exclude Invoice tetap berlaku: baris
+    ter-exclude tidak dihitung, agar KPI retensi konsisten di semua halaman.
 
     Returns list of dicts: {nama, total_retensi, total_cair, total_sisa_retensi,
                             jumlah_invoice, status_retensi, invoices: [...]}
@@ -189,6 +188,8 @@ def get_retensi_rows(project_id=None):
               {where}
             ORDER BY "NAMA LEVELANSIR / REKANAN", _row
         ''', params).fetchall()
+
+    rows = [r for r in rows if not is_excluded_values(r['kategori'], r['nama'])]
 
     grouped = {}
     for r in rows:
@@ -342,10 +343,11 @@ def get_project_finansial(project_id):
 
     # Retensi & PPh adalah uang yang DITAHAN/DISETOR (pengurang tagihan), bukan
     # utang ke vendor — dihitung dari baris proyek yg sama, dgn aturan yang
-    # sama seperti get_retensi_rows (tanpa syarat TGL TERIMA) agar angka
-    # retensi proyek cocok dgn halaman Levelansir/Retensi.
+    # sama seperti get_retensi_rows (tanpa syarat TGL TERIMA, tetap
+    # mengecualikan baris Exclude Invoice) agar angka retensi proyek cocok
+    # dgn halaman Levelansir/Retensi.
     import db as _db
-    retensi_rows = _db.read_data(project_id)
+    retensi_rows = [r for r in _db.read_data(project_id) if not is_excluded_row(r)]
     total_retensi = sum(safe_float(r.get('POT. RETENSI')) for r in retensi_rows)
     total_pph = sum(safe_float(r.get('POT. PPH')) for r in rows)
     total_pph_paid = sum(safe_float(r.get('PEMBAYARAN POT. PPH')) for r in rows)

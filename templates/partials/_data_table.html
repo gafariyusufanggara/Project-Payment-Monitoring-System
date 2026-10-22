@@ -298,6 +298,7 @@
             data-sisa-dpp="{{ row['SISA HUTANG DPP']|default(0,true)|float }}"
             data-sisa-ppn="{{ row['SISA HUTANG PPN']|default(0,true)|float }}"
             data-row-idx="{{ row._row }}"
+            data-excluded="{{ '1' if row._row in excluded_rows else '0' }}"
             data-revisi="{{ '1' if (row['TGL TERIMA'] or '')|string|trim == '' else '0' }}"
           >
             <td class="col-sticky-left" data-type="num" data-v="{{ loop.index }}">

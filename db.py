@@ -5,7 +5,7 @@ import os
 import sqlite3
 from datetime import datetime, date
 
-from constants import COLUMNS, DATE_FIELDS, NUMERIC_FIELDS, safe_float, parse_date, calc_sisa, round_currency, status_retensi
+from constants import COLUMNS, DATE_FIELDS, NUMERIC_FIELDS, safe_float, parse_date, calc_sisa, round_currency, status_retensi, is_excluded_values
 
 DB_DIR = os.environ.get('DATA_DIR', os.path.dirname(os.path.abspath(__file__)))
 DB_FILE = os.path.join(DB_DIR, 'monitoring_hutang.db')
@@ -293,7 +293,8 @@ def get_levelansir_retensi(project_id=None):
                    "KODE BIAYA2"                AS kode_biaya,
                    "DESKRIPSI"                  AS deskripsi,
                    "SISA HUTANG (INCLD PPN)"   AS sisa_hutang,
-                   "STATUS TERHADAP DPP"        AS status_dpp
+                   "STATUS TERHADAP DPP"        AS status_dpp,
+                   "KATEGORI"                    AS kategori
             FROM hutang
             WHERE CAST(COALESCE("POT. RETENSI", '0') AS REAL) > 0
               AND "NAMA LEVELANSIR / REKANAN" IS NOT NULL
@@ -301,6 +302,10 @@ def get_levelansir_retensi(project_id=None):
               {where}
             ORDER BY "NAMA LEVELANSIR / REKANAN", _row
         ''', params).fetchall()
+
+    # Exclude Invoice: konsisten dengan halaman lain — baris ter-exclude tidak
+    # masuk perhitungan retensi.
+    rows = [r for r in rows if not is_excluded_values(r['kategori'], r['nama'])]
 
     # Group by nama
     grouped = {}

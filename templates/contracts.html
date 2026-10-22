@@ -62,6 +62,36 @@
      Sengaja netral (tanpa tint merah) supaya tidak terbaca sebagai tagihan
      yang menunggu pembayaran. */
   .kc-page #kcTable tbody td.kc-belum { color: #667080; }
+  /* ---- Pengelompokan kolom (2 baris header) ----
+     Warna = penanda KELOMPOK, bukan status pembayaran:
+       netral=identitas, biru=DPP, ungu=PPN, amber=sisa/utang, teal=status.
+     Label grup sengaja pendek; penjelasan lengkap ada di title agar tidak
+     ambigu dengan istilah "Sisa Tagihan" pada KPI. */
+  .kc-page #kcTable thead tr.kc-grp-row th.kc-grp {
+    padding: 4px 10px; font-size: 0.58rem; letter-spacing: 0.7px;
+    text-align: center; vertical-align: middle;
+    border-bottom: 1px solid rgba(36, 72, 102, 0.14);
+  }
+  .kc-page #kcTable thead tr.kc-grp-row th.kc-grp-label { text-align: left; }
+  .kc-grp-id { background: #e8eef4 !important; color: #3d4b5c !important; }
+  .kc-grp-dpp { background: #d9e8f7 !important; color: #1d4d78 !important; }
+  .kc-grp-ppn { background: #e6e0f6 !important; color: #4a3785 !important; }
+  .kc-grp-sisa { background: #fbeac4 !important; color: #6f5200 !important; }
+  .kc-grp-stat { background: #d7ece6 !important; color: #12594f !important; }
+  /* Tint badan tabel sangat tipis: angka tetap dominan, dan tint status
+     (kc-owe) sengaja menang lewat specificity lebih tinggi. */
+  #kcTable tbody td:nth-child(-n+3) { background: #f8fafc; }
+  #kcTable tbody td:nth-child(n+4):nth-child(-n+7) { background: #f5f9fd; }
+  #kcTable tbody td:nth-child(n+8):nth-child(-n+12) { background: #f9f7fe; }
+  #kcTable tbody td:nth-child(n+13):nth-child(-n+16) { background: #fffdf5; }
+  #kcTable tbody td:nth-child(n+17) { background: #f5fbf9; }
+  /* Batas kelompok ikut turun sampai baris terakhir. */
+  #kcTable thead th:nth-child(4), #kcTable tbody td:nth-child(4),
+  #kcTable thead th:nth-child(8), #kcTable tbody td:nth-child(8),
+  #kcTable thead th:nth-child(13), #kcTable tbody td:nth-child(13),
+  #kcTable thead th:nth-child(17), #kcTable tbody td:nth-child(17) {
+    border-left: 2px solid #d5dce4;
+  }
   /* Pencocokan termin: pill "ditagih/total" dengan warna per status.
      Warna hanya menandai KONDISI (pas / berjalan / perlu diperiksa / belum
      bisa dicocokkan); angkanya tetap terbaca sebagai teks biasa. */
@@ -204,6 +234,16 @@
       <div class="table-scroll">
         <table class="table dt-table" id="kcTable" data-enhance="kontrak">
           <thead>
+            <tr class="kc-grp-row">
+              <th colspan="1" scope="colgroup" class="col-sticky-left kc-grp kc-grp-id" data-gstart="0" data-gspan="1" title="Nomor urut tampilan"></th>
+              <th colspan="1" scope="colgroup" class="col-sticky-left-2 kc-grp kc-grp-id kc-grp-label" data-gstart="1" data-gspan="1" title="Nomor, vendor/rekanan, dan item pekerjaan">Identitas</th>
+              <th colspan="1" scope="colgroup" class="kc-grp kc-grp-id" data-gstart="2" data-gspan="1"></th>
+              <th colspan="4" scope="colgroup" class="kc-grp kc-grp-dpp kc-grp-label" data-gstart="3" data-gspan="4" title="Nilai DPP kontrak, yang sudah ditagih, dan yang sudah dibayar.">DPP</th>
+              <th colspan="5" scope="colgroup" class="kc-grp kc-grp-ppn kc-grp-label" data-gstart="7" data-gspan="5" title="Nilai PPN kontrak, yang sudah ditagih, pembayaran, dan metode bayar PPN.">PPN</th>
+              <th colspan="4" scope="colgroup" class="kc-grp kc-grp-sisa kc-grp-label" data-gstart="12" data-gspan="4" title="Belum Ditagih = pekerjaan yang belum ada invoice-nya (bukan utang). Sisa Hutang = sudah ditagih tapi belum dibayar (utang nyata).">Sisa &amp; Hutang</th>
+              <th colspan="1" scope="colgroup" class="kc-grp kc-grp-stat kc-grp-label" data-gstart="16" data-gspan="1" title="Kecocokan invoice ke jadwal termin dan jumlah invoice aktif.">Status</th>
+              <th colspan="1" scope="colgroup" class="col-sticky-right kc-grp kc-grp-stat" data-gstart="17" data-gspan="1"></th>
+            </tr>
             <tr>
               <th class="col-sticky-left text-center" style="width: 48px">No.</th>
               <th class="col-sticky-left-2">Vendor / Rekanan</th>

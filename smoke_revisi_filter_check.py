@@ -73,8 +73,8 @@ for chunk in rows:
     flags.append(flag)
     tds = re.findall(r'<td\b[^>]*>', chunk)
     assert len(tds) >= 8, f"baris terlalu sedikit sel: {len(tds)}"
-    # Kolom index 7 = TGL TERIMA (Tgl Berkas Lengkap).
-    vm = re.search(r'data-v="([^"]*)"', tds[7])
+    # Kolom index 2 = TGL TERIMA (Tgl Berkas Lengkap); index 7 = TGL TERIMA BERKAS.
+    vm = re.search(r'data-v="([^"]*)"', tds[2])
     assert vm, "sel TGL TERIMA tanpa data-v"
     expected = '1' if vm.group(1).strip() == '' else '0'
     assert flag == expected, \

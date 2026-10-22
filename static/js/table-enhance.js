@@ -379,6 +379,26 @@
       return cellCache;
     }
 
+    /* Grouped header rows: a cell marked with data-gstart/data-gspan is a
+       colgroup header spanning leaf columns [gstart, gstart+gspan). Its
+       colspan must follow the hidden-column state, otherwise hiding a column
+       leaves the header spanning a column the body no longer renders.
+       Opt-in via the attributes, so other tables are untouched. */
+    function syncGroupSpans() {
+      if (!head) return;
+      Array.prototype.forEach.call(head.querySelectorAll('th[data-gspan]'), function (th) {
+        var start = parseInt(th.getAttribute('data-gstart'), 10);
+        var span = parseInt(th.getAttribute('data-gspan'), 10);
+        if (isNaN(start) || isNaN(span)) return;
+        var vis = 0;
+        for (var i = start; i < start + span; i++) {
+          if (!hidden[i]) vis++;
+        }
+        th.style.display = vis ? '' : 'none';
+        th.colSpan = Math.max(vis, 1);
+      });
+    }
+
     function applyColumns() {
       cells().forEach(function (col, i) {
         var d = hidden[i] ? 'none' : '';
@@ -388,6 +408,7 @@
         });
       });
       measureFrozen();
+      syncGroupSpans();
     }
 
     /* Density is fixed: every table renders compact. The toggle was removed —

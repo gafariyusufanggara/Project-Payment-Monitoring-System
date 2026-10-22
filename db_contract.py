@@ -18,7 +18,7 @@ import re
 import sqlite3
 from datetime import date
 
-from constants import safe_float, effective_invoice
+from constants import safe_float, effective_invoice, is_excluded_values
 
 DB_DIR = os.environ.get('DATA_DIR', os.path.dirname(os.path.abspath(__file__)))
 DB_FILE = os.path.join(DB_DIR, 'monitoring_hutang.db')
@@ -179,6 +179,7 @@ def _query_invoice_rows(project_id=None):
                 SELECT _row,
                        "NO PO / KONTRAK"              AS no_kontrak,
                        "NAMA LEVELANSIR / REKANAN"    AS rekanan,
+                       "KATEGORI"                     AS kategori,
                        "NO INVOICE"                   AS no_invoice,
                        "NO INVOICE INTERNAL"          AS no_invoice_internal,
                        "HARGA (EXLD)"                 AS harga,
@@ -235,7 +236,8 @@ def _dedup_key(r):
 def _aggregate(invoice_rows):
     """Kelompokkan baris hutang per nomor kontrak.
 
-    Return: {norm_no_kontrak: {tertagih, dibayar, sisa_hutang, jumlah_invoice}}
+    Return: {norm_no_kontrak: {tertagih, dibayar, sisa_hutang, jumlah_invoice,
+                               jumlah_invoice_excluded}}
     Dedup identik dengan db_project._dedup_hutang_rows: nilai HARGA (EXLD)
     dihitung sekali per (rekanan, invoice efektif), sedangkan PEMBAYARAN DPP
     dijumlahkan dari semua baris (cicilan dibayar per baris).
@@ -248,7 +250,13 @@ def _aggregate(invoice_rows):
             continue
         slot = agg.setdefault(key, {'tertagih': 0.0, 'tertagih_ppn': 0.0,
                                     'dibayar': 0.0, 'dibayar_ppn': 0.0,
-                                    'sisa_hutang': 0.0, 'jumlah_invoice': 0})
+                                    'sisa_hutang': 0.0, 'jumlah_invoice': 0,
+                                    'jumlah_invoice_excluded': 0})
+        # Aturan Exclude Invoice: baris ter-exclude tidak dihitung sama sekali,
+        # dan tidak boleh memakai slot dedup (invoice sama bisa punya baris aktif).
+        if is_excluded_values(r.get('kategori'), r.get('rekanan')):
+            slot['jumlah_invoice_excluded'] += 1
+            continue
         seen.setdefault(key, set())
         dedup_key = _dedup_key(r)
         if dedup_key in seen[key]:
@@ -284,7 +292,8 @@ def get_contracts(project_id=None):
         key = _norm_kontrak(c.get('no_kontrak'))
         a = agg.get(key, {'tertagih': 0.0, 'tertagih_ppn': 0.0,
                           'dibayar': 0.0, 'dibayar_ppn': 0.0,
-                          'sisa_hutang': 0.0, 'jumlah_invoice': 0})
+                          'sisa_hutang': 0.0, 'jumlah_invoice': 0,
+                          'jumlah_invoice_excluded': 0})
         nilai = safe_float(c.get('nilai_kontrak'))
         # Basis DPP: Total DPP dari Excel; fallback nilai_kontrak bila kosong
         # (Nilai Kontrak kadang sudah termasuk PPN, kadang tidak).
@@ -301,6 +310,7 @@ def get_contracts(project_id=None):
         c['dibayar_ppn'] = a['dibayar_ppn']
         c['sisa_hutang'] = a['sisa_hutang']
         c['jumlah_invoice'] = a['jumlah_invoice']
+        c['jumlah_invoice_excluded'] = a['jumlah_invoice_excluded']
         c['sisa_kontrak'] = dpp - tertagih
         # Tiga angka sisa yang HARUS dibedakan (lihat catatan di get_summary):
         #   sisa_kontrak      = dpp - tertagih          -> belum ditagih
@@ -322,7 +332,12 @@ def get_contracts(project_id=None):
         c['progres_ppn'] = ((a['dibayar_ppn'] / c['nilai_ppn'] * 100)
                             if c['nilai_ppn'] > 0 else 0.0)
         c['over_ppn'] = bool(c['nilai_ppn'] > 0 and a['dibayar_ppn'] > c['nilai_ppn'])
-        c['status_invoice'] = 'Ada Invoice' if a['jumlah_invoice'] > 0 else 'Belum Ada Invoice'
+        if a['jumlah_invoice'] > 0:
+            c['status_invoice'] = 'Ada Invoice'
+        elif a['jumlah_invoice_excluded'] > 0:
+            c['status_invoice'] = 'Semua Invoice Ter-exclude'
+        else:
+            c['status_invoice'] = 'Belum Ada Invoice'
         c['over'] = bool(dpp > 0 and a['dibayar'] > dpp)
         out.append(c)
 
@@ -334,7 +349,8 @@ def get_contracts(project_id=None):
         out = [c for c in out
                if str(c.get('project_id') or '') == pid
                or str(c.get('project_id') or '') == ''
-               or (c.get('jumlah_invoice') or 0) > 0]
+               or (c.get('jumlah_invoice') or 0) > 0
+               or (c.get('jumlah_invoice_excluded') or 0) > 0]
 
     # Pencocokan termin vs invoice per kontrak. Satu query untuk semua termin
     # (bukan per kontrak) supaya halaman daftar tidak kena N+1.
@@ -362,7 +378,8 @@ def get_contract(contract_id):
     a = _aggregate(_fetch_invoice_rows()).get(
         _norm_kontrak(c.get('no_kontrak')),
         {'tertagih': 0.0, 'tertagih_ppn': 0.0, 'dibayar': 0.0,
-         'dibayar_ppn': 0.0, 'sisa_hutang': 0.0, 'jumlah_invoice': 0})
+         'dibayar_ppn': 0.0, 'sisa_hutang': 0.0, 'jumlah_invoice': 0,
+         'jumlah_invoice_excluded': 0})
     nilai = safe_float(c.get('nilai_kontrak'))
     # Basis DPP, konsisten dengan get_contracts.
     dpp = safe_float(c.get('total_dpp')) or nilai
@@ -377,6 +394,7 @@ def get_contract(contract_id):
     c['dibayar_ppn'] = a['dibayar_ppn']
     c['sisa_hutang'] = a['sisa_hutang']
     c['jumlah_invoice'] = a['jumlah_invoice']
+    c['jumlah_invoice_excluded'] = a['jumlah_invoice_excluded']
     c['sisa_kontrak'] = dpp - tertagih
     c['sisa_tagihan'] = dpp - a['dibayar']
     c['sisa_tagihan_ppn'] = c['nilai_ppn'] - a['dibayar_ppn']
@@ -388,7 +406,12 @@ def get_contract(contract_id):
     # Pencocokan termin vs invoice (dipasang setelah semua nominal siap).
     c['termin_cocok'] = termin_progress(get_termins(contract_id), tertagih)
     c['over_ppn'] = bool(c['nilai_ppn'] > 0 and a['dibayar_ppn'] > c['nilai_ppn'])
-    c['status_invoice'] = 'Ada Invoice' if a['jumlah_invoice'] > 0 else 'Belum Ada Invoice'
+    if a['jumlah_invoice'] > 0:
+        c['status_invoice'] = 'Ada Invoice'
+    elif a['jumlah_invoice_excluded'] > 0:
+        c['status_invoice'] = 'Semua Invoice Ter-exclude'
+    else:
+        c['status_invoice'] = 'Belum Ada Invoice'
     c['over'] = bool(dpp > 0 and a['dibayar'] > dpp)
     return c
 
@@ -1142,7 +1165,11 @@ def _recalc_percent_all():
 # ---------------------------------------------------------------------------
 
 def get_contract_invoices(no_kontrak):
-    """Daftar invoice yang memakai nomor kontrak ini (exact match)."""
+    """Daftar invoice yang memakai nomor kontrak ini (exact match).
+
+    Baris ter-exclude tetap ditampilkan (dengan flag 'excluded') agar bisa
+    diaudit, tetapi tidak ikut agregasi KPI kontrak.
+    """
     key = _norm_kontrak(no_kontrak)
     out = []
     seen = set()
@@ -1158,6 +1185,7 @@ def get_contract_invoices(no_kontrak):
             '_row': r.get('_row'),
             'rekanan': rekan,
             'no_invoice': inv,
+            'excluded': is_excluded_values(r.get('kategori'), rekan),
             'tgl_terima': r.get('tgl_terima') or '',
             'jth_tempo': r.get('jth_tempo') or '',
             'tgl_inv': r.get('tgl_inv') or '',
@@ -1188,6 +1216,7 @@ def _linked_invoice_counts(project_id, known_keys):
     Belum lunas = sisa DPP > 0 (HARGA (EXLD) - PEMBAYARAN DPP).
     Jatuh tempo = belum lunas dan JTH TEMPO <= hari ini.
     Dedup per (rekanan, invoice efektif) — sighting ganda tidak dihitung dua kali.
+    Baris ter-exclude (Exclude Invoice) tidak dihitung.
     """
     from constants import parse_date
     import datetime as _dt
@@ -1196,6 +1225,8 @@ def _linked_invoice_counts(project_id, known_keys):
     seen = set()
     for r in _fetch_invoice_rows(project_id):
         if _norm_kontrak(r.get('no_kontrak')) not in known_keys:
+            continue
+        if is_excluded_values(r.get('kategori'), r.get('rekanan')):
             continue
         dk = _dedup_key(r)
         if dk in seen:
@@ -1284,6 +1315,8 @@ def get_unmatched_contract_nos(project_id=None):
     missing = {}
     for r in _fetch_invoice_rows(project_id):
         if db_ignore.normalize_vendor(r.get('rekanan')) in ignored_vendors:
+            continue
+        if is_excluded_values(r.get('kategori'), r.get('rekanan')):
             continue
         key = _norm_kontrak(r.get('no_kontrak'))
         if key and key not in known:

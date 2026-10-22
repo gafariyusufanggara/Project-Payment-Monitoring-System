@@ -246,15 +246,21 @@ def load_excluded():
 EXCLUDED_CATEGORIES, EXCLUDED_REKANAN = load_excluded()
 
 
-def is_excluded_row(row):
-    """True if row's KATEGORI or NAMA LEVELANSIR/REKANAN is excluded (case-insensitive)."""
-    kat = (row.get('KATEGORI') or '').strip()
+def is_excluded_values(kategori, rekanan):
+    """True if KATEGORI or rekanan is excluded (case-insensitive)."""
+    kat = (kategori or '').strip()
     if kat and kat.lower() in {c.lower() for c in EXCLUDED_CATEGORIES}:
         return True
-    rek = (row.get('NAMA LEVELANSIR / REKANAN') or '').strip()
+    rek = (rekanan or '').strip()
     if rek and rek.lower() in {r.lower() for r in EXCLUDED_REKANAN}:
         return True
     return False
+
+
+def is_excluded_row(row):
+    """True if row's KATEGORI or NAMA LEVELANSIR/REKANAN is excluded (case-insensitive)."""
+    return is_excluded_values(row.get('KATEGORI'),
+                              row.get('NAMA LEVELANSIR / REKANAN'))
 
 
 # ========== VALUE HELPERS ==========

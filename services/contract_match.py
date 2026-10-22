@@ -25,7 +25,7 @@ from difflib import SequenceMatcher
 
 import db
 import db_contract
-from constants import safe_float
+from constants import safe_float, is_excluded_row
 
 # Ambang kemiripan (0..1). 0.90 dipilih konservatif: cukup tinggi untuk
 # menangkap typo 1-2 karakter, tapi tidak menandai nomor yang strukturnya
@@ -76,6 +76,8 @@ def find_po_similarity(project_id=None):
         }
     """
     data = db.read_data(project_id=project_id)
+    # Exclude Invoice: baris ter-exclude tidak ikut perhitungan nilai/nomor PO.
+    data = [r for r in data if not is_excluded_row(r)]
     contracts = db_contract.get_contracts(project_id if project_id not in (None, '', 'all') else 'all')
 
     # Nomor kontrak + vendor, dengan versi normalized untuk exact-match.

@@ -10,7 +10,7 @@ import re
 from collections import OrderedDict
 
 import db
-from constants import safe_float, effective_invoice
+from constants import safe_float, effective_invoice, is_excluded_row
 
 
 def _base_invoice(row):
@@ -23,7 +23,9 @@ def _base_invoice(row):
 
 
 def get_cicilan_data(project_id=None):
-    data = db.read_data(project_id=project_id)
+    # Exclude Invoice: baris ter-exclude tidak ikut perhitungan (KPI + subtotal).
+    data = [r for r in db.read_data(project_id=project_id)
+            if not is_excluded_row(r)]
     groups = OrderedDict()
 
     for row in data:

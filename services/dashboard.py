@@ -104,10 +104,12 @@ def build_dashboard_context(project_id=None, for_table=False):
     total_tagihan = sum(safe_float(r.get('TOTAL (INCLD)')) for r in deduped)
     # Total Retensi: matches the Levelansir/Retensi page (db.get_levelansir_retensi).
     # Retensi = uang yang ditahan (bukan utang aktif), sehingga dihitung dari
-    # SEMUA baris dengan POT. RETENSI > 0 — tanpa syarat TGL TERIMA, tanpa
-    # aturan exclude, dan tanpa dedup.
-    total_retensi = sum(safe_float(r.get('POT. RETENSI')) for r in data)
-    total_pph = sum(safe_float(r.get('POT. PPH')) for r in data)
+    # semua baris dengan POT. RETENSI > 0 — tanpa syarat TGL TERIMA dan tanpa
+    # dedup — tetapi baris Exclude Invoice tetap dibuang agar konsisten dengan
+    # semua halaman lain.
+    _active = [r for r in data if not is_excluded_row(r)]
+    total_retensi = sum(safe_float(r.get('POT. RETENSI')) for r in _active)
+    total_pph = sum(safe_float(r.get('POT. PPH')) for r in _active)
     # PPh yang sudah dibayar/disetor (kolom PEMBAYARAN POT. PPH) — dipakai baris
     # PPh di tabel "Status Distribusi" agar konsisten dgn DPP/PPN.
     total_pph_paid = sum(safe_float(r.get('PEMBAYARAN POT. PPH')) for r in calc)

@@ -274,7 +274,7 @@ function updateFootTotals() {
     });
     const sums = moneyIdx.map(() => 0);
     table.tBodies[0].querySelectorAll('tr').forEach(tr => {
-        if (tr.dataset.filterPass === '0') return;
+        if (tr.dataset.filterPass === '0' || tr.dataset.excluded === '1') return;
         moneyIdx.forEach((ci, k) => {
             const td = tr.cells[ci];
             const v = parseFloat(td && td.dataset.v) || 0;

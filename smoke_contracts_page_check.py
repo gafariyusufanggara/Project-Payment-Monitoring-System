@@ -10,6 +10,7 @@ PPN, Sisa Tagihan di akhir).
 Run:  python smoke_contracts_page_check.py
 Read-only terhadap data nyata.
 """
+import html as htmlmod
 import os
 import re
 import sys
@@ -161,8 +162,13 @@ assert 'Sisa Tagih (' not in html, "label lama 'Sisa Tagih' masih ada"
 print('[4] label kolom OK: Sisa Tagihan (total) + Belum Ditagih/Sisa Hutang (rincian)')
 
 # --- 4b. Urutan kolom: blok DPP, blok PPN, sisa di akhir ---
+# Header kini 2 baris (baris grup + baris label). Yang menentukan urutan
+# kolom data adalah baris TERAKHIR; baris grup hanya penanda visual.
+_thead = re.search(r'<thead>(.*?)</thead>', html, re.S).group(1)
+_trows = re.findall(r'<tr\b[^>]*>(.*?)</tr>', _thead, re.S)
+_leaf_row = _trows[-1]
 _hdr = [re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', ' ', th)).strip() for th in
-        re.findall(r'<th[^>]*>(.*?)</th>', html, re.S)]
+        re.findall(r'<th[^>]*>(.*?)</th>', _leaf_row, re.S)]
 _hdr = [_h for _h in _hdr if _h][:18]
 _expected = ['No.', 'Vendor / Rekanan', 'Item Pekerjaan',
              'DPP Kontrak', 'Tagihan DPP', 'Bayar DPP (Rp)', 'Bayar DPP (%)',
@@ -173,6 +179,23 @@ _expected = ['No.', 'Vendor / Rekanan', 'Item Pekerjaan',
              'Termin Ditagih', 'Stat. Invoice']
 assert _hdr == _expected, f'urutan kolom salah:\n{_hdr}\n!=\n{_expected}'
 print('[4b] urutan kolom OK: DPP -> PPN, Belum Ditagih + Sisa Hutang per pajak')
+
+# --- 4b1. Baris grup kolom: label + rentang span harus menutup 18 kolom ---
+_grow = _trows[0]
+_gtxt = [htmlmod.unescape(re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', ' ', th)).strip())
+         for th in re.findall(r'<th[^>]*>(.*?)</th>', _grow, re.S)]
+_gspans = [(int(a), int(b)) for a, b in
+           re.findall(r'data-gstart="(\d+)"\s+data-gspan="(\d+)"', _grow)]
+assert _gtxt == ['', 'Identitas', '', 'DPP', 'PPN', 'Sisa & Hutang', 'Status', ''], \
+    f'label grup kolom salah: {_gtxt}'
+assert [a for a, _ in _gspans] == [0, 1, 2, 3, 7, 12, 16, 17], \
+    f'data-gstart grup salah: {_gspans}'
+assert sum(b for _, b in _gspans) == 18, \
+    f'total span grup {sum(b for _, b in _gspans)} != 18 kolom'
+assert all(re.search(r'class="[^"]*kc-grp-(id|dpp|ppn|sisa|stat)', th)
+           for th in re.findall(r'<th[^>]*data-gspan[^>]*>', _grow)), \
+    'setiap sel grup harus punya kelas warna kc-grp-*'
+print('[4b1] grup kolom OK: Identitas | DPP | PPN | Sisa & Hutang | Status (18 kolom)')
 
 # --- 4b2. Urut ALAMIAH menurut No. PO/Kontrak ---
 # Regresi: ORDER BY teks membuat "PB.10" < "PB.9" dan "PB.100" < "PB.2",

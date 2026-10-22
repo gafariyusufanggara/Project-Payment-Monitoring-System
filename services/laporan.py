@@ -757,9 +757,14 @@ def _render_lbp(wb, ws, mdata, now_key, period_of, title_suffix='', project_id=N
                      exported invoice rows agree with the vendor summary numbers.
     """
     # Full invoice history per rekan (detail rows) — deduped so detail rows match vendor summary.
+    # Exclude Invoice diterapkan agar export tidak memunculkan baris yang
+    # disembunyikan dari ringkasan (_build_cum).
     from services.dashboard import _dedup_debt_rows
+    from constants import is_excluded_row
     hist = defaultdict(list)
     for row in _dedup_debt_rows(db.read_data(project_id=project_id)):
+        if is_excluded_row(row):
+            continue
         # Cut Off: skip invoices received after the cutoff date, exactly like
         # _build_cum does, so detail rows can't reintroduce data the summary hid.
         if cutoff_date is not None:
