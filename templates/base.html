@@ -518,7 +518,7 @@
           try {
               if (typeof Chart === 'undefined' || !Chart.getChart) return;
               const scope = root || document;
-              ['chartKategori', 'chartAging', 'chartMonthly', 'chartDaily'].forEach(function (id) {
+               ['chartKategori', 'chartAging', 'chartMonthly', 'chartDaily', 'chartJtMonthly'].forEach(function (id) {
                   const el = scope.getElementById ? scope.getElementById(id) : document.getElementById(id);
                   const inst = el && Chart.getChart(el);
                   if (inst) inst.destroy();

@@ -1,0 +1,34 @@
+477:     plugins: [{
+478:       id: 'jtDataLabels',
+479:       afterDatasetsDraw(chart) {
+480:         const { ctx: cx } = chart;
+481:         const yScale = chart.scales.y;
+482:         // Draw hutang total label above stacked bar — only when bar is tall enough
+483:         const metaStack = chart.getDatasetMeta(1); // bayar = top of stack
+484:         if (!metaStack || !metaStack.data) return;
+485:         const maxHutang = Math.max(...hutang, 1);
+486:         metaStack.data.forEach((pt, i) => {
+487:           const h = hutang[i] || 0;
+488:           // Skip: no debt, or bar too short to fit label without overlap
+489:           if (!h || h < maxHutang * 0.05) return;
+490:           // Skip if point is at/above chart top (value == yMax)
+491:           if (pt.y <= yScale.top + 14) return;
+492:           const txt = fmtMoney(h);
+493:           cx.save();
+494:           cx.font = '700 10px Inter, system-ui, sans-serif';
+495:           cx.fillStyle = '#16324f';
+496:           cx.textAlign = 'center';
+497:           cx.textBaseline = 'bottom';
+498:           cx.fillText(txt, pt.x, pt.y - 6);
+499:           cx.restore();
+500:         });
+501:       }
+502:     }]
+503:   });
+504: }
+505: ensureChartJs(initJtChart);
+506: document.addEventListener('htmx:afterSwap', function () { initJtChart(); });
+507: 
+508: function esc(s) {
+509:   const A = String.fromCharCode(38);
+510:   return String(s || '-').replace(/[&<>]/g, c => c === '&' ? A + 'amp;' : c === '<' ? A + 'lt;' : A + 'gt;');

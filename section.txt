@@ -1,0 +1,140 @@
+371:         {
+372:           label: 'Hutang DPP',
+373:           data: stackedHutang,
+374:           backgroundColor: '#16324f',
+375:           borderRadius: { topLeft: 0, topRight: 0, bottomLeft: 4, bottomRight: 4 },
+376:           borderSkipped: false,
+377:           stack: 'jt'
+378:         },
+379:         {
+380:           label: 'Bayar DPP',
+381:           data: stackedBayar,
+382:           backgroundColor: '#0f766e',
+383:           borderRadius: { topLeft: 6, topRight: 6, bottomLeft: 0, bottomRight: 0 },
+384:           borderSkipped: false,
+385:           stack: 'jt',
+386:         },
+387:         {
+388:           label: 'Sisa DPP',
+389:           data: sisa,
+390:           type: 'line',
+391:           borderColor: '#b42318',
+392:           backgroundColor: 'rgba(180,35,24,0.08)',
+393:           borderWidth: 2.5,
+394:           pointRadius: 4,
+395:           pointBackgroundColor: '#b42318',
+396:           pointBorderColor: '#fff',
+397:           pointBorderWidth: 2,
+398:           pointHoverRadius: 6,
+399:           tension: 0.3,
+400:           fill: false,
+401:           order: 1
+402:         }
+403:       ]
+404:     },
+405:     options: {
+406:       responsive: true,
+407:       maintainAspectRatio: false,
+408:       interaction: { mode: 'index', intersect: false },
+409:       plugins: {
+410:         legend: {
+411:           position: 'top',
+412:           align: 'end',
+413:           labels: { boxWidth: 14, padding: 12, font: { size: 11 }, usePointStyle: true, pointStyleWidth: 14 }
+414:         },
+415:         tooltip: {
+416:           backgroundColor: '#16324f',
+417:           titleColor: '#fff',
+418:           bodyColor: '#eef0f2',
+419:           borderColor: '#0f766e',
+420:           borderWidth: 1,
+421:           cornerRadius: 8,
+422:           padding: 12,
+423:           titleFont: { size: 12, weight: '700' },
+424:           bodyFont: { size: 11 },
+425:           callbacks: {
+426:             title: items => DATA[Math.min(items[0].dataIndex, DATA.length-1)]?.label || '',
+427:             label: function(ctx) {
+428:               const i = ctx.dataIndex;
+429:               const h = hutang[i] || 0;
+430:               const b = bayar[i] || 0;
+431:               const s = sisa[i] || 0;
+432:               const pct = h > 0 ? ((b / h) * 100).toFixed(1) : '0.0';
+433:               if (ctx.dataset.label === 'Hutang DPP') return ' Hutang DPP: ' + fmtMoney(h);
+434:               if (ctx.dataset.label === 'Bayar DPP')  return ' Bayar DPP:  ' + fmtMoney(b);
+435:               if (ctx.dataset.label === 'Sisa DPP')   return ' Sisa DPP:   ' + fmtMoney(s);
+436:               return '';
+437:             },
+438:             afterLabel: function(ctx) {
+439:               if (ctx.dataset.label !== 'Sisa DPP') return '';
+440:               const i = ctx.dataIndex;
+441:               const h = hutang[i] || 0;
+442:               const b = bayar[i] || 0;
+443:               const pct = h > 0 ? ((b / h) * 100).toFixed(1) : '0.0';
+444:               return ' Pencapaian: ' + pct + '%';
+445:             }
+446:           }
+447:         }
+448:       },
+449:       scales: {
+450:         x: {
+451:           stacked: true,
+452:           grid: { display: false },
+453:           ticks: {
+454:             font: { size: 10, weight: '600' },
+455:             color: '#4d5766',
+456:             callback: function(val, idx) {
+457:               const yr = years[idx];
+458:               const prevYr = idx > 0 ? years[idx - 1] : '';
+459:               // Sembunyikan label tahun jika duplikat berturut-turut
+460:               return yr && yr !== prevYr ? yr + '\n' + labels[idx] : labels[idx];
+461:             }
+462:           }
+463:         },
+464:         y: {
+465:           stacked: true,
+466:           beginAtZero: true,
+467:           max: yMax,
+468:           grid: { color: '#eef0f2' },
+469:           ticks: {
+470:             font: { size: 10 },
+471:             color: '#667080',
+472:             callback: v => fmtAxis(v)
+473:           }
+474:         }
+475:       }
+476:     },
+477:     plugins: [{
+478:       id: 'jtDataLabels',
+479:       afterDatasetsDraw(chart) {
+480:         const { ctx: cx } = chart;
+481:         const yScale = chart.scales.y;
+482:         const xScale = chart.scales.x;
+483:         // Draw total (hutang) label above each stacked bar
+484:         const metaStack = chart.getDatasetMeta(1); // bayar dataset (top of stack)
+485:         if (!metaStack || !metaStack.data) return;
+486:         metaStack.data.forEach((pt, i) => {
+487:           const h = hutang[i] || 0;
+488:           if (!h) return;
+489:           const txt = fmtMoney(h);
+490:           cx.save();
+491:           cx.font = '700 10px Inter, system-ui, sans-serif';
+492:           cx.fillStyle = '#16324f';
+493:           cx.textAlign = 'center';
+494:           cx.textBaseline = 'bottom';
+495:           cx.fillText(txt, pt.x, pt.y - 6);
+496:           cx.restore();
+497:         });
+498:       }
+499:     }]
+500:   });
+501: }
+502: ensureChartJs(initJtChart);
+503: document.addEventListener('htmx:afterSwap', function () { initJtChart(); });
+504: 
+505: function esc(s) {
+506:   const A = String.fromCharCode(38);
+507:   return String(s || '-').replace(/[&<>]/g, c => c === '&' ? A + 'amp;' : c === '<' ? A + 'lt;' : A + 'gt;');
+508: }
+509: function fmt(v) { return Math.round(Number(v||0)).toLocaleString('id-ID'); }
+510: 
