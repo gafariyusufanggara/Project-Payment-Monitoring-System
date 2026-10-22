@@ -430,7 +430,11 @@
       document.addEventListener('DOMContentLoaded', function () {
           if (!window.htmx) return;
           htmx.config.scrollIntoViewOnBoost = false;   // jangan auto-scroll ke atas saat swap
-          htmx.config.historyCacheSize = 10;
+          // Riwayat browser diurus sendiri di navigateTo()/popstate: back/forward
+          // memuat ulang #mainContent lewat pipeline HTMX, bukan snapshot DOM.
+          // Snapshot htmx menyimpan overlay loader yang sedang aktif (diambil
+          // setelah response, sebelum swap) sehingga back berhenti di spinner.
+          htmx.config.historyEnabled = false;
           htmx.config.defaultSwapStyle = 'innerHTML';
       });
 
@@ -461,13 +465,9 @@
           if (window.Toast && Toast.err) Toast.err('Koneksi bermasalah. Coba lagi.');
       });
 
-      // Saat back/forward browser memulihkan snapshot dari cache HTMX,
-      // pastikan menu aktif & handler halaman ikut disinkronkan.
-      document.addEventListener('      htmx:historyRestore', function () {
-          hideNavLoader();
-          updateActiveNav();
-          runPageReady();
-          syncSidebarState();
+      // Fail-safe: halaman dari bfcache bisa membawa state loader yang beku.
+      window.addEventListener('pageshow', function (evt) {
+          if (evt.persisted) hideNavLoader();
       });
 
       let _tableEnhancePromise = null;
@@ -702,8 +702,10 @@
            saveSidebarScroll();
           updateActiveNav(url.split('?')[0]);
           if (window.htmx && isHtmxReady(url)) {
-              // Push URL didorong server via header HX-Push-Url (lihat app.py):
-              // htmx.ajax di HTMX 2.0.4 mengabaikan opsi pushUrl.
+              // htmx.ajax() di HTMX 2.0.4 mengabaikan opsi pushUrl, jadi URL
+              // didorong sendiri. historyEnabled=false → htmx tidak menyimpan
+              // snapshot dan tidak ikut menangani tombol back.
+              history.pushState({ appNav: true }, '', url);
               htmx.ajax('GET', url, {
                   target: '#mainContent',
                   select: '#mainContent',
@@ -713,6 +715,19 @@
               window.location.href = url;
           }
       }
+
+      // Back/forward: muat ulang halaman lewat pipeline HTMX yang sama seperti
+      // navigasi biasa (handler lama dibuang di htmx:beforeSwap, script halaman
+      // dieksekusi ulang, tabel di-enhance ulang). Snapshot DOM htmx tidak dipakai
+      // karena membekukan overlay loader dan meninggalkan kontrol tabel mati.
+      window.addEventListener('popstate', function () {
+          if (!window.htmx || !isHtmxReady(location.pathname)) return;
+          htmx.ajax('GET', location.pathname + location.search, {
+              target: '#mainContent',
+              select: '#mainContent',
+              swap: 'outerHTML',
+          });
+      });
 
       // ═══ Sidebar scroll persistence (jangan reset saat pindah page) ═══
       function saveSidebarScroll() {

@@ -266,17 +266,6 @@ def _require_login():
     return redirect(url_for('auth.login', next=request.path))
 
 
-# ── HTMX: dorong URL ke history browser untuk navigasi sidebar ──
-# htmx.ajax() di HTMX 2.0.4 mengabaikan opsi pushUrl, sehingga address bar
-# tidak berubah dan highlight menu (yang membaca location.pathname) basi.
-# Header HX-Push-Url adalah mekanisme bawaan HTMX yang didukung.
-@app.after_request
-def _hx_push_url(response):
-    if request.headers.get('HX-Request') == 'true':
-        response.headers['HX-Push-Url'] = request.path
-    return response
-
-
 def init_db_all():
     data_dir = os.environ.get('DATA_DIR')
     if data_dir:
