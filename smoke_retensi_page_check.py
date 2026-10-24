@@ -31,10 +31,10 @@ def render_levelansir():
     total = sum(g['total_retensi'] for g in groups)
     cair = sum(g['total_cair'] for g in groups)
     # Pecahan per status — harus sama persis dengan controllers/main.py.
-    ditahan = sum(g['total_sisa_retensi'] for g in groups
-               if g['status_retensi'] in ('Ditahan', 'Cair Sebagian'))
-    belum_ditahan = sum(g['total_sisa_retensi'] for g in groups
-                   if g['status_retensi'] not in ('Ditahan', 'Cair Sebagian', 'Lunas'))
+    ditahan = sum(inv['sisa_retensi'] for g in groups for inv in g['invoices']
+                  if inv['status_retensi'] in ('Ditahan', 'Cair Sebagian'))
+    belum_ditahan = sum(inv['sisa_retensi'] for g in groups for inv in g['invoices']
+                       if inv['status_retensi'] == 'Belum Dibayar')
     with app.test_request_context('/levelansir-retensi'):
         return render_template(
             'levelansir_retensi.html',
@@ -44,8 +44,8 @@ def render_levelansir():
             total_belum_cair=total - cair,
             retensi_ditahan=ditahan,
             retensi_belum_ditahan=belum_ditahan,
-            retensi_dibayar_sebagian=sum(g['total_cair'] for g in groups
-                                         if g['status_retensi'] == 'Cair Sebagian'),
+            retensi_dibayar_sebagian=sum(inv['retensi_cair'] for g in groups for inv in g['invoices']
+                                         if inv['status_retensi'] == 'Cair Sebagian'),
             total_setelah_retensi=sum(i['total'] for g in groups for i in g['invoices']),
             total_levelansir=len(groups),
             total_invoices=sum(g['jumlah_invoice'] for g in groups),
@@ -92,12 +92,12 @@ print(f'[3] KPI retensi OK: total {total:,.0f}, cair {cair:,.0f}, belum {belum:,
 # Regresi yang dikunci: dulu KPI memakai (total - sudah dibayar) sehingga
 # "Cair" selalu Rp 0 dan "Belum Cair" selalu == Total -> dua kartu tidak
 # menambah informasi. Retensi = utang ke vendor, jadi bahasanya hutang.
-ditahan = sum(g['total_sisa_retensi'] for g in groups
-           if g['status_retensi'] in ('Ditahan', 'Cair Sebagian'))
-belum_ditahan = sum(g['total_sisa_retensi'] for g in groups
-               if g['status_retensi'] not in ('Ditahan', 'Cair Sebagian', 'Lunas'))
-sebagian_dibayar = sum(g['total_cair'] for g in groups
-                       if g['status_retensi'] == 'Cair Sebagian')
+ditahan = sum(inv['sisa_retensi'] for g in groups for inv in g['invoices']
+              if inv['status_retensi'] in ('Ditahan', 'Cair Sebagian'))
+belum_ditahan = sum(inv['sisa_retensi'] for g in groups for inv in g['invoices']
+                    if inv['status_retensi'] == 'Belum Dibayar')
+sebagian_dibayar = sum(inv['retensi_cair'] for g in groups for inv in g['invoices']
+                       if inv['status_retensi'] == 'Cair Sebagian')
 assert abs(ditahan + belum_ditahan + sebagian_dibayar + (cair - sebagian_dibayar) - total) < 0.01, \
     f'identitas KPI gagal: {ditahan:,.0f}+{belum_ditahan:,.0f}+{sebagian_dibayar:,.0f} != {total:,.0f}'
 assert abs(belum - (ditahan + belum_ditahan)) < 0.01, \

@@ -279,18 +279,19 @@ def levelansir_retensi():
     retensi_belum_ditahan = 0.0
     retensi_dibayar_sebagian = 0.0
     for _lv in levelansir_list:
-        _st = _lv.get('status_retensi')
-        if _st == 'Ditahan':
-            retensi_ditahan += _lv.get('total_sisa_retensi', 0.0)
-        elif _st == 'Cair Sebagian':
-            # DPP sudah lewat batas retensi: sisa yang masih ditahan masuk
-            # kelompok ditahan, bagian yang sudah dibayar dicatat terpisah.
-            retensi_dibayar_sebagian += _lv.get('total_cair', 0.0)
-            retensi_ditahan += _lv.get('total_sisa_retensi', 0.0)
-        elif _st == 'Lunas':
-            pass  # utang retensi sudah dibayar penuh, terwakili total_cair
-        else:  # 'Belum Dibayar' — termasuk invoice yang belum dibayar sama sekali
-            retensi_belum_ditahan += _lv.get('total_sisa_retensi', 0.0)
+        for inv in _lv.get('invoices', []):
+            _st = inv.get('status_retensi')
+            if _st == 'Ditahan':
+                retensi_ditahan += inv.get('sisa_retensi', 0.0)
+            elif _st == 'Cair Sebagian':
+                # DPP sudah lewat batas retensi: sisa yang masih ditahan masuk
+                # kelompok ditahan, bagian yang sudah dibayar dicatat terpisah.
+                retensi_dibayar_sebagian += inv.get('retensi_cair', 0.0)
+                retensi_ditahan += inv.get('sisa_retensi', 0.0)
+            elif _st == 'Lunas':
+                pass  # utang retensi sudah dibayar penuh
+            else:  # 'Belum Dibayar' — termasuk invoice yang belum dibayar sama sekali
+                retensi_belum_ditahan += inv.get('sisa_retensi', 0.0)
 
     return render_template(
         'levelansir_retensi.html',
