@@ -42,7 +42,7 @@
   --ds-fs-md: 0.85rem;    /* body standar, nilai ringkasan */
   --ds-fs-lg: 1rem;       /* judul kartu */
   --ds-fs-xl: 1.25rem;    /* judul halaman */
-  --ds-fs-2xl: 1.05rem;   /* angka KPI compact (satu ukuran utk semua halaman) */
+  --ds-fs-2xl: 1.45rem;   /* angka KPI compact (satu ukuran utk semua halaman) */
   --ds-fs-hero: 2rem;     /* angka hero dashboard */
 
   /* ── Aksen tunggal (tema 1-tone) + status colors ── */
@@ -418,6 +418,13 @@
   line-height: 1.15;
   color: var(--ds-text);
   font-variant-numeric: tabular-nums;
+}
+
+/* Angka KPI compact memakai satu variabel untuk SEMUA halaman.
+   Ditaruh setelah penetral di atas dan memakai specificity setara
+   (.ds-kpi .ds-kpi__value.ds-kpi__value) agar benar-benar menang. */
+.ds-kpi--compact .ds-kpi__value.ds-kpi__value {
+  font-size: var(--ds-fs-2xl);
 }
 
 /* aksen bar: halaman laporan pakai ::before sendiri, samakan warnanya */
@@ -816,6 +823,16 @@
   justify-content: center;
   padding: var(--ds-sp-5);
   background: var(--bg);
+}
+
+/* Login ikut skala global (--ui-zoom di base.css): tinggi 100vh harus
+   dikompensasi, kalau tidak kartu login berhenti 10% di atas dasar layar. */
+@media (min-width: 769px) {
+  @supports (zoom: 1) {
+    .auth-wrap {
+      min-height: calc(100vh / var(--ui-zoom));
+    }
+  }
 }
 
 .auth-card {

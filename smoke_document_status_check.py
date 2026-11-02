@@ -160,8 +160,8 @@ if rows:
 assert '>Tgl Berkas</th>' in tpl, "template tak memuat kolom 'Tgl Berkas'"
 assert re.search(r'>Tgl Berkas</th>\s*<th[^>]*>Tgl Berkas Lengkap</th>', tpl), \
     "kolom 'Tgl Berkas' harus tepat SEBELUM kolom 'Tgl Berkas Lengkap'"
-assert re.search(r'\{\{ row\.tgl_berkas or \'-\' \}\}', tpl), \
-    "sel 'Tgl Berkas' harus merender row.tgl_berkas dgn fallback '-'"
+assert re.search(r'\{\{ row\.tgl_berkas\|tgl2 \}\}', tpl), \
+    "sel 'Tgl Berkas' harus merender row.tgl_berkas via filter tgl2 (DD-MM-YYYY)"
 print("[5] template memuat KPI + kolom nominal (DPP/PPN/PPh/Retensi/Total) OK")
 
 # --- 5b. Judul header halaman jelas & besar ---

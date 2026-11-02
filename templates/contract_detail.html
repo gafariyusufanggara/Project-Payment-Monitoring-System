@@ -9,7 +9,10 @@
   Pencocokan: hutang."NO PO / KONTRAK" == vendor_contracts.no_kontrak (exact, case-insensitive).
 -->
 <style>
-  .kd-wrap { max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+  /* Lebar isi mengikuti .content-area (sama dengan Dashboard): tanpa
+     max-width agar sisi kiri/kanan tidak menyisakan ruang kosong lebar.
+     min-width: 0 mencegah grid KPI meluber saat sidebar terbuka. */
+  .kd-wrap { min-width: 0; display: flex; flex-direction: column; gap: 16px; }
   .kd-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .kd-back { display: inline-flex; align-items: center; gap: 4px; padding: 6px 14px; border-radius: 10px; font-size: 0.78rem; font-weight: 600; color: #4d5766; text-decoration: none; border: 1px solid #e3e5e8; background: #fff; }
   .kd-back:hover { border-color: #16324f; color: #16324f; }
@@ -457,8 +460,8 @@
             {% set sisa_ppn_inv = (inv.nilai_ppn or 0) - (inv.bayar_ppn or 0) %}
             <tr>
               <td class="cell-dim"><div class="cell-desc cell-invno" data-full="{{ inv.no_invoice or '' }}">{{ inv.no_invoice or '-' }}</div>{% if inv.excluded %}<span class="kd-excl-flag" title="Kategori/rekanan di-exclude dari perhitungan (Exclude Invoice)"><i class="bi bi-eye-slash"></i></span>{% endif %}</td>
-              <td>{{ inv.tgl_terima or '-' }}</td>
-              <td>{{ inv.jth_tempo or '-' }}</td>
+              <td>{{ inv.tgl_terima|tgl2 }}</td>
+              <td>{{ inv.jth_tempo|tgl2 }}</td>
               <td><div class="cell-desc" data-full="{{ inv.deskripsi or '' }}">{{ inv.deskripsi or '-' }}</div></td>
               <td class="cell-money">{% if inv.dup %}<span style="color:#a3a8af">0</span>{% else %}{{ inv.harga|money }}{% endif %}</td>
               <td class="cell-money">{% if inv.pot_pph %}{{ inv.pot_pph|money }}{% else %}-{% endif %}</td>

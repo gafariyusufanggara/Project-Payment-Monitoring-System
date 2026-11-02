@@ -343,8 +343,11 @@ assert (_det_html.index('<th>Tgl Berkas Lengkap</th>')
         < _det_html.index('<th>Tgl Jatuh Tempo</th>')
         < _det_html.index('<th>Deskripsi</th>')), \
     'kolom Tgl Jatuh Tempo harus setelah Tgl Berkas Lengkap'
-assert all((_i['jth_tempo'] or '-') in _det_html for _i in _invs), \
-    'nilai Tgl Jatuh Tempo invoice tidak ter-render'
+def _dmy(_v):
+    _p = str(_v or '').split('-')
+    return f'{_p[2]}-{_p[1]}-{_p[0]}' if len(_p) == 3 and all(_p) else '-'
+assert all(_dmy(_i['jth_tempo']) in _det_html for _i in _invs), \
+    'nilai Tgl Jatuh Tempo invoice tidak ter-render dalam format DD-MM-YYYY'
 print(f'[7] detail kontrak: {len(_invs)} invoice, No. Invoice + Deskripsi clickable, '
       f'Tgl Jatuh Tempo OK')
 

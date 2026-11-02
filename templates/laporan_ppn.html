@@ -238,8 +238,8 @@
                 <th scope="col" class="m-po">PO / Kontrak</th>
                 <th scope="col" class="m-jt">Jth Tempo</th>
                 <th scope="col" class="m-desc">Deskripsi</th>
-                <th scope="col" class="ar m-hutang">DPP</th>
-                <th scope="col" class="ar m-ppn">PPN</th>
+                <th scope="col" class="ar m-hutang">Nilai DPP</th>
+                <th scope="col" class="ar m-ppn">Nilai PPN</th>
                 <th scope="col" class="m-bayar-tgl">Tgl Bayar PPN</th>
                 <th scope="col" class="ar m-bayar">Bayar PPN</th>
                 <th scope="col" class="ar m-sisa">Sisa PPN</th>
@@ -278,7 +278,7 @@ function setCutoffBounds(){
   inp.max=year+'-'+pad(month)+'-'+pad(new Date(year,month,0).getDate());
   if(inp.value&&(inp.value<inp.min||inp.value>inp.max)) inp.value=inp.min;
 }
-function fmtDate(iso){ const p=String(iso).split('-'); return p.length===3?(p[2]+'/'+p[1]+'/'+p[0]):iso; }
+  function fmtDate(iso){ const p=String(iso).split('-'); return p.length===3?(p[2]+'-'+p[1]+'-'+p[0]):iso; }
 function updateCutoffLabel(monthKey){ const lbl=document.getElementById('cutoffMonthLabel'); if(!lbl) return; const base=monthLabel(monthKey||activeMonthKey()); const d=currentCutoffDate(); lbl.textContent=d?(base+' · s/d '+fmtDate(d)):base; }
 function setSelValue(sel,key){ if(!sel||!key) return false; for(let i=0;i<sel.options.length;i++){ if(sel.options[i].value===key){ sel.value=key; return true; } } return false; }
 function monthLabel(key){ const s=monthSel(); if(s){ for(const o of s.options){ if(o.value===key) return o.textContent.trim(); } } return key; }
@@ -309,7 +309,7 @@ function showDetail(monthKey,rekanan,rowEl){
       const invoiceIsCurrent=invYM===monthKey; const paymentIsCurrent=payYM===monthKey;
       if(invoiceIsCurrent) currentInvoiceTotal+=Number(inv.ppn??0)||0;
       if(paymentIsCurrent) currentPaymentTotal+=Number(inv.bayar_ppn??0)||0;
-      return '<tr class="'+(invoiceIsCurrent?'hl-row-inv':(paymentIsCurrent?'hl-row-pay':''))+'" data-search="'+esc([inv.invoice,inv.po,inv.deskripsi].join(' ').toLowerCase())+'"><td class="l '+(invoiceIsCurrent?'hl-date-invoice':'')+'">'+esc(inv.tgl_berkas)+'</td>'+CellExpand.td(inv.invoice,'l iv',40)+CellExpand.td(inv.po,'l',25)+'<td class="l">'+esc(inv.jth_tempo)+'</td>'+CellExpand.td(inv.deskripsi,'l',40)+'<td class="m-h">'+fmt(inv.harga_excl)+'</td><td class="m-h">'+fmt(inv.ppn)+'</td><td class="l '+(paymentIsCurrent?'hl-date-payment':'')+'">'+esc(inv.tgl_bayar_ppn)+'</td><td class="m-p">'+fmt(inv.bayar_ppn)+'</td><td class="m-s '+cls+'">'+fmt(sisa)+'</td></tr>';
+      return '<tr class="'+(invoiceIsCurrent?'hl-row-inv':(paymentIsCurrent?'hl-row-pay':''))+'" data-search="'+esc([inv.invoice,inv.po,inv.deskripsi].join(' ').toLowerCase())+'"><td class="l '+(invoiceIsCurrent?'hl-date-invoice':'')+'">'+esc(fmtDate(inv.tgl_berkas))+'</td>'+CellExpand.td(inv.invoice,'l iv',40)+CellExpand.td(inv.po,'l',25)+'<td class="l">'+esc(fmtDate(inv.jth_tempo))+'</td>'+CellExpand.td(inv.deskripsi,'l',40)+'<td class="m-h">'+fmt(inv.harga_excl)+'</td><td class="m-h">'+fmt(inv.ppn)+'</td><td class="l '+(paymentIsCurrent?'hl-date-payment':'')+'">'+esc(fmtDate(inv.tgl_bayar_ppn))+'</td><td class="m-p">'+fmt(inv.bayar_ppn)+'</td><td class="m-s '+cls+'">'+fmt(sisa)+'</td></tr>';
     }).join('');
     if(tfoot){ tfoot.hidden=false; document.getElementById('ftDpp').textContent=fmt(tDpp); document.getElementById('ftPpn').textContent=fmt(tPpn); document.getElementById('ftBayar').textContent=fmt(tB); const ftS=document.getElementById('ftSisa'); ftS.textContent=fmt(tS); ftS.className=tS>0?'t-s-pos':'t-s-zero'; }
   }

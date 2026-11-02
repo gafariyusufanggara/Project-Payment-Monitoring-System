@@ -2,7 +2,10 @@
 <html lang="id">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Lebar viewport dikunci 1280 agar browser mobile menampilkan tata
+         letak desktop (di atas semua breakpoint 1024px) dan memperkecil
+         halaman agar muat. User tetap bisa pinch-zoom. -->
+    <meta name="viewport" content="width=1280, initial-scale=1.0" />
     <meta name="theme-color" content="#16324f" />
     <title>Masuk - Project Payment Monitoring System</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2316324f'/%3E%3Cpath d='M20 12h18l12 12v28H20z' fill='none' stroke='%23fff' stroke-width='4' stroke-linejoin='round'/%3E%3Cpath d='M38 12v14h12M26 36h18M26 44h18' fill='none' stroke='%230f766e' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
@@ -32,9 +35,30 @@
          ───────────────────────────────────────────────────────── */
       .auth-split {
         min-height: 100vh;
+        min-height: 100dvh;
         display: grid;
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
         background: var(--card);
+      }
+
+      /* Skala global `body { zoom: var(--ui-zoom) }` (base.css) menskalakan
+         kotak anak, tapi vh/vw TIDAK ikut zoom. `min-height: 100vh` jadi
+         hanya 90% tinggi layar -> pita kosong di bawah halaman login.
+         Dikompensasi dengan / var(--ui-zoom), pola sama .app-layout.
+         Desktop dua-panel: kunci `height` supaya pas satu layar tanpa scroll.
+         Mode tumpuk (<=1024) tetap `min-height` + scroll karena hero dan form
+         bisa melebihi viewport di layar pendek. */
+      @media (min-width: 1025px) {
+        .auth-split {
+          height: 100vh;
+          height: 100dvh;
+        }
+        @supports (zoom: 1) {
+          .auth-split {
+            height: calc(100dvh / var(--ui-zoom));
+            min-height: 0;
+          }
+        }
       }
 
       /* ── Panel kiri: branding ── */
@@ -243,6 +267,17 @@
         margin-top: 22px;
         padding-top: 18px;
         border-top: 1px solid var(--border);
+      }
+
+      /* Desktop mengunci satu layar; di bawah 1025 konten tumpuk boleh
+         melebihi viewport, jadi matikan pemotongan global base.css
+         (html/body { overflow: hidden }) agar halaman bisa di-scroll. */
+      @media (max-width: 1024px) {
+        html,
+        body {
+          overflow: auto;
+          height: auto;
+        }
       }
 
       /* ── Responsif: tumpuk, hero jadi header ringkas ── */

@@ -25,7 +25,10 @@
 {% set sisa_ppn = k.get('sisa_ppn', 0) %}
 
 <style>
-  .rp-wrap { display: flex; flex-direction: column; gap: 16px; max-width: 1180px; margin: 0 auto; }
+  /* Lebar isi mengikuti .content-area (sama dengan Dashboard): tanpa
+     max-width agar sisi kiri/kanan tidak menyisakan ruang kosong lebar.
+     min-width: 0 mencegah grid KPI meluber saat sidebar terbuka. */
+  .rp-wrap { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
   .rp-head {
     display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
   }
@@ -253,9 +256,9 @@
                 <th scope="col" class="m-po">PO / Kontrak</th>
                 <th scope="col" class="m-jt">Jth Tempo</th>
                 <th scope="col" class="m-desc">Deskripsi</th>
-                <th scope="col" class="ar m-hutang">Hutang DPP</th>
-                <th scope="col" class="ar m-ppn">PPN</th>
-                <th scope="col" class="ar m-ppn">PPH</th>
+                <th scope="col" class="ar m-hutang">Nilai DPP</th>
+                <th scope="col" class="ar m-ppn">Nilai PPN</th>
+                <th scope="col" class="ar m-ppn">Pot. PPH</th>
                 <th scope="col" class="ar m-ppn">Retensi</th>
                 <th scope="col" class="m-bayar-tgl">Tgl Bayar DPP</th>
                 <th scope="col" class="ar m-bayar">Bayar DPP</th>
@@ -359,17 +362,17 @@
       if (payIn) pB += Number(inv.bayar_dpp) || 0;
       const rowPayAttr = invIn ? ' class="hl-row-inv"' : (payIn ? ' class="hl-row-pay"' : '');
       return '<tr' + rowPayAttr + ' data-search="' + esc([inv.invoice, inv.po, inv.deskripsi].join(' ').toLowerCase()) + '">' +
-        '<td class="l' + invCls + '">' + esc(inv.tgl_berkas) + '</td>' +
-        '<td class="l">' + esc(inv.tgl_inv) + '</td>' +
+        '<td class="l' + invCls + '">' + esc(fmtDate(inv.tgl_berkas)) + '</td>' +
+        '<td class="l">' + esc(fmtDate(inv.tgl_inv)) + '</td>' +
         cx(inv.invoice, 'l iv', 40) +
         cx(inv.po, 'l', 25) +
-        '<td class="l">' + esc(inv.jth_tempo) + '</td>' +
+        '<td class="l">' + esc(fmtDate(inv.jth_tempo)) + '</td>' +
         cx(inv.deskripsi, 'l', 40) +
         '<td class="m-h">' + fmt(inv.harga_excl) + '</td>' +
         '<td>' + fmt(inv.ppn) + '</td>' +
         '<td>' + fmt(inv.pot_pph) + '</td>' +
         '<td>' + fmt(inv.retensi) + '</td>' +
-        '<td class="l' + payCls + '">' + esc(inv.tgl_bayar_dpp) + '</td>' +
+        '<td class="l' + payCls + '">' + esc(fmtDate(inv.tgl_bayar_dpp)) + '</td>' +
         '<td class="m-p">' + fmt(inv.bayar_dpp) + '</td>' +
         '<td class="m-s ' + sisaClass + '">' + fmt(sisa) + '</td>' +
       '</tr>';

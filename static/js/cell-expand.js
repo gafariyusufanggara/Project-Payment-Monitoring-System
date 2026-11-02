@@ -22,6 +22,17 @@
   var pop = null;       // singleton floating box
   var openCell = null;  // the element currently expanded
 
+  /* Skala UI (base.css --ui-zoom): 1 = normal, 0.9 = body di-zoom 90%.
+     getBoundingClientRect mengembalikan koordinat yang sudah terskala,
+     sedangkan left/top .lp-cellpop (position:fixed di dalam body) dibaca
+     dalam ruang lokal yang ikut ter-zoom — jadi harus dibagi. */
+  function uiScale() {
+    var b = document.body;
+    if (!b || !b.offsetWidth) return 1;
+    var s = b.getBoundingClientRect().width / b.offsetWidth;
+    return isFinite(s) && s > 0 ? s : 1;
+  }
+
   function esc(s) {
     return String(s == null ? '-' : s)
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -85,12 +96,14 @@
     p.style.left = '0px';
     p.style.top = '0px';
     var pw = p.offsetWidth, ph = p.offsetHeight;
-    var vw = window.innerWidth, vh = window.innerHeight;
-    var left = r.left;
+    var z = uiScale();
+    var vw = window.innerWidth / z, vh = window.innerHeight / z;
+    var left = r.left / z;
+    var rTop = r.top / z, rBottom = r.bottom / z;
     if (left + pw > vw - 8) left = vw - pw - 8;
     if (left < 8) left = 8;
-    var up = (r.bottom + ph + 10 > vh) && (r.top - ph - 10 > 0);
-    var top = up ? (r.top - ph - 8) : (r.bottom + 8);
+    var up = (rBottom + ph + 10 > vh) && (rTop - ph - 10 > 0);
+    var top = up ? (rTop - ph - 8) : (rBottom + 8);
     p.style.left = Math.round(left) + 'px';
     p.style.top = Math.round(top) + 'px';
     p.classList.toggle('lp-cellpop--up', up);

@@ -22,7 +22,10 @@
   .tb-revisi { background: #fdf6d8; color: #8a6d00; }
   .tb-rekanan { background: #eaf0f6; color: #16324f; }
 
-  .ds-wrap { display: flex; flex-direction: column; gap: 16px; max-width: 1360px; margin: 0 auto; }
+  /* Lebar isi mengikuti .content-area (sama dengan Dashboard): tanpa
+     max-width agar sisi kiri/kanan tidak menyisakan ruang kosong lebar.
+     min-width: 0 mencegah grid KPI meluber saat sidebar terbuka. */
+  .ds-wrap { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
   .ds-head {
     display: flex; align-items: center; gap: 10px;
   }
@@ -207,8 +210,8 @@
           </td>
           <td class="ds-mono">{{ row.no_invoice or (row.no_invoice_internal or '-') }}</td>
           <td class="ds-mono">{{ row.no_po or '-' }}</td>
-          <td class="ds-mono">{{ row.tgl_invoice or '-' }}</td>
-          <td class="ds-mono">{{ row.tgl_berkas or '-' }}</td>
+          <td class="ds-mono">{{ row.tgl_invoice|tgl2 }}</td>
+          <td class="ds-mono">{{ row.tgl_berkas|tgl2 }}</td>
           <td><span class="ds-field-missing"><i class="bi bi-exclamation-circle"></i> Belum diisi</span></td>
           <td class="ds-td-num ds-money" data-val="{{ row.dpp }}">{{ row.dpp|money }}</td>
           <td class="ds-td-num ds-money" data-val="{{ row.ppn }}">{{ row.ppn|money }}</td>

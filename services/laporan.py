@@ -1275,6 +1275,7 @@ def build_jatuh_tempo_data(project_id=None, now_key=None):
                 'jth': '',
                 'seen': False,
                 'harga_excl': 0.0, 'total': 0.0, 'ppn': 0.0, 'pot_pph': 0.0,
+                'pot_retensi': 0.0,
                 'bayar_dpp': 0.0, 'bayar_ppn': 0.0,
                 'tgl_bayar_dpp': '', 'tgl_bayar_ppn': '',
                 'po': '-', 'tgl_inv': '', 'tgl_berkas': '',
@@ -1295,6 +1296,7 @@ def build_jatuh_tempo_data(project_id=None, now_key=None):
             g['total'] = safe_float(row.get('TOTAL (INCLD)'))
             g['ppn'] = safe_float(row.get('PPN'))
             g['pot_pph'] = safe_float(row.get('POT. PPH'))
+            g['pot_retensi'] = safe_float(row.get('POT. RETENSI'))
             g['po'] = (row.get('NO PO / KONTRAK') or '-').strip() or '-'
             g['tgl_inv'] = str(row.get('TGL INV', '') or '')
             g['tgl_berkas'] = str(row.get('TGL TERIMA', '') or '')
@@ -1362,6 +1364,7 @@ def build_jatuh_tempo_data(project_id=None, now_key=None):
             'harga_excl': harga_excl,
             'ppn': g['ppn'],
             'pot_pph': g['pot_pph'],
+            'pot_retensi': g['pot_retensi'],
             'bayar_dpp': dp,
             'bayar_ppn': g['bayar_ppn'],
             # Total incl. PPN minus both payments (dedup-safe: parts are local)

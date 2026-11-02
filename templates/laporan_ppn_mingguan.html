@@ -219,8 +219,8 @@
                 <th scope="col" class="m-po">PO / Kontrak</th>
                 <th scope="col" class="m-jt">Jth Tempo</th>
                 <th scope="col" class="m-desc">Deskripsi</th>
-                <th scope="col" class="ar m-hutang">DPP</th>
-                <th scope="col" class="ar m-ppn">PPN</th>
+                <th scope="col" class="ar m-hutang">Nilai DPP</th>
+                <th scope="col" class="ar m-ppn">Nilai PPN</th>
                 <th scope="col" class="m-bayar-tgl">Tgl Bayar PPN</th>
                 <th scope="col" class="ar m-bayar">Bayar PPN</th>
                 <th scope="col" class="ar m-sisa">Sisa PPN</th>
@@ -262,7 +262,7 @@ function bindMingguanEvents(){
   if(mSel&&!mSel.dataset.bound){ mSel.dataset.bound='1'; mSel.addEventListener('change', onPeriodChange); }
   document.querySelectorAll('.month-section tbody tr[data-rekan]').forEach(tr=>{ tr.tabIndex=0; tr.setAttribute('role','button'); tr.setAttribute('aria-label','Lihat detail '+tr.dataset.rekan); tr.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); tr.click(); }}); });
 }
-(function initPeriod(){ bindMingguanEvents(); const btns=document.querySelectorAll('#weekBar .lp-rail-btn'); if(!btns.length) return; const a=document.querySelector('#weekBar .lp-rail-btn.active'); const anchor=a||btns[btns.length-1]; const mSel=document.getElementById('monthSel'); if(mSel){ for(const opt of mSel.options){ if(opt.dataset.year===anchor.dataset.year&&String(opt.value)===String(anchor.dataset.month)){ mSel.value=opt.value; break; } } } onPeriodChange(); })();
+(function initPeriod(){ bindMingguanEvents(); const btns=document.querySelectorAll('#weekBar .lp-rail-btn'); if(!btns.length) return; const a=document.querySelector('#weekBar .lp-rail-btn.active'); const anchor=a||btns[btns.length-1]; const mSel=document.getElementById('monthSel'); if(mSel){ for(const opt of mSel.options){ if(opt.dataset.year===anchor.dataset.year&&String(opt.value)===String(anchor.dataset.month)){ opt.selected=true; break; } } } onPeriodChange(); })();
 function exportExcel(btn){ btn=btn||document.getElementById('exportBtn'); if(btn){ btn.disabled=true; setTimeout(()=>btn.disabled=false,1500); } const a=document.querySelector('#weekBar .lp-rail-btn.active'); const k=a?a.getAttribute('data-key'):''; const params=new URLSearchParams(); if(k) params.set('week', k); const qs=params.toString(); window.location.href='/laporan-ppn-mingguan/export'+(qs?'?'+qs:''); }
 let _activeRow=null;
 function showDetail(monthKey,rekanan,rowEl){
@@ -286,7 +286,7 @@ function showDetail(monthKey,rekanan,rowEl){
       const invoiceIsCurrent=invWK===monthKey; const paymentIsCurrent=payWK===monthKey;
       if(invoiceIsCurrent) currentInvoiceTotal+=Number(inv.ppn??0)||0;
       if(paymentIsCurrent) currentPaymentTotal+=Number(inv.bayar_ppn??0)||0;
-      return '<tr class="'+(invoiceIsCurrent?'hl-row-inv':(paymentIsCurrent?'hl-row-pay':''))+'" data-search="'+esc([inv.invoice,inv.po,inv.deskripsi].join(' ').toLowerCase())+'"><td class="l '+(invoiceIsCurrent?'hl-date-invoice':'')+'">'+esc(inv.tgl_berkas)+'</td>'+CellExpand.td(inv.invoice,'l iv',40)+CellExpand.td(inv.po,'l',25)+'<td class="l">'+esc(inv.jth_tempo)+'</td>'+CellExpand.td(inv.deskripsi,'l',40)+'<td class="m-h">'+fmt(inv.harga_excl)+'</td><td class="m-h">'+fmt(inv.ppn)+'</td><td class="l '+(paymentIsCurrent?'hl-date-payment':'')+'">'+esc(inv.tgl_bayar_ppn)+'</td><td class="m-p">'+fmt(inv.bayar_ppn)+'</td><td class="m-s '+cls+'">'+fmt(sisa)+'</td></tr>';
+      return '<tr class="'+(invoiceIsCurrent?'hl-row-inv':(paymentIsCurrent?'hl-row-pay':''))+'" data-search="'+esc([inv.invoice,inv.po,inv.deskripsi].join(' ').toLowerCase())+'"><td class="l '+(invoiceIsCurrent?'hl-date-invoice':'')+'">'+esc(fmtDate(inv.tgl_berkas))+'</td>'+CellExpand.td(inv.invoice,'l iv',40)+CellExpand.td(inv.po,'l',25)+'<td class="l">'+esc(fmtDate(inv.jth_tempo))+'</td>'+CellExpand.td(inv.deskripsi,'l',40)+'<td class="m-h">'+fmt(inv.harga_excl)+'</td><td class="m-h">'+fmt(inv.ppn)+'</td><td class="l '+(paymentIsCurrent?'hl-date-payment':'')+'">'+esc(fmtDate(inv.tgl_bayar_ppn))+'</td><td class="m-p">'+fmt(inv.bayar_ppn)+'</td><td class="m-s '+cls+'">'+fmt(sisa)+'</td></tr>';
     }).join('');
     if(tfoot){ tfoot.hidden=false; document.getElementById('ftDpp').textContent=fmt(tDpp); document.getElementById('ftPpn').textContent=fmt(tPpn); document.getElementById('ftBayar').textContent=fmt(tB); const ftS=document.getElementById('ftSisa'); ftS.textContent=fmt(tS); ftS.className=tS>0?'t-s-pos':'t-s-zero'; }
   }

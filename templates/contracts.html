@@ -21,7 +21,10 @@
   .tb-total { background: #eaf0f6; color: #16324f; }
   .tb-nominal { background: #fdf6d8; color: #8a6d00; }
 
-  .kc-wrap { display: flex; flex-direction: column; gap: 16px; max-width: 1280px; margin: 0 auto; }
+  /* Lebar isi mengikuti .content-area (sama dengan Dashboard): tanpa
+     max-width agar sisi kiri/kanan tidak menyisakan ruang kosong lebar.
+     min-width: 0 mencegah grid KPI meluber saat sidebar terbuka. */
+  .kc-wrap { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
   .kc-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
   .kc-page { --c1w: 300px; }
   .kc-page #kcTable { min-width: 1720px; }

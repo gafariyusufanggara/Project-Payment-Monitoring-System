@@ -130,11 +130,13 @@ def _tgl_filter(val):
 # ── Jinja filter: format date YYYY-MM-DD → 09-10-2026 (angka saja) ──
 @app.template_filter('tgl2')
 def _tgl2_filter(val):
-    """Format YYYY-MM-DD to DD-MM-YYYY. Empty/invalid → '-'. ──"""
+    """Format YYYY-MM-DD to DD-MM-YYYY. Empty → '-'; nilai non-tanggal
+    dikembalikan apa adanya (jangan sembunyikan data yang tidak valid). ──"""
     from constants import parse_date
     d = parse_date(val)
     if not d:
-        return '-'
+        s = str(val or '').strip()
+        return s if s else '-'
     return f'{d.day:02d}-{d.month:02d}-{d.year}'
 
 

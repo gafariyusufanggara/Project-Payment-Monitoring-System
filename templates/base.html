@@ -2,7 +2,10 @@
 <html lang="id">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Lebar viewport dikunci 1280 agar browser mobile menampilkan tata
+         letak desktop (di atas semua breakpoint 1024px) dan memperkecil
+         halaman agar muat. User tetap bisa pinch-zoom. -->
+    <meta name="viewport" content="width=1280, initial-scale=1.0" />
     <title>{% block title %}Project Payment Monitoring System{% endblock %}</title>
     <link
       rel="icon"
@@ -35,6 +38,15 @@
           document.documentElement.classList.add("sb-collapsed");
         }
       })();
+    </script>
+    <!-- Shared date formatter: ISO 'YYYY-MM-DD' → 'DD-MM-YYYY' (format Indonesia).
+         Loaded early so inline page scripts can call it. Non-ISO / empty → apa adanya. -->
+    <script>
+      window.fmtDate = function (iso) {
+        var s = String(iso == null ? '' : iso).trim();
+        var m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        return m ? (m[3] + '-' + m[2] + '-' + m[1]) : s;
+      };
     </script>
 <!-- Base design system (layout, sidebar, topbar, komponen dasar).
      Loaded after Bootstrap/table.css so it wins, and before page blocks
@@ -494,6 +506,42 @@
           ensureTableEnhance(document);
       });
 
+      // ═══ Pointer + --ui-zoom (base.css) ═══
+      // Chart.js memetakan posisi mouse ke kolom memakai canvas.clientWidth
+      // (ruang lokal, mis. 540px), sedangkan clientX dari browser datang
+      // dalam ruang visual yang sudah terskala zoom (mis. 486px). Tanpa
+      // koreksi ini kolom yang ter-hover bergeser ~1 kolom — Desember
+      // terbaca Oktober — di semua chart (Dashboard & Jatuh Tempo).
+      // Solusi: pada fase capture, ubah koordinat ke ruang lokal lalu
+      // teruskan event yang sudah dikoreksi ke listener canvas Chart.js.
+      (function fixCanvasPointerZoom() {
+          function uiScale() {
+              var b = document.body;
+              if (!b || !b.offsetWidth) return 1;
+              var s = b.getBoundingClientRect().width / b.offsetWidth;
+              return isFinite(s) && s > 0 ? s : 1;
+          }
+          function onPointer(e) {
+              if (e.__uiZoomAdjusted) return;
+              var t = e.target;
+              if (!t || t.tagName !== 'CANVAS') return;
+              var z = uiScale();
+              if (z === 1) return;   // zoom nonaktif / mobile: tidak diapa-apakan
+              var r = t.getBoundingClientRect();
+              var ev = new MouseEvent(e.type, {
+                  clientX: r.left + (e.clientX - r.left) / z,
+                  clientY: r.top + (e.clientY - r.top) / z,
+                  bubbles: true, cancelable: true, view: window
+              });
+              ev.__uiZoomAdjusted = true;
+              e.stopImmediatePropagation();
+              t.dispatchEvent(ev);
+          }
+          ['mousemove', 'mouseout', 'click'].forEach(function (n) {
+              document.addEventListener(n, onPointer, true);
+          });
+      })();
+
       // ═══ Lazy-load Chart.js (dipakai halaman dashboard) ═══
       // Halaman yang punya chart memanggil ensureChartJs(cb); script dimuat sekali
       // saja walau navigasi via HTMX tidak me-reload <head>.
@@ -635,11 +683,16 @@
               var label = el.getAttribute('data-label');
               if (!label) return;
               var r = el.getBoundingClientRect();
+              // body di-zoom (base.css --ui-zoom): rect sudah terskala,
+              // sedangkan left/top tip dibaca dalam px lokal.
+              var b = document.body;
+              var z = b && b.offsetWidth ? b.getBoundingClientRect().width / b.offsetWidth : 1;
+              if (!isFinite(z) || z <= 0) z = 1;
               tip.textContent = label;
               tip.classList.add('is-visible');
               var th = tip.offsetHeight;
-              tip.style.top = (r.top + r.height / 2 - th / 2) + 'px';
-              tip.style.left = (r.right + 12) + 'px';
+              tip.style.top = (r.top / z + r.height / z / 2 - th / 2) + 'px';
+              tip.style.left = (r.right / z + 12) + 'px';
           }
           function hide() { tip.classList.remove('is-visible'); }
 
@@ -887,21 +940,23 @@
 
               // ── Financial bar ──
               const finItems = [
-                  { label: 'NILAI DPP', val: money(dpp), cls: '#3d434c', sub: `DPP + PPN: ${money(total)}`, subIcon: 'bi-receipt' },
-                  { label: 'Pembayaran DPP', val: money(bayarDPP), cls: '#115e59', sub: data['TGL BAYAR DPP'] },
-                  { label: 'Pembayaran PPN', val: money(bayarPPN), cls: '#115e59', sub: data['TGL BAYAR PPN'] },
+                  { label: 'NILAI DPP', val: money(dpp), cls: '#3d434c', sub: `Total Netto: ${money(total)}`, subIcon: 'bi-receipt',
+                      subTitle: 'Harga (DPP) − Retensi − PPh + PPN' },
+                  { label: 'Pembayaran DPP', val: money(bayarDPP), cls: '#115e59', sub: fmtDate(data['TGL BAYAR DPP']) },
+                  { label: 'Pembayaran PPN', val: money(bayarPPN), cls: '#115e59', sub: fmtDate(data['TGL BAYAR PPN']) },
       { label: 'SISA HUTANG (DPP)', val: money(sisaDPP), cls: sisaDPP > 1 ? '#b42318' : '#115e59' },
       { label: 'SISA HUTANG (PPN)', val: money(sisaPPN), cls: sisaPPN > 1 ? '#b42318' : '#115e59' },
               ];
               document.getElementById('vmFinbar').innerHTML = finItems.map(f =>
                   `<div class="vm-finbar-item"><div class="vm-finbar-label">${f.label}</div><div class="vm-finbar-val" style="color:${f.cls}">${f.val}</div>` +
-                  (f.sub ? `<div class="vm-finbar-sub"><i class="bi ${f.subIcon || 'bi-calendar-check'}"></i> ${f.sub}</div>` : '') +
+                  (f.sub ? `<div class="vm-finbar-sub"${f.subTitle ? ` title="${f.subTitle}"` : ''}><i class="bi ${f.subIcon || 'bi-calendar-check'}"></i> ${f.sub}</div>` : '') +
                   `</div>`
               ).join('');
 
               // ── Body — grouped sections ──
               const skip = new Set(['R','_row','NAMA LEVELANSIR / REKANAN','NO INVOICE','TOTAL (INCLD)','PEMBAYARAN DPP','PEMBAYARAN PPN','SISA HUTANG (INCLD PPN)','TGL BAYAR DPP','TGL BAYAR PPN','DESKRIPSI','KATEGORI','PEMBAYARAN POT. PPH']);
               const moneyFields = new Set(['TOTAL (INCLD)','PEMBAYARAN DPP','PEMBAYARAN PPN','SISA HUTANG (INCLD PPN)','SISA HUTANG DPP','SISA HUTANG PPN','HARGA (EXLD)','HARGA SATUAN','POT. RETENSI','POT. PPH','PPN','PEMBAYARAN POT. PPH','NILAI YG DITERIMA VENDOR']);
+              const vmDateFields = new Set(['TGL TERIMA','TGL INV','TGL TERIMA BERKAS','JTH TEMPO','TGL BAYAR DPP','TGL BAYAR PPN','TGL FAKTUR PAJAK','TGL MASUK DIVISI']);
               const boolHighlight = {'STATUS TERHADAP DPP':true,'STATUS TERHADAP PPN':true};
               const highlightFields = new Set(['HARGA (EXLD)', 'POT. RETENSI', 'POT. PPH', 'PPN', 'SISA HUTANG DPP', 'SISA HUTANG PPN']);
 
@@ -920,6 +975,8 @@
                           raw = `<span class="vm-badge ${badge(raw)}">${raw}</span>`;
                       } else if (mode === 'money') {
                           raw = `<code>${moneyFields.has(k) && raw !== '-' ? money(parseFloat(raw)||0) : raw}</code>`;
+                      } else if (vmDateFields.has(k) && raw !== '-') {
+                          raw = fmtDate(raw);
                       }
                       html += `<div class="vm-field${highlightFields.has(k) ? ' vm-field--hl' : ''}"><div class="vm-field-label">${labelOf(k)}</div><div class="vm-field-val">${raw}</div></div>`;
                   }
@@ -948,7 +1005,8 @@
                   bodyHtml += `<div class="vm-remaining"><details><summary><i class="bi bi-three-dots"></i> Semua field lainnya (${remaining.length})</summary><div class="vm-remaining-grid">`;
                   for (const k of remaining) {
                       const raw = val(k);
-                      const display = moneyFields.has(k) && raw !== '-' ? money(parseFloat(raw)||0) : raw;
+                      const display = moneyFields.has(k) && raw !== '-' ? money(parseFloat(raw)||0)
+                                    : (vmDateFields.has(k) && raw !== '-' ? fmtDate(raw) : raw);
                       bodyHtml += `<div class="vm-field"><div class="vm-field-label">${labelOf(k)}</div><div class="vm-field-val">${display}</div></div>`;
                   }
                   bodyHtml += '</div></details></div>';

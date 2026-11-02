@@ -81,9 +81,9 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
                 <th scope="col" class="m-po">PO / Kontrak</th>
                 <th scope="col" class="m-jt">Jth Tempo</th>
                 <th scope="col" class="m-desc">Deskripsi</th>
-                <th scope="col" class="ar m-hutang">Hutang DPP</th>
-                <th scope="col" class="ar m-ppn">PPN</th>
-                <th scope="col" class="ar m-ppn">PPH</th>
+                <th scope="col" class="ar m-hutang">Nilai DPP</th>
+                <th scope="col" class="ar m-ppn">Nilai PPN</th>
+                <th scope="col" class="ar m-ppn">Pot. PPH</th>
                 <th scope="col" class="ar m-ppn">Retensi</th>
                 <th scope="col" class="m-bayar-tgl">Tgl Bayar DPP</th>
                 <th scope="col" class="ar m-bayar">Bayar DPP</th>
@@ -175,7 +175,7 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
   function fmtDate(iso) {
       const p = String(iso).split('-');
       if (p.length !== 3) return iso;
-      return p[2] + '/' + p[1] + '/' + p[0];
+      return p[2] + '-' + p[1] + '-' + p[0];
   }
 
 
@@ -349,18 +349,18 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
                if (invoiceIsCurrent) currentInvoiceTotal += Number(inv.harga_excl ?? 0) || 0;
                if (paymentIsCurrent) currentPaymentTotal += Number(inv.bayar_dpp ?? 0) || 0;
                 return `<tr class="${invoiceIsCurrent ? 'hl-row-inv' : (paymentIsCurrent ? 'hl-row-pay' : '')}" data-search="${esc([inv.invoice, inv.po, inv.deskripsi].join(' ').toLowerCase())}">
-                 <td class="l ${invoiceIsCurrent ? 'hl-date-invoice' : ''}">${esc(inv.tgl_berkas)}</td>
+                 <td class="l ${invoiceIsCurrent ? 'hl-date-invoice' : ''}">${esc(fmtDate(inv.tgl_berkas))}</td>
 
-                <td class="l">${esc(inv.tgl_inv)}</td>
+                <td class="l">${esc(fmtDate(inv.tgl_inv))}</td>
                 ${CellExpand.td(inv.invoice, 'l iv', 40)}
                 ${CellExpand.td(inv.po, 'l', 25)}
-                <td class="l">${esc(inv.jth_tempo)}</td>
+                <td class="l">${esc(fmtDate(inv.jth_tempo))}</td>
                 ${CellExpand.td(inv.deskripsi, 'l', 40)}
                 <td class="m-h">${fmt(inv.harga_excl)}</td>
                 <td>${fmt(inv.ppn)}</td>
                 <td>${fmt(inv.pot_pph)}</td>
                 <td>${fmt(inv.retensi)}</td>
-                 <td class="l ${paymentIsCurrent ? 'hl-date-payment' : ''}">${esc(inv.tgl_bayar_dpp)}</td>
+                 <td class="l ${paymentIsCurrent ? 'hl-date-payment' : ''}">${esc(fmtDate(inv.tgl_bayar_dpp))}</td>
 
                 <td class="m-p">${fmt(inv.bayar_dpp)}</td>
                 <td class="m-s ${sisaClass}">${fmt(invSisaDpp)}</td>

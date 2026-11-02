@@ -68,9 +68,9 @@
                 <th scope="col" class="m-po">PO / Kontrak</th>
                 <th scope="col" class="m-jt">Jth Tempo</th>
                 <th scope="col" class="m-desc">Deskripsi</th>
-                <th scope="col" class="ar m-hutang">Hutang DPP</th>
-                <th scope="col" class="ar m-ppn">PPN</th>
-                <th scope="col" class="ar m-ppn">PPH</th>
+                <th scope="col" class="ar m-hutang">Nilai DPP</th>
+                <th scope="col" class="ar m-ppn">Nilai PPN</th>
+                <th scope="col" class="ar m-ppn">Pot. PPH</th>
                 <th scope="col" class="ar m-ppn">Retensi</th>
                 <th scope="col" class="m-bayar-tgl">Tgl Bayar DPP</th>
                 <th scope="col" class="ar m-bayar">Bayar DPP</th>
@@ -144,17 +144,17 @@
         ? CellExpand.td
         : ((t, c) => '<td class="' + c + '">' + esc(t) + '</td>');
       return `<tr data-search="${esc([inv.invoice, inv.po, inv.deskripsi].join(' ').toLowerCase())}">
-        <td class="l">${esc(inv.tgl_berkas)}</td>
-        <td class="l">${esc(inv.tgl_inv)}</td>
+        <td class="l">${esc(fmtDate(inv.tgl_berkas))}</td>
+        <td class="l">${esc(fmtDate(inv.tgl_inv))}</td>
         ${cx(inv.invoice, 'l iv', 40)}
         ${cx(inv.po, 'l', 25)}
-        <td class="l">${esc(inv.jth_tempo)}</td>
+        <td class="l">${esc(fmtDate(inv.jth_tempo))}</td>
         ${cx(inv.deskripsi, 'l', 40)}
         <td class="m-h">${fmt(inv.harga_excl)}</td>
         <td>${fmt(inv.ppn)}</td>
         <td>${fmt(inv.pot_pph)}</td>
         <td>${fmt(inv.retensi)}</td>
-        <td class="l">${esc(inv.tgl_bayar_dpp)}</td>
+        <td class="l">${esc(fmtDate(inv.tgl_bayar_dpp))}</td>
         <td class="m-p">${fmt(inv.bayar_dpp)}</td>
         <td class="m-s ${sisaClass}">${fmt(sisa)}</td>
       </tr>`;
@@ -421,7 +421,7 @@ function updateFilterChips() {
         const from = document.getElementById(r.from)?.value || '';
         const to = document.getElementById(r.to)?.value || '';
         if (!from && !to) return;
-        const f = v => { const [y, m, d] = v.split('-'); return `${d}/${m}/${y}`; };
+        const f = v => { const [y, m, d] = v.split('-'); return `${d}-${m}-${y}`; };
         const val = from && to ? `${f(from)} \u2013 ${f(to)}` : (from ? `\u2265 ${f(from)}` : `\u2264 ${f(to)}`);
         chips.push({ type: 'range', key: r.key, label: r.label, value: val });
     });
@@ -584,7 +584,7 @@ document.getElementById('filterReset')?.addEventListener('click', function () {
 // Each panel holds a "Dari"/"Sampai" (or Min/Maks) pair; filtering happens live
 // on change. The toggle label reflects the active range.
 function updateRangeLabels() {
-    const fmt = v => { if (!v) return ''; const [y, m, d] = v.split('-'); return `${d}/${m}/${y}`; };
+    const fmt = v => { if (!v) return ''; const [y, m, d] = v.split('-'); return `${d}-${m}-${y}`; };
     const setLabel = (ddId, from, to, fmtFn) => {
         const ddEl = document.getElementById(ddId);
         const label = ddEl?.querySelector('.dd-toggle-label');
@@ -707,7 +707,94 @@ document.addEventListener('click', e => {
 })();
 
 // === SORT ===
-let sortCol = -1, sortAsc = true;
+// Default: TGL BERKAS LENGKAP (kolom 2) descending, baris tanpa tanggal di
+// paling atas supaya dokumen yang masih perlu dilengkapi langsung terlihat.
+let sortCol = 2, sortAsc = false;
+const BLANK_FIRST_COL = 2;            // only this column pins blanks to the top
+
+function applySort(col, asc) {
+    sortCol = col;
+    sortAsc = asc;
+
+    document.querySelectorAll('.th-sort').forEach(h => {
+        const active = parseInt(h.dataset.col) === col;
+        h.classList.remove('sort-asc','sort-desc');
+        h.classList.toggle('sort-asc', active && asc);
+        h.classList.toggle('sort-desc', active && !asc);
+        h.setAttribute('aria-sort', active ? (asc ? 'ascending' : 'descending') : 'none');
+    });
+
+    const tbody = document.querySelector('#dataTable tbody');
+    if (!tbody) return;
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+
+    // Sort the ENTIRE dataset, not just the current page. Sorting only the
+    // 25 rendered rows used to reorder within one page and leave the rest
+    // untouched, so "sort by TOTAL" never actually surfaced the extremes.
+    // Rows failing the active filter keep their relative order at the end.
+    const keep = rows.filter(r => r.dataset.filterPass !== '0');
+    const dropped = rows.filter(r => r.dataset.filterPass === '0');
+
+    // Pull the raw comparable value + type once per row (avoids repeated
+    // dataset lookups inside the comparator).
+    const meta = new Map();
+    const readMeta = (tr) => {
+        let m = meta.get(tr);
+        if (m) return m;
+        const cell = tr.cells[col];
+        let type = cell?.dataset.type || '';
+        const raw = cell?.dataset.v != null ? cell.dataset.v : (cell?.textContent || '').trim();
+        // Fall back to inferring numeric when no explicit type is present.
+        if (!type && raw !== '' && !isNaN(raw.replace(/\./g, ''))) type = 'num';
+        m = { type: type || 'text', raw: raw };
+        meta.set(tr, m);
+        return m;
+    };
+
+    // Blanks: pinned to the top for the TGL BERKAS LENGKAP column (so
+    // unfinished documents surface first); always last for every other column.
+    const blankFirst = col === BLANK_FIRST_COL;
+
+    keep.sort((a, b) => {
+        const ma = readMeta(a), mb = readMeta(b);
+        const dir = asc ? 1 : -1;
+
+        const blankA = ma.raw === '' || ma.raw == null;
+        const blankB = mb.raw === '' || mb.raw == null;
+        if (blankA || blankB) {
+            if (blankA && blankB) return 0;
+            if (blankA) return blankFirst ? -1 : 1;
+            return blankFirst ? 1 : -1;
+        }
+
+        if (ma.type === 'num') {
+            const na = parseFloat(ma.raw) || 0, nb = parseFloat(mb.raw) || 0;
+            return (na - nb) * dir;
+        }
+        if (ma.type === 'date') {
+            // ISO yyyy-mm-dd sorts correctly as string.
+            return ma.raw.localeCompare(mb.raw) * dir;
+        }
+        // Text: case/accent-insensitive + natural number ordering
+        // ("INV-2" < "INV-10").
+        return String(ma.raw).localeCompare(String(mb.raw), undefined, { numeric: true, sensitivity: 'base' }) * dir;
+    });
+
+    keep.concat(dropped).forEach(r => tbody.appendChild(r));
+
+    // Re-apply pagination to the freshly ordered DOM, back to page 1.
+    if (window.TableEnhance) {
+        window.TableEnhance.resetPage();
+        window.TableEnhance.refresh();
+    } else {
+        keep.forEach(r => { r.style.display = ''; });
+        dropped.forEach(r => { r.style.display = 'none'; });
+    }
+    // Update row count
+    const rc = document.getElementById('rowCount');
+    if (rc) rc.textContent = keep.length;
+}
+
 document.querySelectorAll('.th-sort').forEach(th => {
     th.setAttribute('aria-sort', 'none');
     th.setAttribute('role', 'button');
@@ -715,79 +802,7 @@ document.querySelectorAll('.th-sort').forEach(th => {
 
     function doSort() {
         const col = parseInt(this.dataset.col);
-        if (sortCol === col) sortAsc = !sortAsc;
-        else { sortCol = col; sortAsc = true; }
-
-        document.querySelectorAll('.th-sort').forEach(h => {
-            h.classList.remove('sort-asc','sort-desc');
-            h.setAttribute('aria-sort', 'none');
-        });
-        this.classList.add(sortAsc ? 'sort-asc' : 'sort-desc');
-        this.setAttribute('aria-sort', sortAsc ? 'ascending' : 'descending');
-
-        const tbody = document.querySelector('#dataTable tbody');
-        const rows = Array.from(tbody.querySelectorAll('tr'));
-
-        // Sort the ENTIRE dataset, not just the current page. Sorting only the
-        // 25 rendered rows used to reorder within one page and leave the rest
-        // untouched, so "sort by TOTAL" never actually surfaced the extremes.
-        // Rows failing the active filter keep their relative order at the end.
-        const keep = rows.filter(r => r.dataset.filterPass !== '0');
-        const dropped = rows.filter(r => r.dataset.filterPass === '0');
-
-        // Pull the raw comparable value + type once per row (avoids repeated
-        // dataset lookups inside the comparator).
-        const meta = new Map();
-        const readMeta = (tr) => {
-            let m = meta.get(tr);
-            if (m) return m;
-            const cell = tr.cells[col];
-            let type = cell?.dataset.type || '';
-            const raw = cell?.dataset.v != null ? cell.dataset.v : (cell?.textContent || '').trim();
-            // Fall back to inferring numeric when no explicit type is present.
-            if (!type && raw !== '' && !isNaN(raw.replace(/\./g, ''))) type = 'num';
-            m = { type: type || 'text', raw: raw };
-            meta.set(tr, m);
-            return m;
-        };
-
-        keep.sort((a, b) => {
-            const ma = readMeta(a), mb = readMeta(b);
-            const dir = sortAsc ? 1 : -1;
-
-            if (ma.type === 'num') {
-                const na = parseFloat(ma.raw) || 0, nb = parseFloat(mb.raw) || 0;
-                return (na - nb) * dir;
-            }
-            if (ma.type === 'date') {
-                // ISO yyyy-mm-dd sorts correctly as string; blanks always last
-                // regardless of direction so empty rows don't clutter the top.
-                if (!ma.raw && !mb.raw) return 0;
-                if (!ma.raw) return 1;
-                if (!mb.raw) return -1;
-                return ma.raw.localeCompare(mb.raw) * dir;
-            }
-            // Text: case/accent-insensitive + natural number ordering
-            // ("INV-2" < "INV-10"). Blank values always last.
-            if (!ma.raw && !mb.raw) return 0;
-            if (!ma.raw) return 1;
-            if (!mb.raw) return -1;
-            return String(ma.raw).localeCompare(String(mb.raw), undefined, { numeric: true, sensitivity: 'base' }) * dir;
-        });
-
-        keep.concat(dropped).forEach(r => tbody.appendChild(r));
-
-        // Re-apply pagination to the freshly ordered DOM, back to page 1.
-        if (window.TableEnhance) {
-            window.TableEnhance.resetPage();
-            window.TableEnhance.refresh();
-        } else {
-            keep.forEach(r => { r.style.display = ''; });
-            dropped.forEach(r => { r.style.display = 'none'; });
-        }
-        // Update row count
-        const rc = document.getElementById('rowCount');
-        if (rc) rc.textContent = keep.length;
+        applySort(col, sortCol === col ? !sortAsc : true);
     }
 
     th.addEventListener('click', doSort);
@@ -798,6 +813,10 @@ document.querySelectorAll('.th-sort').forEach(th => {
         }
     });
 });
+
+// Terapkan default sort setelah header terpasang (tabel belum difilter,
+// jadi semua baris sudah punya urutan server sebagai tie-breaker).
+applySort(sortCol, sortAsc);
 
 // Subtotal footer: hitung sekali saat muat — filterTable() belum pernah jalan,
 // jadi baris awal belum punya data-filter-pass (= semua baris lolos filter).
@@ -956,7 +975,7 @@ function buildDailyChart(data, month) {
     if (tbody) {
         tbody.innerHTML = filtered.length ? filtered.map(d => `
             <tr>
-                <td style="font-weight:600">${d[1].tgl}</td>
+                <td style="font-weight:600">${fmtDate(d[1].tgl)}</td>
                 <td class="cell-money">${money(d[1].hutang_jt_dpp)}</td>
                 <td class="cell-money" style="color:#0f766e">${money(d[1].bayar_jt_dpp)}</td>
                 <td class="cell-money" style="color:${d[1].sisa_dpp > 1 ? '#b42318' : '#0f766e'};font-weight:700">${money(d[1].sisa_dpp)}</td>

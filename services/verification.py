@@ -9,6 +9,8 @@ Rules (per user spec):
     - Ada PEMBAYARAN PPN (>0) tapi TGL BAYAR PPN / PEMBAYARAN PPN VIA / NO BUKTI BAYAR PPN kosong.
     - Ada transaksi (ada rekanan) tapi NO INVOICE / TGL INV kosong.
     - Status Belum Lunas tapi JTH TEMPO kosong (tidak bisa hitung aging).
+    - Kolom tanggal (DATE_FIELDS) terisi tapi isinya bukan tanggal sah
+      (kosong / '-' = belum diisi, bukan error).
   COMPLETION:
     - TGL TERIMA BERKAS LENGKAP kosong (berkas fisik belum lengkap).
     - NO BUKTI BAYAR DPP mengandung kata "uang pinjaman" (dokumen belum dibukukan).
@@ -21,9 +23,10 @@ Rules (per user spec):
 """
 import re
 from collections import defaultdict
+from datetime import datetime
 
 import db
-from constants import safe_float, effective_invoice
+from constants import DATE_FIELDS, safe_float, effective_invoice
 
 
 # Column keys used in rules
@@ -62,6 +65,48 @@ def _has_value(val):
 def _has_amount(val):
     """True if numeric value parses to > 0."""
     return safe_float(val, 0) > 0
+
+
+# Placeholder yang lazim dipakai untuk "belum ada tanggal" (bukan data salah).
+_DATE_PLACEHOLDERS = {'', '-', '—', '–'}
+
+# Label pendek kolom tanggal untuk pesan verifikasi.
+_TGL_LABELS = {
+    'TGL TERIMA BERKAS': 'Tgl Berkas',
+    'TGL TERIMA': 'Tgl Berkas Lengkap',
+    'TGL INV': 'Tgl Invoice',
+    'JTH TEMPO': 'Jth. Tempo',
+    'TGL FAKTUR PAJAK': 'Tgl Faktur Pajak',
+    'TGL BAYAR DPP': 'Tgl Bayar DPP',
+    'TGL BAYAR PPN': 'Tgl Bayar PPN',
+}
+
+_DATE_RE = re.compile(r'^(\d{4})-(\d{2})-(\d{2})')
+
+
+def _is_invalid_date(val):
+    """True bila sel tanggal TERISI tapi isinya bukan tanggal yang sah.
+
+    Kosong dan placeholder ('-', '—', '–') dianggap belum diisi, bukan salah.
+    Format ISO 'YYYY-MM-DD' (boleh diikuti jam, mis. '2026-10-14 00:00:00')
+    dianggap sah bila tanggalnya nyata di kalender — '2026-02-31' ditolak.
+    """
+    s = str(val if val is not None else '').strip()
+    if s in _DATE_PLACEHOLDERS:
+        return False
+    m = _DATE_RE.match(s)
+    if not m:
+        return True
+    try:
+        datetime(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+    except ValueError:
+        return True
+    return False
+
+
+def _invalid_date_columns(row):
+    """Daftar label kolom tanggal yang isinya bukan tanggal sah."""
+    return [_TGL_LABELS.get(c, c) for c in DATE_FIELDS if _is_invalid_date(row.get(c))]
 
 
 def _normalize_rekanan(name):
@@ -141,6 +186,13 @@ def check_row(row, duplicate_names=None, duplicate_row_ids=None,
         if missing:
             critical = True
             reasons.append('Pembayaran PPN sudah terisi tapi ' + ' / '.join(missing) + ' masih kosong')
+
+    # CRITICAL: kolom tanggal berisi nilai yang bukan tanggal sah
+    # (mis. nomor bukti ketik di kolom TGL BAYAR). Kosong / '-' bukan error.
+    bad_dates = _invalid_date_columns(row)
+    if bad_dates:
+        critical = True
+        reasons.append('Isi bukan tanggal valid: ' + ' / '.join(bad_dates))
 
     # CRITICAL: ada transaksi tapi NO INVOICE atau TGL INV kosong
     if _has_value(row.get(_COL_REKANAN)):

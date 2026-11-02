@@ -26,7 +26,10 @@
   .tb-duplikat { background: #ece4f7; color: #6a4fa3; }
   .tb-total { background: #eaf0f6; color: #16324f; }
 
-  .vf-wrap { display: flex; flex-direction: column; gap: 16px; max-width: 1280px; margin: 0 auto; }
+  /* Lebar isi mengikuti .content-area (sama dengan Dashboard): tanpa
+     max-width agar sisi kiri/kanan tidak menyisakan ruang kosong lebar.
+     min-width: 0 mencegah grid KPI meluber saat sidebar terbuka. */
+  .vf-wrap { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
   .vf-sub { margin: 2px 0 0; font-size: 0.78rem; color: #667080; }
   .vf-kpis { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
   .vf-kpi-link { cursor: pointer; }
@@ -535,11 +538,19 @@
         const rect = this.getBoundingClientRect();
         const panelW = 260;
         const gap = 4;
-        let left = rect.left - panelW - gap;
-        if (left < 8) left = rect.right + gap;
-        if (left + panelW > window.innerWidth - 8) left = window.innerWidth - panelW - 8;
-        let top = Math.max(8 + window.scrollY, rect.top + window.scrollY);
-        top = Math.min(top, window.scrollY + window.innerHeight - 140);
+        // body di-zoom (base.css --ui-zoom): rect & innerWidth terskala,
+        // left/top panel fixed dibaca dalam px lokal.
+        const _b = document.body;
+        let z = _b && _b.offsetWidth ? _b.getBoundingClientRect().width / _b.offsetWidth : 1;
+        if (!isFinite(z) || z <= 0) z = 1;
+        const vwL = window.innerWidth / z;
+        const vhL = window.innerHeight / z;
+        const rl = rect.left / z, rr = rect.right / z, rt = rect.top / z;
+        let left = rl - panelW - gap;
+        if (left < 8) left = rr + gap;
+        if (left + panelW > vwL - 8) left = vwL - panelW - 8;
+        let top = Math.max(8 + window.scrollY, rt + window.scrollY);
+        top = Math.min(top, window.scrollY + vhL - 140);
         singlePanel.style.top = top + "px";
         singlePanel.style.left = Math.max(8, left + window.scrollX) + "px";
         singleReason.value = "";

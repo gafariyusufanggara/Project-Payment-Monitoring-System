@@ -25,6 +25,18 @@
 
   /* ---------- tiny helpers ---------- */
 
+  /* Skala UI (base.css --ui-zoom). 1 = tidak di-zoom, 0.9 = body di-zoom 90%.
+     Koordinat getBoundingClientRect dikembalikan dalam ruang yang sudah
+     terskala, sedangkan left/top milik .te-panel (position:fixed di dalam
+     body) dibaca dalam ruang lokal yang ikut ter-zoom. Tanpa pembagian ini
+     panel muncul melenceng 10% dari tombolnya. */
+  function uiScale() {
+    var b = document.body;
+    if (!b || !b.offsetWidth) return 1;
+    var s = b.getBoundingClientRect().width / b.offsetWidth;
+    return isFinite(s) && s > 0 ? s : 1;
+  }
+
   function readStore(key, fallback) {
     try {
       var v = localStorage.getItem(STORE + key);
@@ -112,18 +124,21 @@
 
     var h = p.offsetHeight;
     var w = p.offsetWidth;
-    var vw = window.innerWidth;
-    var vh = window.innerHeight;
+    var z = uiScale();
+    var vw = window.innerWidth / z;
+    var vh = window.innerHeight / z;
     var gap = 6;
 
-    var left = anchorRect.left;
+    var left = anchorRect.left / z;
     if (left + w > vw - 8) left = Math.max(8, vw - w - 8);
 
-    var below = vh - anchorRect.bottom;
+    var aTop = anchorRect.top / z;
+    var aBottom = anchorRect.bottom / z;
+    var below = vh - aBottom;
     var top =
-      below < h + gap && anchorRect.top > below
-        ? Math.max(8, anchorRect.top - h - gap)
-        : anchorRect.bottom + gap;
+      below < h + gap && aTop > below
+        ? Math.max(8, aTop - h - gap)
+        : aBottom + gap;
 
     p.style.left = left + 'px';
     p.style.top = top + 'px';
@@ -516,7 +531,8 @@
       var lastRow = head.rows[head.rows.length - 1];
       if (!lastRow || !lastRow.cells.length) return;
       var first = lastRow.cells[0];
-      var w = first.getBoundingClientRect().width;
+      // rect.width sudah terskala oleh --ui-zoom; CSS memakai px lokal.
+      var w = first.getBoundingClientRect().width / uiScale();
       // jsdom (and display:none ancestors) report 0 — fall back to the inline
       // width the template declares, then to the previous value, then 40px.
       if (!w) w = parseFloat(first.style.width) || 0;

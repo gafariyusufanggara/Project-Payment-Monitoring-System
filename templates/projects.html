@@ -19,7 +19,10 @@
   /* Judul halaman ditampilkan di topbar (konsisten dgn halaman lain); kluster
      kanan tetap mepet kanan. Pemilih proyek disembunyikan via topbar_scope. */
   .topbar-right { margin-left: auto; }
-  .prj-wrap { display: flex; flex-direction: column; gap: var(--ds-sp-4); max-width: 1200px; margin: 0 auto; }
+  /* Lebar isi mengikuti .content-area (sama dengan Dashboard): tanpa
+     max-width agar sisi kiri/kanan tidak menyisakan ruang kosong lebar.
+     min-width: 0 mencegah grid KPI meluber saat sidebar terbuka. */
+  .prj-wrap { display: flex; flex-direction: column; gap: var(--ds-sp-4); min-width: 0; }
   .prj-toolbar { display: flex; justify-content: flex-end; }
   .prj-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: var(--ds-sp-3); align-items: stretch; }
 

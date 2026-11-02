@@ -328,14 +328,14 @@
                 {{ row['DESKRIPSI'] or '' }}
               </div>
             </td>
-            <td class="cell-date" data-type="date" data-v="{{ row['TGL TERIMA'] or '' }}">{{ row['TGL TERIMA'] or '-' }}</td>
+            <td class="cell-date" data-type="date" data-v="{{ row['TGL TERIMA'] or '' }}">{{ (row['TGL TERIMA'] or '-')|tgl2 }}</td>
             <td class="cell-inv-internal" data-type="text" data-v="{{ row['NO INVOICE INTERNAL'] or '' }}" data-full="{{ row['NO INVOICE INTERNAL'] or '' }}">
               {{ row['NO INVOICE INTERNAL'] or '-' }}
             </td>
             <td class="cell-invoice" data-type="text" data-v="{{ row['NO INVOICE'] or '' }}" data-full="{{ row['NO INVOICE'] or '' }}">{{ row['NO INVOICE'] or '-' }}</td>
             <td class="cell-po" data-type="text" data-v="{{ row['NO PO / KONTRAK'] or '' }}" data-full="{{ row['NO PO / KONTRAK'] or '' }}">{{ row['NO PO / KONTRAK'] or '-' }}</td>
-            <td class="cell-date" data-type="date" data-v="{{ row['TGL INV'] or '' }}">{{ row['TGL INV'] or '-' }}</td>
-            <td class="cell-date" data-type="date" data-v="{{ row['TGL TERIMA BERKAS'] }}">{{ row['TGL TERIMA BERKAS'] }}</td>
+            <td class="cell-date" data-type="date" data-v="{{ row['TGL INV'] or '' }}">{{ (row['TGL INV'] or '-')|tgl2 }}</td>
+            <td class="cell-date" data-type="date" data-v="{{ row['TGL TERIMA BERKAS'] }}">{{ (row['TGL TERIMA BERKAS'] or '-')|tgl2 }}</td>
             <td class="cell-faktur" data-type="text" data-v="{{ row['NO SERI FAKTUR PAJAK'] if (row['NO SERI FAKTUR PAJAK'] or '').strip() not in ('', '0') else '' }}" data-full="{{ row['NO SERI FAKTUR PAJAK'] if (row['NO SERI FAKTUR PAJAK'] or '').strip() not in ('', '0') else '' }}">
               {{ row['NO SERI FAKTUR PAJAK'] if (row['NO SERI FAKTUR PAJAK'] or '').strip() not in ('', '0') else '-' }}
             </td>
@@ -385,12 +385,12 @@
             <td class="cell-money" data-type="num" data-v="{{ row['PEMBAYARAN DPP']|default(0,true)|float }}">
               {{ (row['PEMBAYARAN DPP']|default(0,true)|float)|money0 }}
             </td>
-            <td class="cell-date" data-type="date" data-v="{{ row['TGL BAYAR DPP'] or '' }}">{{ row['TGL BAYAR DPP'] or '-' }}</td>
+            <td class="cell-date" data-type="date" data-v="{{ row['TGL BAYAR DPP'] or '' }}">{{ (row['TGL BAYAR DPP'] or '-')|tgl2 }}</td>
             <td class="cell-money" data-type="num" data-v="{{ row['PEMBAYARAN PPN']|default(0,true)|float }}">
               {{ (row['PEMBAYARAN PPN']|default(0,true)|float)|money0 }}
             </td>
-            <td class="cell-date" data-type="date" data-v="{{ row['TGL BAYAR PPN'] or '' }}">{{ row['TGL BAYAR PPN'] or '-' }}</td>
-            <td class="cell-date" data-type="date" data-v="{{ (row['JTH TEMPO'] or '')|string|trim }}">{{ row['JTH TEMPO'] or '-' }}</td>
+            <td class="cell-date" data-type="date" data-v="{{ row['TGL BAYAR PPN'] or '' }}">{{ (row['TGL BAYAR PPN'] or '-')|tgl2 }}</td>
+            <td class="cell-date" data-type="date" data-v="{{ (row['JTH TEMPO'] or '')|string|trim }}">{{ (row['JTH TEMPO'] or '-')|tgl2 }}</td>
             <td
               class="cell-money {% if (row['SISA HUTANG DPP']|default(0,true)|float) > 0 %}text-danger{% else %}text-success{% endif %}"
               style="font-weight: 700"

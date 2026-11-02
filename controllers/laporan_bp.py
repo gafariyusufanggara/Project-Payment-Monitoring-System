@@ -92,7 +92,9 @@ def laporan_mingguan():
     # Deep link: ?week=YYYY-Www preselects that week (used by cutoff reload).
     week_key = request.args.get('week', '').strip()
     if not week_key or week_key not in weeks:
-        week_key = weeks[-1] if weeks else ''
+        # Default: minggu berjalan (bulan ini), bukan minggu terakhir data.
+        cur = current_week_key()
+        week_key = cur if cur in weeks else (weeks[-1] if weeks else '')
     return render_template('laporan_mingguan.html',
                            report_rows=report_rows,
                            data_count=data_count,
@@ -222,7 +224,9 @@ def laporan_ppn_mingguan():
     # Deep link: ?week=YYYY-Www preselects that week.
     week_key = request.args.get('week', '').strip()
     if not week_key or week_key not in weeks:
-        week_key = weeks[-1] if weeks else ''
+        # Default: minggu berjalan (bulan ini), bukan minggu terakhir data.
+        cur = current_week_key()
+        week_key = cur if cur in weeks else (weeks[-1] if weeks else '')
     return render_template('laporan_ppn_mingguan.html',
                            report_rows=report_rows,
                            data_count=data_count,

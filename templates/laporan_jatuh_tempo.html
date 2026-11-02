@@ -170,7 +170,7 @@ if s.rekanan not in all_rekanan %} {% set _ = all_rekanan.append(s.rekanan) %}
               <td class="c-no">{{ loop.index }}</td>
               <td class="c-rekan">{{ s.rekanan }}</td>
               <td class="c-count">{{ s.count }}</td>
-              <td class="c-jt">{{ s.jt_terdekat or '—' }}</td>
+              <td class="c-jt">{{ s.jt_terdekat|tgl2 }}</td>
               <td class="c-h">{{ s.total_dpp|money }}</td>
               <td class="c-p">{{ s.bayar_dpp|money }}</td>
               <td class="{{ 'c-sisa-pos' if s.sisa_dpp|has_sisa else 'c-sisa-zero' }}">{{ s.sisa_dpp|money }}</td>
@@ -241,19 +241,20 @@ if s.rekanan not in all_rekanan %} {% set _ = all_rekanan.append(s.rekanan) %}
                 <th scope="col" class="m-po">PO / Kontrak</th>
                 <th scope="col" class="m-jt">Jth Tempo</th>
                 <th scope="col" class="m-desc">Deskripsi</th>
-                <th scope="col" class="ar m-hutang">Hutang DPP</th>
-                <th scope="col" class="ar m-ppn">PPN</th>
-                <th scope="col" class="ar m-ppn">PPH</th>
+                <th scope="col" class="ar m-hutang">Nilai DPP</th>
+                <th scope="col" class="ar m-ppn">Nilai PPN</th>
+                <th scope="col" class="ar m-ppn">Pot. PPH</th>
+                <th scope="col" class="ar m-ppn">Retensi</th>
                 <th scope="col" class="m-bayar-tgl">Tgl Bayar</th>
                 <th scope="col" class="ar m-bayar">Bayar DPP</th>
-                <th scope="col" class="ar m-sisa">SISA HUTANG DPP</th>
+                <th scope="col" class="ar m-sisa">SISA DPP</th>
                 <th scope="col" class="m-status">STATUS JT</th>
               </tr>
             </thead>
             <tbody id="modalInvoices">
-              <tr class="em"><td colspan="12"><i class="bi bi-hand-index"></i>Pilih rekanan untuk melihat detail</td></tr>
+              <tr class="em"><td colspan="13"><i class="bi bi-hand-index"></i>Pilih rekanan untuk melihat detail</td></tr>
             </tbody>
-            <tfoot id="modalTfoot" hidden><tr><td class="l" colspan="5">Total</td><td id="ftHutang" class="t-h"></td><td id="ftPpn"></td><td id="ftPph"></td><td class="l"></td><td id="ftBayar" class="t-p"></td><td id="ftSisa" class="t-s-zero"></td><td></td></tr></tfoot>
+            <tfoot id="modalTfoot" hidden><tr><td class="l" colspan="5">Total</td><td id="ftHutang" class="t-h"></td><td id="ftPpn"></td><td id="ftPph"></td><td id="ftRetensi"></td><td class="l"></td><td id="ftBayar" class="t-p"></td><td id="ftSisa" class="t-s-zero"></td><td></td></tr></tfoot>
           </table>
         </div>
       </div>
@@ -543,14 +544,14 @@ function showDetail(monthKey, rekanan, rowEl) {
   if (invoices.length === 0) {
     document.getElementById('currentInvoiceTotal').textContent = 'Rp 0';
     document.getElementById('currentPaymentTotal').textContent = 'Rp 0';
-    body.innerHTML = '<tr class="em"><td colspan="12"><i class="bi bi-inbox"></i>Tidak ada data untuk ' + esc(rekanan) + '</td></tr>';
+    body.innerHTML = '<tr class="em"><td colspan="13"><i class="bi bi-inbox"></i>Tidak ada data untuk ' + esc(rekanan) + '</td></tr>';
     if (tfoot) tfoot.hidden = true;
   } else {
     invoices.sort((a, b) => (a.tgl_berkas < b.tgl_berkas ? 1 : a.tgl_berkas > b.tgl_berkas ? -1 : 0));
-    let tH = 0, tPpn = 0, tPph = 0, tB = 0, tS = 0;
+    let tH = 0, tPpn = 0, tPph = 0, tRet = 0, tB = 0, tS = 0;
     body.innerHTML = invoices.map(inv => {
       const invSisaDpp = Math.max(0, (Number(inv.harga_excl)||0) - (Number(inv.bayar_dpp)||0));
-      tH += Number(inv.harga_excl)||0; tPpn += Number(inv.ppn)||0; tPph += Number(inv.pot_pph)||0; tB += Number(inv.bayar_dpp)||0; tS += invSisaDpp;
+      tH += Number(inv.harga_excl)||0; tPpn += Number(inv.ppn)||0; tPph += Number(inv.pot_pph)||0; tRet += Number(inv.pot_retensi)||0; tB += Number(inv.bayar_dpp)||0; tS += invSisaDpp;
       const sisaClass = invSisaDpp > 1 ? 'sn' : 'sz';  // konsisten dgn SISA_EPS (Rp 1)
       const invYM = String(inv.tgl_berkas||'').slice(0,7);
       const payYM = String(inv.tgl_bayar_dpp||'').slice(0,7);
@@ -559,15 +560,16 @@ function showDetail(monthKey, rekanan, rowEl) {
       if (invoiceIsCurrent) currentInvoiceTotal += Number(inv.harga_excl ?? 0) || 0;
       if (paymentIsCurrent) currentPaymentTotal += Number(inv.bayar_dpp ?? 0) || 0;
       return `<tr class="${invoiceIsCurrent ? 'hl-row-inv' : (paymentIsCurrent ? 'hl-row-pay' : '')}" data-search="${esc([inv.invoice, inv.po, inv.deskripsi].join(' ').toLowerCase())}">
-        <td class="l ${invoiceIsCurrent ? 'hl-date-invoice' : ''}">${esc(inv.tgl_berkas)}</td>
+        <td class="l ${invoiceIsCurrent ? 'hl-date-invoice' : ''}">${esc(fmtDate(inv.tgl_berkas))}</td>
         ${CellExpand.td(inv.invoice, 'l iv', 40)}
         ${CellExpand.td(inv.po, 'l', 25)}
-        <td class="l">${esc(inv.jth_tempo)}</td>
+        <td class="l">${esc(fmtDate(inv.jth_tempo))}</td>
         ${CellExpand.td(inv.deskripsi, 'l', 40)}
         <td class="m-h">${fmt(inv.harga_excl)}</td>
         <td>${fmt(inv.ppn)}</td>
         <td>${fmt(inv.pot_pph)}</td>
-        <td class="l ${paymentIsCurrent ? 'hl-date-payment' : ''}">${esc(inv.tgl_bayar_dpp)}</td>
+        <td>${fmt(inv.pot_retensi)}</td>
+        <td class="l ${paymentIsCurrent ? 'hl-date-payment' : ''}">${esc(fmtDate(inv.tgl_bayar_dpp))}</td>
         <td class="m-p">${fmt(inv.bayar_dpp)}</td>
         <td class="m-s ${sisaClass}">${fmt(invSisaDpp)}</td>
         <td class="l st-${inv.status_key}">${esc(inv.status_label)}</td>
@@ -578,6 +580,7 @@ function showDetail(monthKey, rekanan, rowEl) {
       document.getElementById('ftHutang').textContent = fmt(tH);
       document.getElementById('ftPpn').textContent = fmt(tPpn);
       document.getElementById('ftPph').textContent = fmt(tPph);
+      document.getElementById('ftRetensi').textContent = fmt(tRet);
       document.getElementById('ftBayar').textContent = fmt(tB);
       const ftS = document.getElementById('ftSisa');
       ftS.textContent = fmt(tS);

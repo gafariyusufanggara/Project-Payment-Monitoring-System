@@ -15,7 +15,10 @@
 -->
 {% include "partials/_search_box.html" %}
 <style>
-  .cic-wrap { display: flex; flex-direction: column; gap: 16px; max-width: 1200px; margin: 0 auto; }
+  /* Lebar isi mengikuti .content-area (sama dengan Dashboard): tanpa
+     max-width agar sisi kiri/kanan tidak menyisakan ruang kosong lebar.
+     min-width: 0 mencegah grid KPI meluber saat sidebar terbuka. */
+  .cic-wrap { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
   .cic-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
   .cic-count { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: #667080; }
   .cic-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
@@ -118,7 +121,6 @@
         <span class="cic-rekanan" data-full="{{ lv.nama }}" title="{{ lv.nama }}">{{ lv.nama }}</span>
         <span class="cic-count-pill">{{ lv.jumlah_invoice }}&times; invoice</span>
         <span class="ds-badge ds-badge-amber" title="Total utang retensi {{ lv.total_retensi|money }} · sudah dibayar {{ lv.total_cair|money }} · sisa utang {{ lv.total_sisa_retensi|money }}">Retensi {{ lv.total_retensi|money }}</span>
-        <span class="ds-badge {% if lv.status_retensi == 'Lunas' %}ds-badge-green{% elif lv.status_retensi == 'Cair Sebagian' %}ds-badge-amber{% elif lv.status_retensi == 'Ditahan' %}ds-badge-amber{% else %}ds-badge-gray{% endif %}" title="{% if lv.status_retensi == 'Lunas' %}Seluruh utang retensi sudah dibayar{% elif lv.status_retensi == 'Cair Sebagian' %}Sebagian retensi sudah dibayar{% elif lv.status_retensi == 'Ditahan' %}DPP sudah lunas — retensi sedang ditahan{% else %}DPP belum lunas — retensi belum masuk tahap ditahan{% endif %}">{% if lv.status_retensi == 'Ditahan' %}Ditahan{% elif lv.status_retensi == 'Belum Dibayar' %}Belum Ditahan{% elif lv.status_retensi == 'Cair Sebagian' %}Dibayar Sebagian{% else %}{{ lv.status_retensi }}{% endif %}</span>
       </div>
       <div class="cic-body">
         <table class="cic-table">

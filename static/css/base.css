@@ -27,6 +27,8 @@
         scrollbar-color: #c9ccd1 transparent;
       }
       :root {
+        /* Skala seluruh UI. 1 = ukuran asli, 0.9 = setara zoom browser 90%. */
+        --ui-zoom: 0.9;
         --sidebar-w: 240px;
         --sidebar-collapsed-w: 72px;
         --primary: #243447;
@@ -112,6 +114,39 @@
         display: flex;
         height: 100vh;
         height: 100dvh;
+      }
+      /* ===== Skala global (setara zoom browser 90%) =====
+         `zoom` menskalakan seluruh subtree — font, padding, gap, min-width
+         tabel — bukan hanya font-size seperti html { font-size: 90% }.
+         Elemen yang ukurannya mengikuti viewport (bukan konten) harus
+         dikompensasi dengan / var(--ui-zoom), kalau tidak ada celah 10%
+         di kanan/bawah dan sidebar tidak sampai dasar layar.
+         Dibungkus @supports supaya browser tanpa `zoom` tidak kena
+         pelebaran width yang membuat sisi kanan terpotong. Dibatasi
+         >=769px karena layout mobile memakai aturan tinggi sendiri. */
+      @media (min-width: 769px) {
+      @supports (zoom: 1) {
+        body {
+          zoom: var(--ui-zoom);
+          height: calc(100dvh / var(--ui-zoom));
+        }
+        .app-layout {
+          height: calc(100dvh / var(--ui-zoom));
+        }
+        .sidebar {
+          bottom: auto;
+          height: calc(100dvh / var(--ui-zoom));
+        }
+        /* Overlay modal: Bootstrap memberi width 100vw / height 100vh.
+           Unit vw/vh TIDAK ikut --ui-zoom (lihat probe layout), jadi
+           backdrop hanya menutup 90% layar. 100% mewarisi kotak viewport
+           lokal yang sudah diskalakan → pas penuh. */
+        .modal,
+        .modal-backdrop {
+          width: 100%;
+          height: 100%;
+        }
+      }
       }
 
       /* ========== SIDEBAR ========== */
