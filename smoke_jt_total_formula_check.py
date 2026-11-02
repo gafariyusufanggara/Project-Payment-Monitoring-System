@@ -98,12 +98,12 @@ for _v in FIXTURE[0]['rekanan_list']:
 
 _orig = jt_excel.build_jatuh_tempo_data
 try:
-    jt_excel.build_jatuh_tempo_data = lambda month_key=None, project_id=None: (FIXTURE, 5)
+    jt_excel.build_jatuh_tempo_data = lambda month_key=None, project_id=None, now_key=None: (FIXTURE, 5)
     try:
         buf = jt_excel.build_jt_excel(month_key='2026-10')
         kw = {}
     except TypeError:
-        jt_excel.build_jatuh_tempo_data = lambda project_id=None: (FIXTURE, 5)
+        jt_excel.build_jatuh_tempo_data = lambda project_id=None, now_key=None: (FIXTURE, 5)
         buf = jt_excel.build_jt_excel(month_key='2026-10')
 finally:
     jt_excel.build_jatuh_tempo_data = _orig
@@ -285,10 +285,10 @@ EMPTY = [{
 _orig = jt_excel.build_jatuh_tempo_data
 try:
     try:
-        jt_excel.build_jatuh_tempo_data = lambda month_key=None, project_id=None: (EMPTY, 0)
+        jt_excel.build_jatuh_tempo_data = lambda month_key=None, project_id=None, now_key=None: (EMPTY, 0)
         b2 = jt_excel.build_jt_excel(month_key='2026-10')
     except TypeError:
-        jt_excel.build_jatuh_tempo_data = lambda project_id=None: (EMPTY, 0)
+        jt_excel.build_jatuh_tempo_data = lambda project_id=None, now_key=None: (EMPTY, 0)
         b2 = jt_excel.build_jt_excel(month_key='2026-10')
 finally:
     jt_excel.build_jatuh_tempo_data = _orig
@@ -317,10 +317,10 @@ print('[8] Vendor tanpa invoice -> angka statis, TOTAL menjumlahkannya (bukan #R
 _orig = jt_excel.build_jatuh_tempo_data
 try:
     try:
-        jt_excel.build_jatuh_tempo_data = lambda month_key=None, project_id=None: ([], 0)
+        jt_excel.build_jatuh_tempo_data = lambda month_key=None, project_id=None, now_key=None: ([], 0)
         b3 = jt_excel.build_jt_excel(month_key='2026-10')
     except TypeError:
-        jt_excel.build_jatuh_tempo_data = lambda project_id=None: ([], 0)
+        jt_excel.build_jatuh_tempo_data = lambda project_id=None, now_key=None: ([], 0)
         b3 = jt_excel.build_jt_excel(month_key='2026-10')
 finally:
     jt_excel.build_jatuh_tempo_data = _orig

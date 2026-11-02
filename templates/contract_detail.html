@@ -71,6 +71,7 @@
 .kd-term-pill--ok { background: #e6f4f1; color: #115e59; }
 .kd-term-pill--jalan { background: #eaf0f6; color: #244866; }
 .kd-term-pill--belum { background: #f4f5f6; color: #667080; }
+.kd-term-pill--warn { background: #fef0ee; color: #912018; }
 .kd-term-pill--periksa { background: #fef0ee; color: #912018; }
 .kd-match { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 10px; padding: 8px 12px; border-radius: 10px; font-size: 0.78rem; line-height: 1.45; }
 .kd-match--ok { background: #e6f4f1; color: #115e59; }
@@ -344,9 +345,10 @@
               <th class="num">Termin (%)</th>
               {% if not persen_ok %}<th class="num">Normalisasi (%)</th>{% endif %}
               <th class="num">Total Termin (Rp)</th>
-              <th class="num">PPN per Termin (Rp){% if termins and termins[0].ppn_persen %} <span style="font-weight:400;text-transform:none;letter-spacing:0">({{ '%.2f'|format(termins[0].ppn_persen) }}%)</span>{% endif %}</th>
+              <th class="num">PPN per Termin (Rp)</th>
               <th class="num">Total Pembayaran (Rp)</th>
-              <th class="text-center" title="Dicocokkan dengan total invoice yang sudah masuk (HARGA EXLD). Ditagih = nilai termin sudah tertutup penuh invoice; Sebagian = termin sedang berjalan; Belum = belum ada invoice untuk termin ini.">Status</th>
+              <th class="text-center" title="Status penagihan + pembayaran DPP tiap termin. Belum Ditagih = belum ada invoice DPP; Ditagih Sebagian = invoice baru menutup sebagian, belum ada pembayaran; Ditagih &amp; Bayar Sebagian = invoice menutup sebagian dan sudah ada pembayaran; Belum Dibayar = tertagih penuh tetapi belum ada pembayaran sama sekali; Bayar Sebagian = tertagih penuh, pembayaran baru sebagian; Lunas = tertagih penuh dan dibayar penuh.">Status DPP</th>
+              <th class="text-center" title="Status penagihan + pembayaran PPN tiap termin. Belum Ditagih = belum ada invoice PPN; Ditagih Sebagian = invoice baru menutup sebagian, belum ada pembayaran; Ditagih &amp; Bayar Sebagian = invoice menutup sebagian dan sudah ada pembayaran; Belum Dibayar = tertagih penuh tetapi belum ada pembayaran sama sekali; Bayar Sebagian = tertagih penuh, pembayaran baru sebagian; Lunas = tertagih penuh dan dibayar penuh.">Status PPN</th>
             </tr>
           </thead>
           <tbody>
@@ -360,12 +362,35 @@
               <td class="cell-money">{{ t.ppn|money }}</td>
               <td class="cell-money">{{ t.total_bayar|money }}</td>
               <td class="text-center">
-                {% if t.cocok_status == 'ditagih' %}
-                <span class="kd-term-pill kd-term-pill--ok" title="Nilai termin ini sudah tertutup penuh oleh invoice yang masuk">Ditagih</span>
-                {% elif t.cocok_status == 'sebagian' %}
-                <span class="kd-term-pill kd-term-pill--jalan" title="Termin ini sedang berjalan — invoice yang masuk baru menutup sebagian">Sebagian</span>
+                {% set st = t.status_dpp %}
+                {% if st == 'Lunas' %}
+                <span class="kd-term-pill kd-term-pill--ok" title="DPP termin ini sudah tertagih penuh dan sudah dibayar penuh">Lunas</span>
+                {% elif st == 'Bayar Sebagian' %}
+                <span class="kd-term-pill kd-term-pill--jalan" title="DPP termin ini sudah tertagih penuh, tetapi pembayaran baru menutup sebagian. Sisa bayar DPP termin: {{ t.sisa_bayar_termin|money }}">Bayar Sebagian</span>
+                {% elif st == 'Belum Dibayar' %}
+                <span class="kd-term-pill kd-term-pill--warn" title="DPP termin ini sudah tertagih penuh, tetapi belum ada pembayaran sama sekali. Sisa bayar DPP termin: {{ t.sisa_bayar_termin|money }}">Belum Dibayar</span>
+                {% elif st == 'Ditagih &amp; Bayar Sebagian' %}
+                <span class="kd-term-pill kd-term-pill--jalan" title="Invoice baru menutup sebagian DPP termin ini dan pembayaran juga belum menutup sisanya">Ditagih &amp; Bayar Sebagian</span>
+                {% elif st == 'Ditagih Sebagian' %}
+                <span class="kd-term-pill kd-term-pill--jalan" title="Invoice yang masuk baru menutup sebagian DPP termin ini; belum ada pembayaran">Ditagih Sebagian</span>
                 {% else %}
-                <span class="kd-term-pill kd-term-pill--belum" title="Belum ada invoice untuk termin ini">Belum</span>
+                <span class="kd-term-pill kd-term-pill--belum" title="Belum ada invoice DPP untuk termin ini">Belum Ditagih</span>
+                {% endif %}
+              </td>
+              <td class="text-center">
+                {% set st = t.status_ppn %}
+                {% if st == 'Lunas' %}
+                <span class="kd-term-pill kd-term-pill--ok" title="PPN termin ini sudah tertagih penuh dan sudah dibayar penuh">Lunas</span>
+                {% elif st == 'Bayar Sebagian' %}
+                <span class="kd-term-pill kd-term-pill--jalan" title="PPN termin ini sudah tertagih penuh, tetapi pembayaran baru menutup sebagian. Sisa bayar PPN termin: {{ t.sisa_bayar_ppn_termin|money }}">Bayar Sebagian</span>
+                {% elif st == 'Belum Dibayar' %}
+                <span class="kd-term-pill kd-term-pill--warn" title="PPN termin ini sudah tertagih penuh, tetapi belum ada pembayaran sama sekali. Sisa bayar PPN termin: {{ t.sisa_bayar_ppn_termin|money }}">Belum Dibayar</span>
+                {% elif st == 'Ditagih &amp; Bayar Sebagian' %}
+                <span class="kd-term-pill kd-term-pill--jalan" title="Invoice baru menutup sebagian PPN termin ini dan pembayaran juga belum menutup sisanya">Ditagih &amp; Bayar Sebagian</span>
+                {% elif st == 'Ditagih Sebagian' %}
+                <span class="kd-term-pill kd-term-pill--jalan" title="Invoice yang masuk baru menutup sebagian PPN termin ini; belum ada pembayaran">Ditagih Sebagian</span>
+                {% else %}
+                <span class="kd-term-pill kd-term-pill--belum" title="Belum ada invoice PPN untuk termin ini">Belum Ditagih</span>
                 {% endif %}
               </td>
             </tr>
@@ -378,7 +403,8 @@
               <td class="cell-money">{{ total_termin_nilai|money }}</td>
               <td class="cell-money">{{ total_ppn|money }}</td>
               <td class="cell-money">{{ total_bayar|money }}</td>
-              <td class="text-center">{{ contract.tertagih|money }}</td>
+              <td class="text-center" title="Total DPP yang sudah ditagih pada kontrak ini">{{ contract.tertagih|money }}</td>
+              <td class="text-center" title="Total PPN yang sudah ditagih pada kontrak ini">{{ contract.tertagih_ppn|money }}</td>
             </tr>
           </tbody>
         </table>
@@ -406,7 +432,7 @@
       </p>
       {% if invoices %}
       <div class="kd-scroll">
-        <table class="kd-table" style="min-width:1080px">
+        <table class="kd-table" style="min-width:1240px">
           <thead>
             <tr>
               <th>No. Invoice</th>
@@ -417,9 +443,11 @@
               <th class="num">Pot. PPH</th>
               <th class="num" title="Potongan retensi pada invoice ini (kolom POT. RETENSI)">Retensi</th>
               <th class="num">Bayar DPP</th>
-              <th class="num" title="Sisa tagihan invoice ini (Nilai DPP − Bayar DPP)">Sisa DPP</th>
+              <th title="Tanggal pembayaran DPP (kolom TGL BAYAR DPP)">Tgl Bayar DPP</th>
+              <th class="num" title="Sisa tagihan invoice ini (Nilai DPP - Bayar DPP)">Sisa DPP</th>
               <th class="num">Nilai PPN</th>
               <th class="num">Bayar PPN</th>
+              <th title="Tanggal pembayaran PPN (kolom TGL BAYAR PPN)">Tgl Bayar PPN</th>
               <th class="num" title="Sisa tagihan PPN invoice ini (Nilai PPN − Bayar PPN)">Sisa PPN</th>
             </tr>
           </thead>
@@ -436,9 +464,11 @@
               <td class="cell-money">{% if inv.pot_pph %}{{ inv.pot_pph|money }}{% else %}-{% endif %}</td>
               <td class="cell-money">{% if inv.pot_retensi %}{{ inv.pot_retensi|money }}{% else %}-{% endif %}</td>
               <td class="cell-money">{{ inv.bayar|money }}</td>
+              <td style="white-space:nowrap">{{ inv.tgl_bayar_dpp|tgl2 }}</td>
               <td class="cell-money" style="{% if sisa_inv|has_sisa %}color:#912018{% else %}color:#115e59{% endif %}">{{ sisa_inv|money }}</td>
               <td class="cell-money">{% if inv.nilai_ppn %}{{ inv.nilai_ppn|money }}{% else %}-{% endif %}</td>
               <td class="cell-money">{% if inv.bayar_ppn %}{{ inv.bayar_ppn|money }}{% else %}-{% endif %}</td>
+              <td style="white-space:nowrap">{{ inv.tgl_bayar_ppn|tgl2 }}</td>
               <td class="cell-money" style="{% if sisa_ppn_inv|has_sisa %}color:#912018{% else %}color:#115e59{% endif %}">{{ sisa_ppn_inv|money }}</td>
             </tr>
             {% endfor %}

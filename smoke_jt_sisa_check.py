@@ -69,7 +69,10 @@ for r in rows:
     modal = sum(max(0, i['harga_excl'] - i['bayar_dpp'])
                 for s in r['rekanan_list'] for i in s['invoices'])
     overdue = sum(r['aging'][k] for k in ('d1_30', 'd31_60', 'd61_90', 'd90plus'))
-    assert round(kpi) == round(aging) == round(modal), \
+    # Aging buckets are whole-rupiah display counters (like AGING_COUNTS_CSS),
+    # so compare their sum to the raw KPI within the 1-rupiah display tolerance
+    # instead of asserting exact float equality.
+    assert abs(kpi - aging) <= len(r['aging']) and round(kpi) == round(modal), \
         f"{r['key']}: KPI/aging/modal beda ({kpi}/{aging}/{modal})"
     assert round(overdue) == round(r['overdue_sisa']), \
         f"{r['key']}: overdue != SUM bucket ({overdue}/{r['overdue_sisa']})"
@@ -90,6 +93,32 @@ _ov_exp = sum(1 for r in _past for s in r['rekanan_list']
 assert _ov_cnt == _ov_exp, f"overdue_count != jumlah invoice telat ({_ov_cnt}/{_ov_exp})"
 _nmonths = sum(1 for r in _past if r['overdue_sisa'] > 0)
 print(f"[4] strip tunggakan periode lalu: {_ov_total} · {_ov_cnt} invoice di {_nmonths} bulan OK")
+
+# [4b] Kumulatif s/d periode terpilih (opsi A): sisa_dpp_cum = Σ sisa_dpp bulan
+#      ≤ key, identik dengan sum sisa_dpp per rekanan; pre_cut = key < bulan ini.
+_running = 0
+_running_cnt = 0
+for r in rows:
+    _month = sum(s['sisa_dpp'] for s in r['rekanan_list'])
+    assert round(r['sisa_dpp_month']) == round(_month), \
+        f"{r['key']}: sisa_dpp_month != Σ sisa_dpp ({r['sisa_dpp_month']}/{_month})"
+    assert round(r['sisa_dpp_cum']) == round(_running + _month), \
+        f"{r['key']}: sisa_dpp_cum != running total"
+    assert r['count_cum'] == _running_cnt + r['count_month'], \
+        f"{r['key']}: count_cum != running count"
+    assert r['pre_cut'] == (r['key'] < _nowk), f"{r['key']}: pre_cut salah"
+    _running += _month
+    _running_cnt += r['count_month']
+assert rows and round(rows[-1]['sisa_dpp_cum']) == round(sum(
+    s['sisa_dpp'] for r in rows for s in r['rekanan_list'])), \
+    "akumulasi bulan terakhir != Σ sisa_dpp semua bulan"
+assert 'lp-kpi-row--5' not in _tpl, "tidak boleh ada KPI kartu ke-5 (akumulasi di dalam kartu SISA HUTANG DPP)"
+assert 'ds-kpi--cum' not in _tpl, "KPI akumulasi terpisah seharusnya tidak ada"
+assert 'lp-hero-cum' in _tpl, "blok akumulasi di kartu hero SISA HUTANG DPP tidak ada"
+assert 'Akumulasi s/d {{ r.label }}' in _tpl, "label akumulasi tidak ada"
+assert 'Sisa DPP Kumulatif' not in _tpl, "dataset kumulatif di chart seharusnya tidak ada"
+print(f"[4b] akumulasi s/d {rows[-1]['key']}: {rows[-1]['sisa_dpp_cum']} · "
+      f"{rows[-1]['count_cum']} invoice (di dalam kartu SISA HUTANG DPP) OK")
 
 # [5] Warna status JT: belum lunas telat = merah, LUNAS telat = orange.
 _css = (_P(__file__).with_name('static') / 'css' / 'laporan.css').read_text(encoding='utf-8')

@@ -193,6 +193,8 @@ def _query_invoice_rows(project_id=None):
                        "VOLUME PROGRESS"              AS volume,
                        "TGL TERIMA"                   AS tgl_terima,
                        "TGL INV"                      AS tgl_inv,
+                       "TGL BAYAR DPP"                AS tgl_bayar_dpp,
+                       "TGL BAYAR PPN"                AS tgl_bayar_ppn,
                        "DESKRIPSI"                    AS deskripsi,
                        "KODE BIAYA2"                  AS kode_biaya,
                        "project_id"                   AS project_id
@@ -604,18 +606,81 @@ def enrich_termins(termins, contract=None):
         d['kumulatif'] = kumulatif + nilai
         kumulatif += nilai
         out.append(d)
+    # Kumulatif PPN per termin (basis penagihan/pembayaran PPN).
+    kum_ppn = 0.0
+    for d in out:
+        kum_ppn += safe_float(d.get('ppn'))
+        d['kumulatif_ppn'] = kum_ppn
 
     # Tandai status pencocokan tiap termin terhadap invoice yang sudah masuk
-    # (tertagih). Dipakai halaman detail untuk menampilkan kolom Status.
+    # (tertagih). Dipakai halaman detail untuk menampilkan kolom Status DPP
+    # dan Status PPN.
     tertagih_pagu = safe_float((contract or {}).get('tertagih'))
+    tertagih_ppn = safe_float((contract or {}).get('tertagih_ppn'))
+
+    def _cocok(kumulatif, nilai, pagu):
+        if kumulatif <= pagu + TERMIN_EPS:
+            return 'ditagih'
+        if kumulatif - nilai < pagu - TERMIN_EPS:
+            return 'sebagian'
+        return 'belum'
+
     for d in out:
-        if d['kumulatif'] <= tertagih_pagu + TERMIN_EPS:
-            d['cocok_status'] = 'ditagih'
-        elif d['kumulatif'] - safe_float(d.get('nilai')) < tertagih_pagu - TERMIN_EPS:
-            d['cocok_status'] = 'sebagian'
-        else:
-            d['cocok_status'] = 'belum'
+        d['cocok_status'] = _cocok(d['kumulatif'], safe_float(d.get('nilai')),
+                                   tertagih_pagu)
+        d['cocok_status_ppn'] = _cocok(d['kumulatif_ppn'],
+                                       safe_float(d.get('ppn')), tertagih_ppn)
+
+    # Status pembayaran per termin. DPP / PPN yang sudah dibayar dialokasikan
+    # berurutan ke termin (termin awal dibayar lebih dulu), sama seperti
+    # penagihan berjalan berurutan: dibayar s/d termin = min(total bayar,
+    # kumulatif termin) - akumulasi bayar termin sebelumnya.
+    def _alokasi(kum_key, bayar_total):
+        kum = 0.0
+        for d in out:
+            dibayar_ke = max(0.0, min(bayar_total, d[kum_key]) - kum)
+            kum += dibayar_ke
+            yield d, dibayar_ke
+
+    for d, dibayar_ke in _alokasi('kumulatif',
+                                  safe_float((contract or {}).get('dibayar'))):
+        pagu = safe_float(d.get('nilai'))
+        d['dibayar_termin'] = dibayar_ke
+        d['sisa_bayar_termin'] = max(0.0, pagu - dibayar_ke)
+        d['status_dpp'], d['status_tone_dpp'] = _termin_status(
+            d['cocok_status'], dibayar_ke, pagu)
+    for d, dibayar_ke in _alokasi('kumulatif_ppn',
+                                  safe_float((contract or {}).get('dibayar_ppn'))):
+        pagu_ppn = safe_float(d.get('ppn'))
+        d['dibayar_ppn_termin'] = dibayar_ke
+        d['sisa_bayar_ppn_termin'] = max(0.0, pagu_ppn - dibayar_ke)
+        d['status_ppn'], d['status_tone_ppn'] = _termin_status(
+            d['cocok_status_ppn'], dibayar_ke, pagu_ppn)
     return out
+
+
+def _termin_status(cocok_status, dibayar, pagu):
+    """Label + tone kolom status termin (dipakai DPP dan PPN).
+
+    Penagihan menjadi syarat pertama: termin yang belum tertagih penuh tidak
+    bisa disebut lunas walau pembayarannya sudah menutup pagu. Pembayaran
+    dibedakan tiga tingkat supaya "belum dibayar sama sekali" tidak tertukar
+    dengan "baru dibayar sebagian".
+    """
+    belum_dibayar = dibayar <= TERMIN_EPS
+    lunas = pagu - dibayar <= TERMIN_EPS
+    if cocok_status == 'belum':
+        return 'Belum Ditagih', 'belum'
+    if cocok_status == 'sebagian':
+        if belum_dibayar:
+            return 'Ditagih Sebagian', 'jalan'
+        return 'Ditagih & Bayar Sebagian', 'jalan'
+    if belum_dibayar:
+        return 'Belum Dibayar', 'warn'
+    if lunas:
+        return 'Lunas', 'ok'
+    return 'Bayar Sebagian', 'jalan'
+
 
 
 # Toleransi Rp 1 untuk semua perbandingan nominal kontrak/termin (konsisten
@@ -1202,6 +1267,10 @@ def get_contract_invoices(no_kontrak):
                                              - safe_float(r.get('harga'))),
             'bayar': safe_float(r.get('bayar')),
             'bayar_ppn': safe_float(r.get('bayar_ppn')),
+            # Tanggal pembayaran per baris invoice (kolom asli "TGL BAYAR
+            # DPP" / "TGL BAYAR PPN"). Informasi saja, tidak ikut agregasi.
+            'tgl_bayar_dpp': r.get('tgl_bayar_dpp') or '',
+            'tgl_bayar_ppn': r.get('tgl_bayar_ppn') or '',
             'volume': r.get('volume') or '',
             'status_dpp': r.get('status_dpp') or '',
             'project_id': r.get('project_id') or '',

@@ -863,6 +863,7 @@
               const statusDPP = data['STATUS TERHADAP DPP'] || '-';
               const statusPPN = data['STATUS TERHADAP PPN'] || '-';
               const total = parseFloat(data['TOTAL (INCLD)']) || 0;
+              const dpp = parseFloat(data['HARGA (EXLD)']) || 0;
               const bayarDPP = parseFloat(data['PEMBAYARAN DPP']) || 0;
               const bayarPPN = parseFloat(data['PEMBAYARAN PPN']) || 0;
               const sisaDPP = parseFloat(data['SISA HUTANG DPP']) || 0;
@@ -886,15 +887,15 @@
 
               // ── Financial bar ──
               const finItems = [
-                  { label: 'TOTAL (INCLUDE PPN)', val: money(total), cls: '#3d434c' },
-                  { label: 'Bayar DPP', val: money(bayarDPP), cls: '#115e59', sub: data['TGL BAYAR DPP'] },
-                  { label: 'Bayar PPN', val: money(bayarPPN), cls: '#115e59', sub: data['TGL BAYAR PPN'] },
+                  { label: 'NILAI DPP', val: money(dpp), cls: '#3d434c', sub: `DPP + PPN: ${money(total)}`, subIcon: 'bi-receipt' },
+                  { label: 'Pembayaran DPP', val: money(bayarDPP), cls: '#115e59', sub: data['TGL BAYAR DPP'] },
+                  { label: 'Pembayaran PPN', val: money(bayarPPN), cls: '#115e59', sub: data['TGL BAYAR PPN'] },
       { label: 'SISA HUTANG (DPP)', val: money(sisaDPP), cls: sisaDPP > 1 ? '#b42318' : '#115e59' },
       { label: 'SISA HUTANG (PPN)', val: money(sisaPPN), cls: sisaPPN > 1 ? '#b42318' : '#115e59' },
               ];
               document.getElementById('vmFinbar').innerHTML = finItems.map(f =>
                   `<div class="vm-finbar-item"><div class="vm-finbar-label">${f.label}</div><div class="vm-finbar-val" style="color:${f.cls}">${f.val}</div>` +
-                  (f.sub ? `<div class="vm-finbar-sub"><i class="bi bi-calendar-check"></i> ${f.sub}</div>` : '') +
+                  (f.sub ? `<div class="vm-finbar-sub"><i class="bi ${f.subIcon || 'bi-calendar-check'}"></i> ${f.sub}</div>` : '') +
                   `</div>`
               ).join('');
 

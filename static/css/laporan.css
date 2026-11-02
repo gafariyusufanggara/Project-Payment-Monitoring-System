@@ -717,6 +717,19 @@
 .lp-jt .lp-hero-side strong { font-variant-numeric: tabular-nums; color: #333333; }
 .lp-jt .lp-hero-sep { color: #a3a8af; }
 
+/* Akumulasi SISA HUTANG DPP s/d periode terpilih (di dalam kartu hero) */
+.lp-jt .lp-hero { flex-wrap: wrap; }
+.lp-jt .lp-hero-cum {
+  flex: 1 0 100%; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  margin-top: 8px; padding-top: 8px;
+  border-top: 1px dashed var(--border, #e3e5e8);
+  font-family: "Inter", system-ui, sans-serif; font-size: 0.74rem; color: #4d5766;
+}
+.lp-jt .lp-hero-cum__lbl { font-weight: 700; display: inline-flex; align-items: center; gap: 4px; }
+.lp-jt .lp-hero-cum__lbl .bi { color: #16324f; font-size: 0.8rem; }
+.lp-jt .lp-hero-cum strong { font-variant-numeric: tabular-nums; color: #16324f; font-size: 0.84rem; }
+.lp-jt .lp-hero-cum.pos strong { color: var(--danger, #e74c3c); }
+
 /* Strip tunggakan lintas periode (di atas monthSel) */
 .lp-jt-alert { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 14px; margin: 0 0 12px; background: #fef2f2; border: 1px solid #f8cfc9; border-left: 3px solid var(--danger, #e74c3c); border-radius: 8px; font-family: "Inter", system-ui, sans-serif; color: #8b1a10; }
 .lp-jt-alert > .bi { font-size: 0.9rem; }

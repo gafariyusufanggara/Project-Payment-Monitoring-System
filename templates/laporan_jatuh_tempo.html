@@ -75,6 +75,11 @@ if s.rekanan not in all_rekanan %} {% set _ = all_rekanan.append(s.rekanan) %}
         <span class="lp-hero-sep" aria-hidden="true">−</span>
         <span class="lp-hero-tot"><strong>{{ ns.bdpp|money }}</strong> bayar</span>
       </div>
+      {#- Akumulasi s/d periode terpilih = SISA HUTANG DPP semua bulan ≤ r.key -#}
+      <div class="lp-hero-cum{% if r.sisa_dpp_cum|has_sisa %} pos{% endif %}" title="SISA HUTANG DPP akumulasi: seluruh invoice dengan JTH {{ r.label }} atau sebelumnya yang belum dibayar">
+        <span class="lp-hero-cum__lbl"><i class="bi bi-layers" aria-hidden="true"></i> Akumulasi s/d {{ r.label }}</span>
+        <strong>{{ r.sisa_dpp_cum|money }}</strong>
+      </div>
     </div>
 
     {% if ns.sdpp|has_sisa %}

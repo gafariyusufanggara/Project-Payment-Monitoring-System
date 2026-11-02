@@ -127,6 +127,17 @@ def _tgl_filter(val):
     return f'{d.day} {bulan[d.month]} {d.year}'
 
 
+# ── Jinja filter: format date YYYY-MM-DD → 09-10-2026 (angka saja) ──
+@app.template_filter('tgl2')
+def _tgl2_filter(val):
+    """Format YYYY-MM-DD to DD-MM-YYYY. Empty/invalid → '-'. ──"""
+    from constants import parse_date
+    d = parse_date(val)
+    if not d:
+        return '-'
+    return f'{d.day:02d}-{d.month:02d}-{d.year}'
+
+
 # ── Context processor: inject notif badge count on every request ──
 @app.context_processor
 def inject_notif_counts():

@@ -361,14 +361,18 @@ _th = [re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', '', t)).strip()
 assert 'Retensi' in _th, f'kolom Retensi tidak ada pada tabel invoice: {_th}'
 assert _th[_th.index('Pot. PPH') + 1] == 'Retensi', \
     f'Retensi harus TEPAT setelah Pot. PPH, urutan: {_th}'
-assert len(_th) == 12, f'jumlah kolom tabel invoice: {len(_th)}, harusnya 12'
+assert len(_th) == 14, f'jumlah kolom tabel invoice: {len(_th)}, harusnya 14'
+assert _th[_th.index('Bayar DPP') + 1] == 'Tgl Bayar DPP', \
+    f'Tgl Bayar DPP harus TEPAT setelah Bayar DPP, urutan: {_th}'
+assert _th[_th.index('Bayar PPN') + 1] == 'Tgl Bayar PPN', \
+    f'Tgl Bayar PPN harus TEPAT setelah Bayar PPN, urutan: {_th}'
 
 # Setiap baris punya jumlah <td> = jumlah kolom (tidak ada sel bergeser).
 _body = re.search(r'<tbody>(.*?)</tbody>', _seg, re.S).group(1)
 _trs = re.findall(r'<tr>(.*?)</tr>', _body, re.S)
 assert _trs, 'tabel invoice kosong'
-assert {len(re.findall(r'<td', _r)) for _r in _trs} == {12}, \
-    'jumlah <td> per baris tidak sama dengan 12 kolom'
+assert {len(re.findall(r'<td', _r)) for _r in _trs} == {14}, \
+    'jumlah <td> per baris tidak sama dengan 14 kolom'
 
 # Nilai retensi benar-benar ter-render (bukan hanya header).
 _money = app.jinja_env.filters['money']
@@ -390,8 +394,87 @@ for _i in _inv_r:
             f'retensi {_money(_i["pot_retensi"])} tidak tampil di baris'
         _ada += 1
 assert _ada, 'nilai retensi tidak ter-render satupun'
-print(f'[7b] kolom Retensi OK (setelah Pot. PPH, 12 kolom, '
+print(f'[7b] kolom Retensi OK (setelah Pot. PPH, 14 kolom, '
       f'{_ada} nilai tampil di {_cr["no_kontrak"]})')
+
+
+# --- 7c. Jadwal Termin: kolom "Status DPP" + "Status PPN" (4 status) ---
+def _termin_seg(html):
+    seg = html[html.index('Jadwal Termin'):]
+    return seg[:seg.index('</table>')]
+
+
+def _pills(html):
+    return re.findall(
+        r'<span class="kd-term-pill kd-term-pill--(\w+)"[^>]*>([^<]+)</span>',
+        _termin_seg(html))
+
+
+_valid = {'Lunas', 'Bayar Sebagian', 'Ditagih Sebagian', 'Belum Ditagih',
+          'Belum Dibayar', 'Ditagih & Bayar Sebagian'}
+_tseg = _termin_seg(_det_html)
+for _hdr in ('Status DPP', 'Status PPN'):
+    assert _hdr in _tseg, f'header "{_hdr}" tidak ada di Jadwal Termin'
+assert 'Status Invoice' not in _tseg, \
+    'header "Status Invoice" harus diganti Status DPP/PPN'
+assert re.search(r'<th[^>]*>Status</th>', _tseg) is None, \
+    'header "Status" lama masih ada di Jadwal Termin'
+assert 'PPN per Termin (Rp)' in _tseg, 'header PPN per Termin (Rp) tidak ada'
+assert re.search(r'PPN per Termin \(Rp\)[^<]*<span', _tseg) is None, \
+    'header PPN per Termin (Rp) masih menyertakan persen'
+
+_pl = _pills(_det_html)
+assert _pl, 'pill status termin tidak ter-render'
+_labs = {re.sub(r'&amp;', '&', t) for _, t in _pl}
+assert _labs <= _valid, f'label status tak dikenal: {_labs}'
+_ncells = len(re.findall(r'<td class="text-center">\s*<span class="kd-term-pill',
+                         _tseg))
+assert len(_pl) == _ncells, \
+    f'jumlah pill {len(_pl)} != jumlah sel status {_ncells} (2 sel per termin)'
+
+# Rekonsiliasi: label diturunkan ulang dari data DB, DPP dan PPN terpisah.
+_mismatch = []
+_totals = {'DPP': dict.fromkeys(_valid, 0), 'PPN': dict.fromkeys(_valid, 0)}
+for _c in contracts:
+    _ts = db_contract.enrich_termins(db_contract.get_termins(_c['id']), _c)
+    if not _ts:
+        continue
+    for _t in _ts:
+        for _kind in ('dpp', 'ppn'):
+            _lab = _t['status_' + _kind]
+            _ton = _t['status_tone_' + _kind]
+            _totals[_kind.upper()][_lab] += 1
+            assert _ton in ('ok', 'jalan', 'belum', 'warn'), \
+                f"{_c['no_kontrak']}: tone {_ton}"
+            _cocok = _t['cocok_status' if _kind == 'dpp' else 'cocok_status_ppn']
+            _byr = float(_t['dibayar_termin' if _kind == 'dpp'
+                              else 'dibayar_ppn_termin'])
+            _pagu_k = float(_t['nilai' if _kind == 'dpp' else 'ppn'] or 0)
+            _nol = _byr <= 1.0
+            _lunas = abs(_pagu_k - _byr) <= 1.0
+            if _cocok == 'belum':
+                _want = 'Belum Ditagih'
+            elif _cocok == 'sebagian':
+                _want = 'Ditagih Sebagian' if _nol else 'Ditagih & Bayar Sebagian'
+            elif _nol:
+                _want = 'Belum Dibayar'
+            elif _lunas:
+                _want = 'Lunas'
+            else:
+                _want = 'Bayar Sebagian'
+            if _lab != _want:
+                _mismatch.append(
+                    f"{_c['no_kontrak']}#{_t['urutan_no']} {_kind}: "
+                    f"{_lab} != {_want}")
+        _pagu = float(_t['nilai'] or 0)
+        assert 0 <= _t['dibayar_termin'] <= _pagu + 1.0, \
+            f"{_c['no_kontrak']}: alokasi bayar DPP termin melebihi pagu"
+        _pagu_ppn = float(_t['ppn'] or 0)
+        assert 0 <= _t['dibayar_ppn_termin'] <= _pagu_ppn + 1.0, \
+            f"{_c['no_kontrak']}: alokasi bayar PPN termin melebihi pagu"
+assert not _mismatch, f'label status tidak konsisten: {_mismatch[:5]}'
+print(f'[7c] Status DPP/PPN OK: DPP {_totals["DPP"]} | PPN {_totals["PPN"]} '
+      f'(PPN per Termin tanpa persen)')
 
 
 # --- 8. Detail kontrak: KPI + rincian memakai istilah yang sama dgn daftar ---

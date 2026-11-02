@@ -160,8 +160,9 @@ def laporan_jatuh_tempo_export():
 @bp.route('/laporan-jatuh-tempo')
 def laporan_jatuh_tempo():
     from services.project_context import get_read_filter
-    report_rows, data_count = build_jatuh_tempo_data(project_id=get_read_filter())
     now_key = date.today().strftime('%Y-%m')
+    report_rows, data_count = build_jatuh_tempo_data(
+        project_id=get_read_filter(), now_key=now_key)
     months = [r['key'] for r in report_rows]
     current_month = now_key if now_key in months else (months[-1] if months else '')
     return render_template('laporan_jatuh_tempo.html',

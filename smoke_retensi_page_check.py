@@ -109,7 +109,7 @@ print(f'[3b] KPI Retensi Ditahan {ditahan:,.0f} + Belum Ditahan {belum_ditahan:,
 # --- 4. Label & kolom halaman levelansir ---
 for label in ('Status Retensi', 'Nilai DPP', 'Nilai PPN', 'DPP Setelah Retensi',
               'Bayar DPP',
-              'Sisa Retensi', 'Total Retensi',
+              'Sisa Hutang Retensi', 'Total Retensi',
               'Retensi Ditahan', 'Belum Ditahan'):
     assert label in html, f'label hilang: {label}'
 # Label lama yang ambigu tidak boleh kembali.
@@ -138,8 +138,8 @@ assert 'Bayar DPP' in _labs, f'kolom Bayar DPP hilang: {_labs}'
 _i = _labs.index('Bayar DPP')
 assert _labs[_i - 1] == 'DPP Setelah Retensi', \
     f'Bayar DPP harus tepat setelah DPP Setelah Retensi, dapat: {_labs[_i - 1]}'
-assert _labs[_i + 1] == 'Sisa Retensi', \
-    f'Bayar DPP harus tepat sebelum Sisa Retensi, dapat: {_labs[_i + 1]}'
+assert _labs[_i + 1] == 'Sisa Hutang Retensi', \
+    f'Bayar DPP harus tepat sebelum Sisa Hutang Retensi, dapat: {_labs[_i + 1]}'
 # Nilai Bayar DPP benar-benar tampil (bukan kolom kosong).
 assert any(i['bayar_dpp'] > 0 for i in invoices), 'tidak ada invoice dengan bayar_dpp > 0'
 assert re.search(r'<td class="cell-money">\d[\d.]*</td>\s*<td class="cell-money">', html), \

@@ -56,7 +56,7 @@ for _v in FIXTURE[0]['rekanan_list']:
 
 _orig = jt_excel.build_jatuh_tempo_data
 try:
-    jt_excel.build_jatuh_tempo_data = lambda project_id=None: (FIXTURE, 2)
+    jt_excel.build_jatuh_tempo_data = lambda project_id=None, now_key=None: (FIXTURE, 2)
     buf = jt_excel.build_jt_excel(month_key='2026-10')
 finally:
     jt_excel.build_jatuh_tempo_data = _orig

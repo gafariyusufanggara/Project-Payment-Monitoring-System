@@ -143,9 +143,9 @@ def build_jt_excel(month_key=None, project_id=None):
     """
     import xlsxwriter
 
-    report_rows, _ = build_jatuh_tempo_data(project_id=project_id)
-
     now_key = month_key
+    report_rows, _ = build_jatuh_tempo_data(project_id=project_id, now_key=now_key)
+
     if now_key is None and report_rows:
         now_key = report_rows[-1]['key']
     mdata = next((r for r in report_rows if r['key'] == now_key), None)

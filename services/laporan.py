@@ -1211,13 +1211,21 @@ def _jt_status(hari_lebih, sisa_dpp):
     return 'Lunas Tepat Waktu', 'paid_ok'
 
 
-def build_jatuh_tempo_data(project_id=None):
+def build_jatuh_tempo_data(project_id=None, now_key=None):
     """Group invoices by JTH TEMPO month, then by rekanan.
 
     project_id: optional project filter forwarded to db.read_data.
+    now_key: 'YYYY-MM' of the running period, used only to flag pre_cut rows
+        (months strictly before it). Defaults to today's month.
     Returns (report_rows, data_count) where each report row is:
         { 'key': 'YYYY-MM', 'label': 'Jan 2026', 'rekanan_list': [...],
-          'aging': {...}, 'aging_count': {...}, 'overdue_sisa': int, 'overdue_count': int }
+          'aging': {...}, 'aging_count': {...}, 'overdue_sisa': int, 'overdue_count': int,
+          'sisa_dpp_month': int, 'count_month': int,
+          'sisa_dpp_cum': int, 'count_cum': int, 'pre_cut': bool }
+
+    Cumulatives accumulate the SAME sisa_dpp the hero KPIs show (per-invoice net
+    clamp, sum of every invoice whose JTH falls in that month or earlier), so
+    "sisa_dpp_cum" is the unpaid debt due up to and including that period.
 
     Each rekanan entry:
         { 'rekanan': str, 'invoices': [...], 'total': int, 'count': int,
@@ -1448,5 +1456,24 @@ def build_jatuh_tempo_data(project_id=None):
             'overdue_sisa': overdue_sisa,
             'overdue_count': overdue_count,
         })
+
+    # ── Kumulatif s/d periode terpilih (opsi A) ──
+    # sisa_dpp_month = sisa DPP seluruh invoice ber-JTH bulan itu (belum lunas),
+    # identik dengan angka hero (Σ sisa_dpp per rekanan). sisa_dpp_cum = njumlah
+    # berjalan bulan demi bulan, jadi "hutang belum dibayar s/d periode ini".
+    # Tidak memakai overdue_sisa: invoice yang JTH-nya bulan itu tapi belum telat
+    # tetap utang bulan itu; invoice yang JTH bulan itu tapi telat tidak boleh
+    # ikut terhitung di bulan berikutnya (cegah dobel).
+    _now = now_key or date.today().strftime('%Y-%m')
+    _cum_sisa = 0.0
+    _cum_cnt = 0
+    for r in report_rows:
+        r['sisa_dpp_month'] = sum(s['sisa_dpp'] for s in r['rekanan_list'])
+        r['count_month'] = sum(s['count'] for s in r['rekanan_list'])
+        _cum_sisa += r['sisa_dpp_month']
+        _cum_cnt += r['count_month']
+        r['sisa_dpp_cum'] = _cum_sisa
+        r['count_cum'] = _cum_cnt
+        r['pre_cut'] = r['key'] < _now
 
     return report_rows, valid_count
