@@ -1,0 +1,673 @@
+{% extends "base.html" %}
+{% block title %}Rekap PO Kontrak - Project Payment Monitoring System{% endblock %}
+{% block topbar_title %}Rekap PO Kontrak{% endblock %}
+{% block topbar_icon %}bi-clipboard-data-fill{% endblock %}
+
+{% block content %}
+<!--
+  Rekap Kontrak — turunan ringkas sheet 'Rekap No PO'.
+  Dibangun murni dari tabel vendor_contracts (hasil Import Kontrak).
+  Tidak ada import baru untuk halaman ini.
+-->
+{% include "partials/_dt_theme.html" %}
+{% include "partials/_search_box.html" %}
+<style>
+  .rp-wrap { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .rp-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  @media (max-width: 1024px) { .rp-kpis { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 576px) { .rp-kpis { grid-template-columns: 1fr; } }
+
+  .rp-toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .rp-toolbar .ds-search.ft-search { flex: 1 1 260px; max-width: 320px; }
+  .rp-period-sel { display: inline-flex; align-items: center; gap: 6px; border: 1px solid #dce3eb; border-radius: 10px; background: #fff; padding: 0 8px; height: 34px; font-size: 0.78rem; }
+  .rp-period-lbl { display: inline-flex; align-items: center; gap: 6px; padding-right: 6px; font-size: 0.72rem; font-weight: 700; white-space: nowrap; }
+  .rp-period-lbl i { font-size: 0.8rem; }
+  .rp-period-sel select { height: 28px; border: none; background: transparent; font-size: 0.78rem; cursor: pointer; outline: none; padding: 0 4px; font-family: inherit; color: #16324f; font-weight: 600; max-width: 160px; }
+  .rp-period-sel select:focus { box-shadow: 0 0 0 3px rgba(0,86,145,0.15); border-radius: 6px; }
+  .rp-period-btn { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border: 1px solid #dce3eb; border-radius: 6px; background: #f7f8f9; color: #33414f; cursor: pointer; font-size: 0.8rem; transition: background-color 0.2s, border-color 0.2s, color 0.2s; }
+  .rp-period-btn:hover { background: #eaf0f6; border-color: #16324f; color: #16324f; }
+  .rp-period-btn:focus-visible { outline: 2px solid #16324f; outline-offset: 2px; }
+  .rp-period-sel select:focus-visible { outline: 2px solid #16324f; outline-offset: 1px; }
+  .rp-period-badge { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border: 1px solid var(--dt-border); border-radius: 10px; background: var(--dt-accent-soft); color: var(--dt-navy); font-size: 0.74rem; font-weight: 700; white-space: nowrap; }
+  .rp-period-badge i { font-size: 0.82rem; }
+  @media (prefers-reduced-motion: reduce) {
+    .rp-period-btn, .rp-chart-box { transition: none; }
+    .animate-in { animation: none !important; }
+  }
+
+  /* Chart containers */
+  .rp-charts { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 12px; min-width: 0; }
+  .rp-chart-box { background: #fff; border: 1px solid #dce3eb; border-radius: 16px; padding: 14px 16px; box-shadow: 0 1px 4px rgba(51,51,51,0.05); min-width: 0; }
+  .rp-chart-box h6 { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: #526579; margin: 0 0 10px 0; display: flex; align-items: center; gap: 7px; }
+  .rp-chart-title__ico { width: 3px; height: 12px; border-radius: 2px; background: #16324f; flex-shrink: 0; }
+  .rp-chart-canvas { position: relative; height: 260px; min-width: 0; }
+  @media (max-width: 992px) { .rp-charts { grid-template-columns: minmax(0, 1fr); } }
+  @media (max-width: 576px) { .rp-chart-canvas { height: 220px; } }
+  .rp-page .table-wrapper, .rp-page .table-scroll { min-width: 0; max-width: 100%; }
+
+  /* Table header groups */
+  .rp-page #rpTable thead tr.rp-grp-row th {
+    padding: 5px 8px; font-size: 0.62rem; letter-spacing: 0.7px;
+    text-align: center; vertical-align: middle;
+    border-bottom: 1px solid rgba(36,72,102,0.14);
+  }
+  .rp-grp-kini  { background: #d9e8f7 !important; color: #1d4d78 !important; }
+  .rp-grp-sdl   { background: #e6f4f1 !important; color: #115e59 !important; }
+  .rp-grp-bln   { background: #fdf6d8 !important; color: #6f5200 !important; }
+  .rp-grp-sdi   { background: #ece4f7 !important; color: #4a3785 !important; }
+  .rp-grp-id    { background: #e8eef4 !important; color: #3d4b5c !important; }
+  .rp-grp-stat  { background: var(--dt-green-soft) !important; color: var(--dt-green) !important; }
+
+  #rpTable tbody td:nth-child(-n+4) { background: #f8fafc; }
+  #rpTable tbody td.rp-num { font-variant-numeric: tabular-nums; text-align: center; font-weight: 600; color: #526579; }
+  .rp-bkt-pill { display: inline-block; padding: 2px 7px; border-radius: 12px; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.3px; }
+  .rp-bkt--kso  { background: #fdf6d8; color: #8a6d00; }
+  .rp-bkt--unit { background: #eaf0f6; color: #16324f; }
+  .rp-bkt--pusat{ background: #e6f4f1; color: #115e59; }
+  .rp-empty-note { font-size: 0.78rem; color: #667080; padding: 20px 0; text-align: center; }
+  .rp-page #rpTable { min-width: 1440px; }
+  /* Dua kolom beku kanan: Kategori lalu Invoice (paling kanan). */
+  .rp-page { --rp-stat-w: 84px; }
+  .rp-page .dt-table thead th.col-sticky-right,
+  .rp-page .dt-table tbody td.col-sticky-right {
+    width: var(--rp-stat-w); min-width: var(--rp-stat-w); white-space: nowrap;
+  }
+  .rp-page .dt-table thead th.col-sticky-right-2,
+  .rp-page .dt-table tbody td.col-sticky-right-2 {
+    position: sticky; right: var(--rp-stat-w); white-space: nowrap;
+  }
+  .rp-page .dt-table thead th.col-sticky-right-2 {
+    z-index: 21;
+    background: linear-gradient(180deg, var(--dt-navy-mid) 0%, var(--dt-navy) 100%);
+  }
+  .rp-page .dt-table thead th.col-sticky-right,
+  .rp-page .dt-table thead th.col-sticky-right-2 {
+    box-shadow: inset 1px 0 0 var(--dt-border);
+  }
+  .rp-page .dt-table tbody td.col-sticky-right-2 {
+    z-index: 4;
+    background: var(--dt-bg-alt);
+    box-shadow: inset 1px 0 0 var(--dt-border);
+  }
+  .rp-page .dt-table tbody tr:hover td.col-sticky-right-2 {
+    background: var(--dt-accent-soft) !important;
+  }
+  .rp-stat-pill { display: inline-block; min-width: 26px; padding: 2px 8px; border-radius: 12px; font-size: 0.65rem; font-weight: 700; line-height: 1.3; }
+  .rp-page .cell-money { font-size: 0.68rem; }
+  .rp-page .rp-vend { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .rp-page .rp-vend-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; color: #16324f; font-size: 0.74rem; }
+  .rp-page .rp-vend-no { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rp-page .rp-vend-name a,
+  .rp-page .rp-vend-no a { color: #244866; text-decoration: none; }
+  .rp-page .rp-vend-name a:hover,
+  .rp-page .rp-vend-no a:hover { text-decoration: underline; }
+  .rp-page .rp-vend-no a { font-weight: 500; font-size: 0.68rem; }
+  .rp-page .rp-item-col { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.7rem; color: #4d5766; }
+  .rp-page .rp-date { white-space: nowrap; text-align: center; font-size: 0.7rem; font-variant-numeric: tabular-nums; }
+  /* Zebra per grup periode agar terbaca melintang. */
+  #rpTable tbody td:nth-child(n+5):nth-child(-n+7)  { background: #f5f9fd; }
+  #rpTable tbody td:nth-child(n+8):nth-child(-n+10) { background: #f5fbf9; }
+  #rpTable tbody td:nth-child(n+11):nth-child(-n+13){ background: #fffdf5; }
+  #rpTable tbody td:nth-child(n+14):nth-child(-n+16){ background: #f9f7fe; }
+  #rpTable tbody tr:hover td { background: #eaf0f6 !important; }
+  #rpTable thead th:nth-child(5), #rpTable tbody td:nth-child(5),
+  #rpTable thead th:nth-child(8), #rpTable tbody td:nth-child(8),
+  #rpTable thead th:nth-child(11), #rpTable tbody td:nth-child(11),
+  #rpTable thead th:nth-child(14), #rpTable tbody td:nth-child(14) { border-left: 2px solid #d5dce4; }
+
+  ::selection { background: #eaf0f6; }
+</style>
+
+<div class="rp-wrap animate-in" data-rp-year="{{ year }}" data-rp-month="{{ month }}">
+
+  <div class="rp-kpis">
+    <div class="ds-kpi ds-kpi--compact" tabindex="0">
+      <div class="kpi-ico kpi-ico--blue"><i class="bi bi-file-earmark-text"></i></div>
+      <div><div class="ds-kpi__label">Total Kontrak</div><div class="ds-kpi__value" id="rpKpiCount">{{ total_kontrak }}</div></div>
+    </div>
+    <div class="ds-kpi ds-kpi--compact" tabindex="0">
+      <div class="kpi-ico kpi-ico--blue"><i class="bi bi-cash-coin"></i></div>
+      <div><div class="ds-kpi__label">Nilai Kontrak (DPP)</div><div class="ds-kpi__value" id="rpKpiKontrak">{{ grand_totals.kontrak_kini|money }}</div></div>
+    </div>
+    <div class="ds-kpi ds-kpi--compact" tabindex="0">
+      <div class="kpi-ico kpi-ico--green"><i class="bi bi-calendar-check"></i></div>
+      <div><div class="ds-kpi__label" id="rpKpiSdLabel">SD {{ month_label }} (Kumulatif)</div><div class="ds-kpi__value" id="rpKpiSd">{{ grand_totals.sd_bulan_ini|money }}</div></div>
+    </div>
+    <div class="ds-kpi ds-kpi--compact{% if grand_totals.bulan_ini > 0 %} ds-kpi--warn{% endif %}" id="rpKpiBlnCard" tabindex="0">
+      <div class="kpi-ico kpi-ico--amber"><i class="bi bi-calendar-event"></i></div>
+      <div><div class="ds-kpi__label">Bulan Ini</div><div class="ds-kpi__value" id="rpKpiBln">{{ grand_totals.bulan_ini|money }}</div></div>
+    </div>
+  </div>
+
+  <div class="rp-charts">
+    <div class="rp-chart-box">
+      <h6 class="rp-chart-title"><span class="rp-chart-title__ico" aria-hidden="true"></span> Nilai Kontrak Per Bulan (per Kategori)</h6>
+      <div class="rp-chart-canvas"><canvas id="rpChartBar" role="img" aria-label="Grafik batang bertumpuk nilai kontrak tiap bulan, dipisah per kategori KSO, Unit Bisnis, dan Pusat."></canvas></div>
+    </div>
+    <div class="rp-chart-box">
+      <h6 class="rp-chart-title"><span class="rp-chart-title__ico" aria-hidden="true"></span> Komposisi Nilai Kontrak (per Kategori)</h6>
+      <div class="rp-chart-canvas"><canvas id="rpChartDonut" role="img" aria-label="Diagram donat komposisi nilai kontrak s/d periode terpilih per kategori: KSO, Unit Bisnis, dan Pusat."></canvas></div>
+    </div>
+  </div>
+
+  <div class="dt-invoice rp-page" style="min-width:0">
+    <div class="table-wrapper">
+      <div class="table-toolbar">
+        <div class="table-toolbar-filters">
+          <div class="rp-toolbar">
+            <form method="GET" action="{{ filter_url }}" aria-label="Pilih periode" style="display:flex;align-items:center;gap:6px">
+              <div class="rp-period-sel">
+                <label class="rp-period-lbl" for="rpPeriod"><i class="bi bi-calendar3" aria-hidden="true"></i> Periode</label>
+                <select id="rpPeriod" name="period" aria-label="Pilih periode kontrak" {% if not period_options %}disabled{% endif %}>
+                  {% for p in period_options %}
+                    <option value="{{ p.key }}" {% if p.key == selected_key %}selected{% endif %}>{{ p.label }}</option>
+                  {% endfor %}
+                  {% if not period_options %}
+                    <option value="">Belum ada tanggal kontrak</option>
+                  {% endif %}
+                </select>
+              </div>
+              <noscript><button type="submit" class="rp-period-btn"><i class="bi bi-check-lg"></i></button></noscript>
+            </form>
+            <div class="rp-period-sel rp-cat-sel">
+              <label class="rp-period-lbl" for="rpFilterBucket"><i class="bi bi-funnel" aria-hidden="true"></i> Kategori</label>
+              <select id="rpFilterBucket" aria-label="Filter kategori kontrak">
+                <option value="">Semua Kategori</option>
+                <option value="kso">KSO</option>
+                <option value="unit">Unit Bisnis</option>
+                <option value="pusat">Pusat</option>
+              </select>
+            </div>
+            <div class="search-box ds-search ft-search">
+              <i class="bi bi-search"></i>
+              <input type="text" id="rpSearch" placeholder="Cari no. kontrak / vendor..." autocomplete="off" aria-label="Cari kontrak" />
+              <button type="button" class="ft-search-clear" id="rpSearchClear" aria-label="Bersihkan pencarian" hidden><i class="bi bi-x-lg"></i></button>
+              <kbd class="ft-search-kbd" aria-hidden="true">/</kbd>
+            </div>
+            <span class="search-count" id="rpCount" aria-live="polite"></span>
+            <span class="rp-period-badge" id="rpPeriodBadge" title="Periode terpilih">
+              <i class="bi bi-calendar3" aria-hidden="true"></i>
+              <span id="rpPeriodBadgeText">{{ month_label }}</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-scroll">
+        <table class="table dt-table" id="rpTable">
+          <thead>
+            <tr class="rp-grp-row">
+              <th colspan="1" class="rp-grp rp-grp-id" data-gstart="0" data-gspan="1" title="Nomor urut tampilan"></th>
+              <th colspan="3" class="rp-grp rp-grp-id" data-gstart="1" data-gspan="3" title="Vendor/rekanan, item pekerjaan, dan tanggal kontrak">Identitas</th>
+              <th colspan="3" class="rp-grp rp-grp-kini" data-gstart="5" data-gspan="3" title="Total DPP kontrak yang sudah ada s/d akhir periode terpilih">NILAI KONTRAK</th>
+              <th colspan="3" class="rp-grp rp-grp-sdl" data-gstart="8" data-gspan="3" title="Kumulatif sampai akhir bulan sebelum periode terpilih">S/D BULAN LALU</th>
+              <th colspan="3" class="rp-grp rp-grp-bln" data-gstart="11" data-gspan="3" title="Nilai kontrak yang tanggalnya jatuh di bulan terpilih">BULAN INI</th>
+              <th colspan="3" class="rp-grp rp-grp-sdi" data-gstart="14" data-gspan="3" title="Kumulatif sampai akhir bulan terpilih">SD BULAN INI</th>
+              <th colspan="1" scope="col" class="rp-grp rp-grp-id col-sticky-right-2" data-gstart="16" data-gspan="1" title="Kategori nilai kontrak"></th>
+              <th colspan="1" scope="col" class="rp-grp rp-grp-stat col-sticky-right" data-gstart="17" data-gspan="1" title="Jumlah invoice yang cocok dengan kontrak ini"></th>
+            </tr>
+            <tr>
+              <th class="col-sticky-left text-center" style="width:42px">No.</th>
+              <th class="col-sticky-left-2">Vendor / Rekanan</th>
+              <th>Item Pekerjaan</th>
+              <th class="text-center">Tgl Kontrak</th>
+              <th class="text-center">KSO</th>
+              <th class="text-center">Unit Bisnis</th>
+              <th class="text-center">Pusat</th>
+              <th class="text-center">KSO</th>
+              <th class="text-center">Unit Bisnis</th>
+              <th class="text-center">Pusat</th>
+              <th class="text-center">KSO</th>
+              <th class="text-center">Unit Bisnis</th>
+              <th class="text-center">Pusat</th>
+              <th class="text-center">KSO</th>
+              <th class="text-center">Unit Bisnis</th>
+              <th class="text-center">Pusat</th>
+              <th class="col-sticky-right-2 text-center">Kategori</th>
+              <th class="col-sticky-right text-center" title="Jumlah invoice yang cocok dengan kontrak ini">Invoice</th>
+            </tr>
+          </thead>
+          <tbody id="rpBody">
+            {% for r in rows %}
+            <tr data-search="{{ (r.no_kontrak ~ ' ' ~ r.vendor ~ ' ' ~ (r.item_pekerjaan or ''))|lower }}"
+                data-no="{{ loop.index }}"
+                data-tgl="{{ r.tgl_kontrak }}"
+                data-bucket="{{ r.bucket }}"
+                data-dpp="{{ '%.0f'|format(r.dpp) }}"
+                data-vendor="{{ r.vendor }}"
+                data-period-visible="{{ '1' if r.visible else '0' }}"
+                data-kso="{{ '%.0f'|format(r.dpp if r.bucket == 'kso' else 0) }}"
+                data-ub="{{ '%.0f'|format(r.dpp if r.bucket == 'unit' else 0) }}"
+                data-ps="{{ '%.0f'|format(r.dpp if r.bucket == 'pusat' else 0) }}"
+                {% if not r.visible %}data-filter-pass="0" style="display:none"{% endif %}>
+              <td class="col-sticky-left rp-num" data-type="num"><span class="row-num">{{ loop.index }}</span></td>
+              <td class="col-sticky-left-2">
+                <div class="rp-vend">
+                  <div class="rp-vend-name" title="{{ r.vendor }}">{% if r.vendor %}<a href="{{ url_for('contract.contract_detail', contract_id=r.id) }}">{{ r.vendor }}</a>{% else %}Vendor belum diisi{% endif %}</div>
+                  <div class="rp-vend-no" title="{{ r.no_kontrak }}"><a href="{{ url_for('contract.contract_detail', contract_id=r.id) }}">{{ r.no_kontrak }}</a></div>
+                </div>
+              </td>
+              <td class="rp-item-col" title="{{ r.item_pekerjaan or '' }}">{{ r.item_pekerjaan or 'Belum diisi' }}</td>
+              <td class="rp-date" data-type="date" data-v="{{ r.tgl_kontrak }}">{{ r.tgl_kontrak|tgl }}</td>
+              <td class="cell-money text-end">{{ r.periods.kini.kso|money }}</td>
+              <td class="cell-money text-end">{{ r.periods.kini.unit|money }}</td>
+              <td class="cell-money text-end">{{ r.periods.kini.pusat|money }}</td>
+              <td class="cell-money text-end">{{ r.periods.sdl.kso|money }}</td>
+              <td class="cell-money text-end">{{ r.periods.sdl.unit|money }}</td>
+              <td class="cell-money text-end">{{ r.periods.sdl.pusat|money }}</td>
+              <td class="cell-money text-end">{{ r.periods.bln.kso|money }}</td>
+              <td class="cell-money text-end">{{ r.periods.bln.unit|money }}</td>
+              <td class="cell-money text-end">{{ r.periods.bln.pusat|money }}</td>
+              <td class="cell-money text-end">{{ r.periods.sdi.kso|money }}</td>
+              <td class="cell-money text-end">{{ r.periods.sdi.unit|money }}</td>
+              <td class="cell-money text-end">{{ r.periods.sdi.pusat|money }}</td>
+              <td class="text-center col-sticky-right-2">
+                <span class="rp-bkt-pill rp-bkt--{{ r.bucket }}">{{ r.bucket|replace('kso','KSO')|replace('unit','Unit Bisnis')|replace('pusat','Pusat') }}</span>
+              </td>
+              <td class="text-center col-sticky-right">
+                {% if r.jumlah_invoice > 0 %}
+                <span class="rp-stat-pill rp-bkt--pusat" title="Ada Invoice ({{ r.jumlah_invoice }})">{{ r.jumlah_invoice }}</span>
+                {% else %}
+                <span class="rp-stat-pill rp-bkt--kso" title="Belum ada invoice">0</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="4" class="text-end" style="font-weight:700;color:#16324f">TOTAL</td>
+              <td class="cell-money text-end" data-foot="kini.kso">{{ period_summaries.kontrak_kini.kso|money }}</td>
+              <td class="cell-money text-end" data-foot="kini.unit">{{ period_summaries.kontrak_kini.unit|money }}</td>
+              <td class="cell-money text-end" data-foot="kini.pusat">{{ period_summaries.kontrak_kini.pusat|money }}</td>
+              <td class="cell-money text-end" data-foot="sdl.kso">{{ period_summaries.sd_bulan_lalu.kso|money }}</td>
+              <td class="cell-money text-end" data-foot="sdl.unit">{{ period_summaries.sd_bulan_lalu.unit|money }}</td>
+              <td class="cell-money text-end" data-foot="sdl.pusat">{{ period_summaries.sd_bulan_lalu.pusat|money }}</td>
+              <td class="cell-money text-end" data-foot="bln.kso">{{ period_summaries.bulan_ini.kso|money }}</td>
+              <td class="cell-money text-end" data-foot="bln.unit">{{ period_summaries.bulan_ini.unit|money }}</td>
+              <td class="cell-money text-end" data-foot="bln.pusat">{{ period_summaries.bulan_ini.pusat|money }}</td>
+              <td class="cell-money text-end" data-foot="sdi.kso">{{ period_summaries.sd_bulan_ini.kso|money }}</td>
+              <td class="cell-money text-end" data-foot="sdi.unit">{{ period_summaries.sd_bulan_ini.unit|money }}</td>
+              <td class="cell-money text-end" data-foot="sdi.pusat">{{ period_summaries.sd_bulan_ini.pusat|money }}</td>
+              <td></td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+    {% if not rows %}
+    <div class="empty-state">
+      <i class="bi bi-clipboard-data"></i>
+      <h6>Belum Ada Kontrak</h6>
+      <p class="text-muted">Buka menu "Import Kontrak" untuk memuat daftar kontrak dari procurement.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+(function() {
+  var rows = document.querySelectorAll('#rpBody tr');
+  var countEl = document.getElementById('rpCount');
+  function filter() {
+    var q = ((document.getElementById('rpSearch') || {}).value || '').toLowerCase();
+    var bucket = (document.getElementById('rpFilterBucket') || {}).value || '';
+    var shown = 0;
+    var periodTotal = 0;
+    rows.forEach(function(tr) {
+      var periodOk = tr.dataset.periodVisible !== '0';
+      if (periodOk) periodTotal++;
+      var hit = periodOk
+             && (!q || (tr.getAttribute('data-search') || '').indexOf(q) !== -1)
+             && (!bucket || tr.getAttribute('data-bucket') === bucket);
+      tr.dataset.filterPass = hit ? '1' : '0';
+      if (hit) shown++;
+    });
+    var te = window.TableEnhance;
+    var rpTable = document.getElementById('rpTable');
+    var enhanced = !!(te && te.instances && rpTable && te.instances[rpTable.id]);
+    if (enhanced) { te.resetPage(); te.refresh(); }
+    else { rows.forEach(function(tr){ tr.style.display = tr.dataset.filterPass === '0' ? 'none' : ''; }); }
+    if (typeof window.rpRefreshFilteredSummary === 'function') window.rpRefreshFilteredSummary();
+    var any = q || bucket;
+    if (countEl) countEl.textContent = any ? shown + ' dari ' + periodTotal + ' kontrak' : '';
+    var clr = document.getElementById('rpSearchClear');
+    if (clr) clr.hidden = !q;
+  }
+  window.rpFilterRows = filter;
+  document.getElementById('rpSearch')?.addEventListener('input', filter);
+  document.getElementById('rpFilterBucket')?.addEventListener('change', filter);
+  if (window.onPageReady) onPageReady(filter);
+  else document.addEventListener('DOMContentLoaded', filter);
+})();
+</script>
+<script>
+(function() {
+  // Filter periode client-side (pola halaman Jatuh Tempo): data mentah tiap
+  // kontrak sudah ada di DOM, jadi ganti bulan/tahun hanya menghitung ulang
+  // sel periode, footer, KPI, dan chart. Tidak ada request ke server.
+  var MONTHS = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+  var BKT = ['kso', 'unit', 'pusat'];
+
+  function rpMoney(v) {
+    v = +v || 0;
+    var n = v >= 0 ? Math.floor(v + 0.5) : Math.ceil(v - 0.5);
+    return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  }
+  function parseISO(s) {
+    if (!s) return null;
+    var p = String(s).slice(0, 10).split('-');
+    if (p.length !== 3) return null;
+    var y = +p[0], m = +p[1], d = +p[2];
+    return (y && m && d) ? { y: y, m: m, d: d } : null;
+  }
+  function dayNum(y, m, d) { return y * 10000 + m * 100 + d; }
+  function monthEnd(y, m) { return dayNum(y, m, new Date(y, m, 0).getDate()); }
+
+  function readRows() {
+    var out = [];
+    document.querySelectorAll('#rpBody tr').forEach(function (tr) {
+      out.push({
+        el: tr,
+        tgl: parseISO(tr.getAttribute('data-tgl')),
+        dpp: +tr.getAttribute('data-dpp') || 0,
+        bucket: tr.getAttribute('data-bucket')
+      });
+    });
+    return out;
+  }
+
+  function buildSeries(rows, y, m) {
+    var minK = null;
+    rows.forEach(function (r) {
+      if (!r.tgl) return;
+      var k = r.tgl.y * 100 + r.tgl.m;
+      if (minK === null || k < minK) minK = k;
+    });
+    var empty = { labels: [], years: [], data: [[], [], []] };
+    if (minK === null) return empty;
+    var cy = Math.floor(minK / 100), cm = minK % 100;
+    var endK = y * 100 + m;
+    if (minK > endK) return empty;
+    var labels = [], years = [], data = { kso: [], unit: [], pusat: [] };
+    while (cy * 100 + cm <= endK) {
+      labels.push(MONTHS[cm]);
+      years.push(String(cy));
+      var sum = { kso: 0, unit: 0, pusat: 0 };
+      rows.forEach(function (r) {
+        if (r.tgl && r.tgl.y === cy && r.tgl.m === cm) sum[r.bucket] += r.dpp;
+      });
+      BKT.forEach(function (b) { data[b].push(sum[b]); });
+      if (cm === 12) { cy += 1; cm = 1; } else { cm += 1; }
+    }
+    return { labels: labels, years: years, data: [data.kso, data.unit, data.pusat] };
+  }
+
+  function applyPeriod(y, m) {
+    var rows = readRows();
+    var prevEnd = m === 1 ? monthEnd(y - 1, 12) : monthEnd(y, m - 1);
+    var end = monthEnd(y, m);
+
+    rows.forEach(function (r) {
+      var pKini = { kso: 0, unit: 0, pusat: 0 };
+      var pSdl = { kso: 0, unit: 0, pusat: 0 };
+      var pBln = { kso: 0, unit: 0, pusat: 0 };
+      var pSdi = { kso: 0, unit: 0, pusat: 0 };
+      var isVisible = !r.tgl || dayNum(r.tgl.y, r.tgl.m, r.tgl.d) <= end;
+      r.el.dataset.periodVisible = isVisible ? '1' : '0';
+      if (isVisible) pKini[r.bucket] = r.dpp;
+      if (r.tgl) {
+        var t = dayNum(r.tgl.y, r.tgl.m, r.tgl.d);
+        if (t <= prevEnd) { pSdl[r.bucket] = r.dpp; pSdi[r.bucket] = r.dpp; }
+        else if (t <= end) { pBln[r.bucket] = r.dpp; pSdi[r.bucket] = r.dpp; }
+      }
+      var tds = r.el.children;
+      BKT.forEach(function (b, i) {
+        tds[4 + i].textContent = rpMoney(pKini[b]);
+        tds[7 + i].textContent = rpMoney(pSdl[b]);
+        tds[10 + i].textContent = rpMoney(pBln[b]);
+        tds[13 + i].textContent = rpMoney(pSdi[b]);
+      });
+    });
+
+    var sdLabel = document.getElementById('rpKpiSdLabel');
+    if (sdLabel) sdLabel.textContent = 'SD ' + MONTHS[m] + ' ' + y + ' (Kumulatif)';
+    var badgeText = document.getElementById('rpPeriodBadgeText');
+    if (badgeText) badgeText.textContent = MONTHS[m] + ' ' + y;
+
+    var wrap = document.querySelector('.rp-wrap');
+    if (wrap) { wrap.dataset.rpYear = y; wrap.dataset.rpMonth = m; }
+    var key = y + '-' + (m < 10 ? '0' + m : m);
+    var sel = document.querySelector('.rp-toolbar select[name="period"]');
+    if (sel) sel.value = key;
+    history.replaceState(null, '', location.pathname + '?period=' + key);
+    if (typeof window.rpFilterRows === 'function') window.rpFilterRows();
+  }
+
+  function moneyNumber(text) {
+    return +(String(text || '').replace(/\./g, '').replace(/[^\d-]/g, '')) || 0;
+  }
+
+  function refreshFilteredSummary() {
+    var wrap = document.querySelector('.rp-wrap');
+    if (!wrap) return;
+    var y = +wrap.dataset.rpYear;
+    var m = +wrap.dataset.rpMonth;
+    if (!y || !m) return;
+    var starts = [4, 7, 10, 13];
+    var groups = ['kini', 'sdl', 'bln', 'sdi'];
+    var totals = { kini: { kso: 0, unit: 0, pusat: 0 },
+                   sdl: { kso: 0, unit: 0, pusat: 0 },
+                   bln: { kso: 0, unit: 0, pusat: 0 },
+                   sdi: { kso: 0, unit: 0, pusat: 0 } };
+    var visible = [];
+
+    document.querySelectorAll('#rpBody tr').forEach(function (tr) {
+      if (tr.dataset.filterPass !== '1') return;
+      visible.push({
+        tgl: parseISO(tr.getAttribute('data-tgl')),
+        dpp: +tr.getAttribute('data-dpp') || 0,
+        bucket: tr.getAttribute('data-bucket')
+      });
+      var tds = tr.children;
+      starts.forEach(function (start, gi) {
+        BKT.forEach(function (b, bi) {
+          totals[groups[gi]][b] += moneyNumber(tds[start + bi].textContent);
+        });
+      });
+    });
+
+    document.querySelectorAll('#rpTable tfoot [data-foot]').forEach(function (td) {
+      var key = td.getAttribute('data-foot').split('.');
+      if (totals[key[0]] && key[1]) td.textContent = rpMoney(totals[key[0]][key[1]]);
+    });
+
+    var countEl = document.getElementById('rpKpiCount');
+    if (countEl) countEl.textContent = String(visible.length);
+    var nilaiKontrak = totals.kini.kso + totals.kini.unit + totals.kini.pusat;
+    var kontrakVal = document.getElementById('rpKpiKontrak');
+    if (kontrakVal) kontrakVal.textContent = rpMoney(nilaiKontrak);
+    var sumSdi = totals.sdi.kso + totals.sdi.unit + totals.sdi.pusat;
+    var sumBln = totals.bln.kso + totals.bln.unit + totals.bln.pusat;
+    var sdVal = document.getElementById('rpKpiSd');
+    if (sdVal) sdVal.textContent = rpMoney(sumSdi);
+    var blnVal = document.getElementById('rpKpiBln');
+    if (blnVal) blnVal.textContent = rpMoney(sumBln);
+    var blnCard = document.getElementById('rpKpiBlnCard');
+    if (blnCard) blnCard.classList.toggle('ds-kpi--warn', sumBln > 0);
+
+    if (typeof window.rpUpdateDonut === 'function') {
+      window.rpUpdateDonut([totals.kini.kso, totals.kini.unit, totals.kini.pusat]);
+    }
+    var series = buildSeries(visible, y, m);
+    if (typeof window.rpUpdateBarChart === 'function') {
+      window.rpUpdateBarChart(series.labels, series.years, series.data);
+    }
+  }
+
+  window.rpRefreshFilteredSummary = refreshFilteredSummary;
+
+  function bindPeriod() {
+    var toolbar = document.querySelector('.rp-toolbar');
+    if (!toolbar) return;
+    var form = toolbar.querySelector('form');
+    if (!form) return;
+    function commit() {
+      var v = (form.period && form.period.value) || '';
+      if (v.length !== 7 || v[4] !== '-') return;
+      var y = +v.slice(0, 4), m = +v.slice(5, 7);
+      if (!y || !m) return;
+      applyPeriod(y, m);
+    }
+    form.addEventListener('submit', function (e) { e.preventDefault(); commit(); });
+    form.addEventListener('change', function (e) {
+      if (e.target && e.target.tagName === 'SELECT') commit();
+    });
+  }
+
+  if (window.onPageReady) onPageReady(bindPeriod);
+  else document.addEventListener('DOMContentLoaded', bindPeriod);
+})();
+</script>
+<script>
+(function() {
+function rpFmt(v) {
+  v = +v || 0;
+  if (Math.abs(v) >= 1e9) return (v / 1e9).toFixed(2) + ' M';
+  if (Math.abs(v) >= 1e6) return (v / 1e6).toFixed(1) + ' Jt';
+  return v.toLocaleString('id-ID');
+}
+window.__rpBarChart = null;
+window.__rpDonutChart = null;
+window.__rpDonutPending = null;
+var rpYears = {{ bars_years|tojson }};
+var rpPendingSeries = null;
+// Dipanggil filter periode client-side: perbarui label + data chart tanpa
+// membuat instance baru, supaya animasi & posisi scroll chart tetap.
+window.rpUpdateBarChart = function (labels, years, data) {
+  rpYears = years || [];
+  if (!window.__rpBarChart) { rpPendingSeries = { labels: labels, data: data }; return; }
+  window.__rpBarChart.data.labels = labels || [];
+  window.__rpBarChart.data.datasets.forEach(function (ds, i) {
+    ds.data = (data && data[i]) || [];
+  });
+  window.__rpBarChart.update();
+};
+window.rpUpdateDonut = function (data) {
+  if (!window.__rpDonutChart) { window.__rpDonutPending = data; return; }
+  window.__rpDonutChart.data.datasets[0].data = data || [];
+  window.__rpDonutChart.update();
+};
+function rpInitCharts() {
+  if (typeof Chart === 'undefined') return;
+  Chart.defaults.font.family = '"Inter", -apple-system, "Segoe UI", sans-serif';
+  Chart.defaults.color = '#4d5766';
+  var barCtx = document.getElementById('rpChartBar');
+  if (barCtx && Chart.getChart && Chart.getChart(barCtx)) Chart.getChart(barCtx).destroy();
+  if (barCtx) {
+    var rpDatasets = {{ bars_datasets|tojson }};
+    var rpLabels = {{ bars_labels|tojson }};
+    if (rpPendingSeries) {
+      rpLabels = rpPendingSeries.labels;
+      rpDatasets.forEach(function (ds, i) { ds.data = rpPendingSeries.data[i] || []; });
+      rpPendingSeries = null;
+    }
+    window.__rpBarChart = new Chart(barCtx, {
+      type: 'bar',
+      data: {
+        labels: rpLabels,
+        datasets: rpDatasets
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { position: 'top', labels: { boxWidth: 12, padding: 12, font: { size: 11 } } },
+          tooltip: {
+            callbacks: {
+              title: function(items) {
+                var i = items[0].dataIndex;
+                return (items[0].label || '') + (rpYears[i] ? ' ' + rpYears[i] : '');
+              },
+              label: function(ctx) { return ' ' + ctx.dataset.label + ': ' + rpFmt(ctx.parsed.y); }
+            }
+          }
+        },
+        scales: {
+          x: {
+            stacked: true,
+            grid: { display: false },
+            ticks: {
+              autoSkip: true, maxRotation: 0, minRotation: 0, padding: 6,
+              color: '#526579', font: { size: 11 },
+              callback: function(value, idx) {
+                var lbl = this.getLabelForValue(value);
+                var yr = rpYears[idx];
+                return yr && yr !== rpYears[idx - 1] ? lbl + '\n' + yr : lbl;
+              }
+            }
+          },
+          y: {
+            stacked: true, beginAtZero: true,
+            grid: { color: '#eef0f2', drawTicks: false },
+            border: { display: false },
+            ticks: { maxTicksLimit: 5, padding: 6, color: '#526579', font: { size: 10 }, callback: function(v){ return rpFmt(v); } }
+          }
+        }
+      }
+    });
+  }
+  var donutCtx = document.getElementById('rpChartDonut');
+  if (donutCtx && Chart.getChart && Chart.getChart(donutCtx)) Chart.getChart(donutCtx).destroy();
+  if (donutCtx) {
+    var donutData = {{ donut_data|tojson }};
+    if (window.__rpDonutPending) {
+      donutData = window.__rpDonutPending;
+      window.__rpDonutPending = null;
+    }
+    window.__rpDonutChart = new Chart(donutCtx, {
+      type: 'doughnut',
+      data: {
+        labels: {{ donut_labels|tojson }},
+        datasets: [{ data: donutData, backgroundColor: {{ donut_colors|tojson }}, borderColor: '#fff', borderWidth: 3 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, cutout: '64%',
+        plugins: {
+          legend: { position: 'bottom', labels: { boxWidth: 12, padding: 12, font: { size: 11 } } },
+          tooltip: { callbacks: { label: function(ctx) {
+            var v = ctx.parsed;
+            var t = 0;
+            ctx.dataset.data.forEach(function(x){ t += (+x || 0); });
+            var pct = t ? Math.round(v / t * 100) : 0;
+            return ' ' + ctx.label + ': ' + rpFmt(v) + ' (' + pct + '%)';
+          } } }
+        }
+      }
+    });
+  }
+}
+function startCharts() {
+  if (!document.getElementById('rpChartBar')) return;
+  if (typeof ensureChartJs === 'function') {
+    ensureChartJs(function (ok) { if (ok) rpInitCharts(); });
+  } else {
+    rpInitCharts();
+  }
+}
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', startCharts, { once: true });
+} else {
+  startCharts();
+}
+if (window.onPageReady) onPageReady(startCharts);
+else if (window.__rpChartsBound !== true) {
+  window.__rpChartsBound = true;
+  document.addEventListener('htmx:afterSwap', function (e) {
+    if (e.target && e.target.id === 'mainContent') startCharts();
+  });
+}
+})();
+</script>
+{% endblock %}

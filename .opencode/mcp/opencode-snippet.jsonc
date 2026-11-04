@@ -1,0 +1,18 @@
+// MCP snippet — paste the "mcp" block below into
+// C:\Users\Administrator\.config\opencode\opencode.json
+// (or ~/.config/opencode/opencode.jsonc on a fresh machine).
+// Merge into the existing "mcp" object; do not replace the whole file.
+{
+  "mcp": {
+    "playwright": {
+      "type": "local",
+      "command": ["npx", "-y", "@playwright/mcp@latest"],
+      "enabled": true
+    },
+    "chrome-devtools": {
+      "type": "local",
+      "command": ["npx", "-y", "chrome-devtools-mcp@latest"],
+      "enabled": true
+    }
+  }
+}

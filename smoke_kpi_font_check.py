@@ -25,7 +25,7 @@ CHROME = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
 PASSWORD = os.environ.get("APP_PASSWORD", "adminkso1234")
 
 PAGES = [
-    ("/invoice-cicilan", "Progress Cicilan"),
+    ("/invoice-cicilan", "Progress Invoice Cicilan"),
     ("/levelansir-retensi", "Retensi"),
     ("/status-dokumen", "Status Dokumen"),
     ("/inv-minggu-ini", "Inv. Minggu Ini"),

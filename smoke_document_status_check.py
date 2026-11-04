@@ -173,12 +173,12 @@ assert 'Daftar Revisi Dokumen' in html, "HTML tak memuat judul keterangan halama
 print("[5b] keterangan header halaman (judul saja, font besar) OK")
 
 
-# --- 6. Sidebar: tombol tepat setelah Dashboard di grup Ringkasan ---
+# --- 6. Sidebar: menu tepat setelah Dashboard di grup Ringkasan ---
 with open(BASE, encoding='utf-8') as f:
     base = f.read()
-dash_pos = base.find("navigateTo('/dashboard')")
-status_pos = base.find("navigateTo('/status-dokumen')")
-assert dash_pos != -1 and status_pos != -1, "tombol Dashboard / Status Dokumen tak ada"
+dash_pos = base.find('href="/dashboard"')
+status_pos = base.find('href="/status-dokumen"')
+assert dash_pos != -1 and status_pos != -1, "menu Dashboard / Status Dokumen tak ada"
 assert status_pos > dash_pos, "Status Dokumen harus SETELAH Dashboard"
 # Harus berada dalam grup Ringkasan (sebelum section berikutnya).
 ringkasan_pos = base.find('sidebar-section">Ringkasan')
@@ -189,6 +189,14 @@ assert ringkasan_pos < status_pos < next_section, \
 assert '>Status Dokumen</span>' in base, "label menu sidebar harus tetap 'Status Dokumen'"
 assert "activeText = 'Status Dokumen'" in base, "updateActiveNav tak memetakan /status-dokumen"
 assert '>Status Dokumen</span>' in html, "HTML tak memuat label menu 'Status Dokumen'"
-print("[6] sidebar: tombol 'Status Dokumen' di grup Ringkasan setelah Dashboard OK")
+# Menu sidebar harus tautan sungguhan agar Ctrl/Cmd+klik / klik tengah bisa
+# membuka tab baru; klik biasa tetap ditangani navigateTo (HTMX).
+assert '<a class="nav-item" href="/dashboard"' in base, \
+    "menu sidebar Dashboard harus <a href>, bukan <button onclick>"
+assert '<button class="nav-item"' not in base, "masih ada menu sidebar berbentuk button"
+assert "closest('a.nav-item')" in base, "handler sidebar belum mengenali tautan"
+assert 'event.ctrlKey' in base and 'event.metaKey' in base, \
+    "handler sidebar harus membiarkan Ctrl/Cmd+klik membuka tab baru"
+print("[6] sidebar: menu 'Status Dokumen' di grup Ringkasan setelah Dashboard OK")
 
 print("\nALL CHECKS PASSED")

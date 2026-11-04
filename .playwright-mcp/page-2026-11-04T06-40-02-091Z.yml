@@ -1,0 +1,1077 @@
+- generic [ref=f1e1]:
+  - generic [ref=f1e2]:
+    - complementary [ref=f1e3]:
+      - generic [ref=f1e4]:
+        - generic [ref=f1e5]: 
+        - generic [ref=f1e7]:
+          - generic [ref=f1e8]: Project Payment
+          - generic [ref=f1e9]: Monitoring System
+      - navigation [ref=f1e10]:
+        - generic [ref=f1e11]: Ringkasan
+        - link " Dashboard" [ref=f1e12] [cursor=pointer]:
+          - /url: /dashboard
+          - generic [ref=f1e13]: 
+          - generic [ref=f1e14]: Dashboard
+        - link " Status Dokumen" [ref=f1e15] [cursor=pointer]:
+          - /url: /status-dokumen
+          - generic [ref=f1e16]: 
+          - generic [ref=f1e17]: Status Dokumen
+        - link " Inv. Minggu Ini 3" [ref=f1e18] [cursor=pointer]:
+          - /url: /inv-minggu-ini
+          - generic [ref=f1e19]: 
+          - generic [ref=f1e20]: Inv. Minggu Ini
+          - generic "3 levelansir aktif minggu ini" [ref=f1e21]: "3"
+        - link " Inv. Bulan Ini 3" [ref=f1e22] [cursor=pointer]:
+          - /url: /inv-bulan-ini
+          - generic [ref=f1e23]: 
+          - generic [ref=f1e24]: Inv. Bulan Ini
+          - generic "3 levelansir aktif bulan ini" [ref=f1e25]: "3"
+        - link " Jatuh Tempo" [ref=f1e26] [cursor=pointer]:
+          - /url: /laporan-jatuh-tempo
+          - generic [ref=f1e27]: 
+          - generic [ref=f1e28]: Jatuh Tempo
+        - link " Retensi" [ref=f1e29] [cursor=pointer]:
+          - /url: /levelansir-retensi
+          - generic [ref=f1e30]: 
+          - generic [ref=f1e31]: Retensi
+        - generic [ref=f1e32]: Data Invoice
+        - link " Daftar Invoice" [ref=f1e33] [cursor=pointer]:
+          - /url: /data-hutang
+          - generic [ref=f1e34]: 
+          - generic [ref=f1e35]: Daftar Invoice
+        - link " Exclude Invoice" [ref=f1e36] [cursor=pointer]:
+          - /url: /exclude-invoice
+          - generic [ref=f1e37]: 
+          - generic [ref=f1e38]: Exclude Invoice
+        - generic [ref=f1e39]: Kontrak
+        - link " Rekap PO Kontrak" [ref=f1e40] [cursor=pointer]:
+          - /url: /kontrak/rekap-no-po
+          - generic [ref=f1e41]: 
+          - generic [ref=f1e42]: Rekap PO Kontrak
+        - link " Progress Inv. Kontrak" [active] [ref=f1e43] [cursor=pointer]:
+          - /url: /kontrak/
+          - generic [ref=f1e44]: 
+          - generic [ref=f1e45]: Progress Inv. Kontrak
+          - text: 
+        - link " Progress Inv. Cicilan" [ref=f1e46] [cursor=pointer]:
+          - /url: /invoice-cicilan
+          - generic [ref=f1e47]: 
+          - generic [ref=f1e48]: Progress Inv. Cicilan
+        - generic [ref=f1e49]: Rekap Invoice
+        - link " Rekap DPP Bulanan" [ref=f1e50] [cursor=pointer]:
+          - /url: /laporan-bulanan
+          - generic [ref=f1e51]: 
+          - generic [ref=f1e52]: Rekap DPP Bulanan
+        - link " Rekap DPP Mingguan" [ref=f1e53] [cursor=pointer]:
+          - /url: /laporan-mingguan
+          - generic [ref=f1e54]: 
+          - generic [ref=f1e55]: Rekap DPP Mingguan
+        - generic [ref=f1e56]: Rekap Pajak
+        - link " Rekap PPN Bulanan" [ref=f1e57] [cursor=pointer]:
+          - /url: /laporan-ppn
+          - generic [ref=f1e58]: 
+          - generic [ref=f1e59]: Rekap PPN Bulanan
+        - link " Rekap PPN Mingguan" [ref=f1e60] [cursor=pointer]:
+          - /url: /laporan-ppn-mingguan
+          - generic [ref=f1e61]: 
+          - generic [ref=f1e62]: Rekap PPN Mingguan
+        - generic [ref=f1e63]: Import Data
+        - link " Import Invoice" [ref=f1e64] [cursor=pointer]:
+          - /url: /import
+          - generic [ref=f1e65]: 
+          - generic [ref=f1e66]: Import Invoice
+        - link " Import Kontrak" [ref=f1e67] [cursor=pointer]:
+          - /url: /kontrak/import
+          - generic [ref=f1e68]: 
+          - generic [ref=f1e69]: Import Kontrak
+        - generic [ref=f1e70]: Kepatuhan
+        - link " Verifikasi Data" [ref=f1e71] [cursor=pointer]:
+          - /url: /verifikasi
+          - generic [ref=f1e72]: 
+          - generic [ref=f1e73]: Verifikasi Data
+        - link " Catatan Audit" [ref=f1e74] [cursor=pointer]:
+          - /url: /audit
+          - generic [ref=f1e75]: 
+          - generic [ref=f1e76]: Catatan Audit
+        - generic [ref=f1e77]: Proyek
+        - link " Daftar Proyek" [ref=f1e78] [cursor=pointer]:
+          - /url: /project/
+          - generic [ref=f1e79]: 
+          - generic [ref=f1e80]: Daftar Proyek
+    - main [ref=f1e1594]:
+      - generic [ref=f1e1595]:
+        - generic [ref=f1e1596]:
+          - text: 
+          - button "Sembunyikan sidebar" [expanded] [ref=f1e1597] [cursor=pointer]:
+            - generic [ref=f1e1598]: 
+          - heading " Progress Invoice Kontrak Update 4 Nov 2026" [level=1] [ref=f1e1599]:
+            - generic [ref=f1e1600]: 
+            - text: Progress Invoice Kontrak
+            - 'generic "Invoice: 4 Nov 2026, 10:20 | Kontrak: 2 Nov 2026, 16:24" [ref=f1e1601]': Update 4 Nov 2026
+        - generic [ref=f1e1602]:
+          - generic [ref=f1e1603]:
+            - generic: 
+            - combobox "Filter berdasarkan proyek" [ref=f1e1604] [cursor=pointer]:
+              - option "Semua Proyek" [selected]
+              - option "KSO-001 — KSO NK - WIKA Waterflood Sintong"
+          - generic [ref=f1e1605]:
+            - text: 
+            - generic [ref=f1e1606]:
+              - generic [ref=f1e1607]: 
+              - text: 29 Kontrak
+            - generic [ref=f1e1608]:
+              - generic [ref=f1e1609]: 
+              - text: 17 Belum Ada Invoice
+          - button "Keluar dari aplikasi" [ref=f1e1611] [cursor=pointer]:
+            - generic [ref=f1e1612]: 
+      - generic [ref=f1e1614]:
+        - generic [ref=f1e1615]:
+          - generic [ref=f1e1616]:
+            - generic [ref=f1e1617]: 
+            - generic [ref=f1e1619]:
+              - generic [ref=f1e1620]: Total Kontrak
+              - generic [ref=f1e1621]: "29"
+          - generic [ref=f1e1622]:
+            - generic [ref=f1e1623]: 
+            - generic [ref=f1e1625]:
+              - generic [ref=f1e1626]: Nilai Kontrak (DPP)
+              - generic [ref=f1e1627]: 50.992.456.200
+              - generic [ref=f1e1628]: "Ditagihkan: 5.445.930.830"
+          - generic [ref=f1e1629]:
+            - generic [ref=f1e1630]: 
+            - generic [ref=f1e1632]:
+              - generic [ref=f1e1633]: PPN Kontrak
+              - generic [ref=f1e1634]: 5.609.170.182
+              - generic [ref=f1e1635]: "Ditagihkan: 589.201.141"
+          - generic [ref=f1e1636]:
+            - generic [ref=f1e1637]: 
+            - generic [ref=f1e1639]:
+              - generic [ref=f1e1640]: Belum Ada Invoice
+              - generic [ref=f1e1641]: "17"
+          - generic [ref=f1e1642]:
+            - generic [ref=f1e1643]: 
+            - generic [ref=f1e1645]:
+              - generic [ref=f1e1646]: Terbayar DPP
+              - generic [ref=f1e1647]: 3.339.655.830
+              - generic [ref=f1e1648]: 61.3% dari yang ditagihkan
+          - generic [ref=f1e1649]:
+            - generic [ref=f1e1650]: 
+            - generic [ref=f1e1652]:
+              - generic [ref=f1e1653]: Terbayar PPN
+              - generic [ref=f1e1654]: 255.940.284
+              - generic [ref=f1e1655]: 43.4% dari yang ditagihkan
+          - generic "Sisa Tagihan (DPP) = Nilai Kontrak (DPP) − Terbayar DPP. Sama dengan Belum Ditagih (DPP) + Sisa Hutang (DPP)." [ref=f1e1656]:
+            - generic [ref=f1e1657]: 
+            - generic [ref=f1e1659]:
+              - generic [ref=f1e1660]: Sisa Tagihan (DPP)
+              - generic [ref=f1e1661]: 47.652.800.370
+              - generic [ref=f1e1662]: "Belum ditagih: 45.546.525.370 · Sisa hutang: 2.106.275.000"
+          - generic "Sisa Tagihan (PPN) = PPN Kontrak − Terbayar PPN. Sama dengan Belum Ditagih (PPN) + Sisa Hutang (PPN)." [ref=f1e1663]:
+            - generic [ref=f1e1664]: 
+            - generic [ref=f1e1666]:
+              - generic [ref=f1e1667]: Sisa Tagihan (PPN)
+              - generic [ref=f1e1668]: 5.353.229.898
+              - generic [ref=f1e1669]: "Belum ditagih: 5.019.969.041 · Sisa hutang: 333.260.857"
+        - generic [ref=f1e1670]:
+          - generic [ref=f1e1671]:
+            - generic [ref=f1e1672]: 
+            - generic [ref=f1e1673]:
+              - strong [ref=f1e1674]: 166 invoice
+              - text: (12.472.714.266) memakai No PO yang belum cocok ke kontrak mana pun — nilainya belum ikut terhitung di bawah.
+          - generic [ref=f1e1675]:
+            - generic [ref=f1e1678]:
+              - combobox "Filter vendor" [ref=f1e1679] [cursor=pointer]:
+                - option "Semua Vendor" [selected]
+                - option "CV. MOGGALLANA DWI SUKSES"
+                - option "PT ALFA VALVE INDONESIA"
+                - option "PT ARIFIN SAINS TEKNOLOGI"
+                - option "PT ARLISCO ELEKTRIKA PERKASA"
+                - option "PT CONTROL SYSTEM ARENA PARA NUSA"
+                - option "PT DUTA FIRZA"
+                - option "PT DWIRESTU REJEKIGUNA"
+                - option "PT GLOBAL HADITECH"
+                - option "PT INDOLOK BAKTI UTAMA"
+                - option "PT JASEN MITRA SINERGI"
+                - option "PT KOROSI SPECINDO"
+                - option "PT MERCURY TEKINDO INDONESIA"
+                - option "PT POWERINDO"
+                - option "PT RAYA TALENTA GAJERA"
+                - option "PT SIEMENS INDONESIA"
+                - option "PT SULZER INDONESIA"
+                - option "PT SUTRAKABEL INTIMANDIRI"
+                - option "PT TRAFOINDO PRIMA PERKASA"
+                - option "PT TRIMITRA WAHANA SUKSES"
+                - option "PT VALVE AUTOMATION INDONESIA"
+                - option "PT. MERCURY TERKINDO INTERNUSA"
+                - option "PT. POWERINDO PRIMA PERKASA"
+              - combobox "Filter status invoice" [ref=f1e1680] [cursor=pointer]:
+                - option "Semua Status" [selected]
+                - option "Ada Invoice"
+                - option "Belum Ada Invoice"
+              - combobox "Filter metode bayar" [ref=f1e1681] [cursor=pointer]:
+                - option "Semua Metode Bayar" [selected]
+                - option "PPN Include"
+                - option "PPN Reimburse"
+                - option "Belum Diisi"
+              - generic [ref=f1e1682]:
+                - generic: 
+                - textbox "Cari kontrak" [ref=f1e1683]:
+                  - /placeholder: Cari no. kontrak / vendor...
+                - text: 
+                - generic [aria-hidden]: /
+              - link " Pemeriksaan No PO" [ref=f1e1685] [cursor=pointer]:
+                - /url: /kontrak/tinjau-no-po
+                - generic [ref=f1e1686]: 
+                - text: Pemeriksaan No PO
+            - toolbar "Kontrol tabel" [ref=f1e1687]:
+              - button " Kolom" [ref=f1e1688] [cursor=pointer]:
+                - generic [ref=f1e1689]: 
+                - text: Kolom
+              - generic [ref=f1e1690]: Menampilkan 1–25 dari 29
+            - table [ref=f1e1692]:
+              - rowgroup [ref=f1e1693]:
+                - row [ref=f1e1694]:
+                  - columnheader "Nomor urut tampilan" [ref=f1e1695]
+                  - columnheader "Identitas" [ref=f1e1696]
+                  - columnheader [ref=f1e1697]
+                  - columnheader "DPP" [ref=f1e1698]
+                  - columnheader "PPN" [ref=f1e1699]
+                  - columnheader "Sisa & Hutang" [ref=f1e1700]
+                  - columnheader "Status" [ref=f1e1701]
+                  - columnheader [ref=f1e1702]
+                - row [ref=f1e1703]:
+                  - columnheader "No." [ref=f1e1704]
+                  - columnheader "Vendor / Rekanan" [ref=f1e1705]
+                  - columnheader "Item Pekerjaan" [ref=f1e1706]
+                  - columnheader "DPP Kontrak" [ref=f1e1707]
+                  - columnheader "Tagihan DPP" [ref=f1e1708]
+                  - columnheader "Bayar DPP (Rp)" [ref=f1e1709]
+                  - columnheader "Bayar DPP (%)" [ref=f1e1710]
+                  - columnheader "PPN Kontrak" [ref=f1e1711]
+                  - columnheader "Tagihan PPN" [ref=f1e1712]
+                  - columnheader "Bayar PPN (Rp)" [ref=f1e1713]
+                  - columnheader "Bayar PPN (%)" [ref=f1e1714]
+                  - columnheader "Metode Bayar" [ref=f1e1715]
+                  - columnheader "Belum Ditagih (DPP)" [ref=f1e1716]
+                  - columnheader "Sisa Hutang (DPP)" [ref=f1e1717]
+                  - columnheader "Belum Ditagih (PPN)" [ref=f1e1718]
+                  - columnheader "Sisa Hutang (PPN)" [ref=f1e1719]
+                  - columnheader "Termin Ditagih" [ref=f1e1720]
+                  - columnheader "Invoice" [ref=f1e1721]
+              - rowgroup [ref=f1e1722]:
+                - row [ref=f1e1723]:
+                  - cell "1" [ref=f1e1724]
+                  - cell [ref=f1e1726]:
+                    - generic [ref=f1e1727]:
+                      - generic "PT SULZER INDONESIA" [ref=f1e1728]:
+                        - link "PT SULZER INDONESIA" [ref=f1e1729] [cursor=pointer]:
+                          - /url: /kontrak/57
+                      - generic "PB.001/KONTRAK/NK-WIKA/03/SINTONG/12/2025" [ref=f1e1730]:
+                        - link "PB.001/KONTRAK/NK-WIKA/03/SINTONG/12/2025" [ref=f1e1731] [cursor=pointer]:
+                          - /url: /kontrak/57
+                  - cell "Water Injection Pump" [ref=f1e1732]
+                  - cell "20.100.000.000" [ref=f1e1733]
+                  - cell "2.010.000.000" [ref=f1e1734]
+                  - cell "2.010.000.000" [ref=f1e1735]
+                  - cell "10.0% 10.0" [ref=f1e1736]:
+                    - generic [ref=f1e1737]: 10.0%
+                    - progressbar "Progres pembayaran DPP PB.001/KONTRAK/NK-WIKA/03/SINTONG/12/2025" [ref=f1e1739]
+                  - cell "2.211.000.000" [ref=f1e1741]
+                  - cell "221.100.000" [ref=f1e1742]
+                  - cell "221.100.000" [ref=f1e1743]
+                  - cell "10.0% 10.0" [ref=f1e1744]:
+                    - generic [ref=f1e1745]: 10.0%
+                    - progressbar "Progres pembayaran PPN PB.001/KONTRAK/NK-WIKA/03/SINTONG/12/2025" [ref=f1e1747]
+                  - cell "PPN Reimburse" [ref=f1e1749]
+                  - cell "18.090.000.000" [ref=f1e1750]
+                  - cell "0" [ref=f1e1751]
+                  - cell "1.989.900.000" [ref=f1e1752]
+                  - cell "0" [ref=f1e1753]
+                  - cell "1/4" [ref=f1e1754]:
+                    - generic "1 dari 4 termin sudah ditagih penuh, tepat di batas termin." [ref=f1e1755]: 1/4
+                  - cell "1" [ref=f1e1756]:
+                    - generic "Ada Invoice (1)" [ref=f1e1757]: "1"
+                - row [ref=f1e1758]:
+                  - cell "2" [ref=f1e1759]
+                  - cell [ref=f1e1761]:
+                    - generic [ref=f1e1762]:
+                      - generic "PT TRAFOINDO PRIMA PERKASA" [ref=f1e1763]:
+                        - link "PT TRAFOINDO PRIMA PERKASA" [ref=f1e1764] [cursor=pointer]:
+                          - /url: /kontrak/58
+                      - generic "PB.004/PO/NK-WIKA/03/SINTONG/03/2026" [ref=f1e1765]:
+                        - link "PB.004/PO/NK-WIKA/03/SINTONG/03/2026" [ref=f1e1766] [cursor=pointer]:
+                          - /url: /kontrak/58
+                  - cell "Trafo" [ref=f1e1767]
+                  - cell "1.880.000.000" [ref=f1e1768]
+                  - cell "0" [ref=f1e1769]
+                  - cell "0" [ref=f1e1770]
+                  - cell "0.0% 0.0" [ref=f1e1771]:
+                    - generic [ref=f1e1772]: 0.0%
+                    - progressbar "Progres pembayaran DPP PB.004/PO/NK-WIKA/03/SINTONG/03/2026" [ref=f1e1774]
+                  - cell "206.800.000" [ref=f1e1775]
+                  - cell "0" [ref=f1e1776]
+                  - cell "0" [ref=f1e1777]
+                  - cell "0.0% 0.0" [ref=f1e1778]:
+                    - generic [ref=f1e1779]: 0.0%
+                    - progressbar "Progres pembayaran PPN PB.004/PO/NK-WIKA/03/SINTONG/03/2026" [ref=f1e1781]
+                  - cell "PPN Reimburse" [ref=f1e1782]
+                  - cell "1.880.000.000" [ref=f1e1783]
+                  - cell "0" [ref=f1e1784]
+                  - cell "206.800.000" [ref=f1e1785]
+                  - cell "0" [ref=f1e1786]
+                  - cell "0/2" [ref=f1e1787]:
+                    - generic "Belum ada invoice. 2 termin belum ditagih." [ref=f1e1788]: 0/2
+                  - cell "0" [ref=f1e1789]:
+                    - generic "Belum ada invoice" [ref=f1e1790]: "0"
+                - row [ref=f1e1791]:
+                  - cell "3" [ref=f1e1792]
+                  - cell [ref=f1e1794]:
+                    - generic [ref=f1e1795]:
+                      - generic "PT CONTROL SYSTEM ARENA PARA NUSA" [ref=f1e1796]:
+                        - link "PT CONTROL SYSTEM ARENA PARA NUSA" [ref=f1e1797] [cursor=pointer]:
+                          - /url: /kontrak/59
+                      - generic "PB.005/PO/NK-WIKA/02/SINTONG/03/2026" [ref=f1e1798]:
+                        - link "PB.005/PO/NK-WIKA/02/SINTONG/03/2026" [ref=f1e1799] [cursor=pointer]:
+                          - /url: /kontrak/59
+                  - cell "MPS" [ref=f1e1800]
+                  - cell "1.915.000.000" [ref=f1e1801]
+                  - cell "383.000.000" [ref=f1e1802]
+                  - cell "383.000.000" [ref=f1e1803]
+                  - cell "20.0% 20.0" [ref=f1e1804]:
+                    - generic [ref=f1e1805]: 20.0%
+                    - progressbar "Progres pembayaran DPP PB.005/PO/NK-WIKA/02/SINTONG/03/2026" [ref=f1e1807]
+                  - cell "210.650.000" [ref=f1e1809]
+                  - cell "42.130.000" [ref=f1e1810]
+                  - cell "0" [ref=f1e1811]
+                  - cell "0.0% 0.0" [ref=f1e1812]:
+                    - generic [ref=f1e1813]: 0.0%
+                    - progressbar "Progres pembayaran PPN PB.005/PO/NK-WIKA/02/SINTONG/03/2026" [ref=f1e1815]
+                  - cell "PPN Include" [ref=f1e1816]
+                  - cell "1.532.000.000" [ref=f1e1817]
+                  - cell "0" [ref=f1e1818]
+                  - cell "168.520.000" [ref=f1e1819]
+                  - cell "42.130.000" [ref=f1e1820]
+                  - cell "1/4" [ref=f1e1821]:
+                    - generic "1 dari 4 termin sudah ditagih penuh, tepat di batas termin." [ref=f1e1822]: 1/4
+                  - cell "1" [ref=f1e1823]:
+                    - generic "Ada Invoice (1)" [ref=f1e1824]: "1"
+                - row [ref=f1e1825]:
+                  - cell "4" [ref=f1e1826]
+                  - cell [ref=f1e1828]:
+                    - generic [ref=f1e1829]:
+                      - generic "PT SIEMENS INDONESIA" [ref=f1e1830]:
+                        - link "PT SIEMENS INDONESIA" [ref=f1e1831] [cursor=pointer]:
+                          - /url: /kontrak/60
+                      - generic "PB.007/PO/NK-WIKA/02/SINTONG/04/2026" [ref=f1e1832]:
+                        - link "PB.007/PO/NK-WIKA/02/SINTONG/04/2026" [ref=f1e1833] [cursor=pointer]:
+                          - /url: /kontrak/60
+                  - cell "MV, LV, CAP BANK" [ref=f1e1834]
+                  - cell "6.400.000.000" [ref=f1e1835]
+                  - cell "1.280.000.000" [ref=f1e1836]
+                  - cell "0" [ref=f1e1837]
+                  - cell "0.0% 0.0" [ref=f1e1838]:
+                    - generic [ref=f1e1839]: 0.0%
+                    - progressbar "Progres pembayaran DPP PB.007/PO/NK-WIKA/02/SINTONG/04/2026" [ref=f1e1841]
+                  - cell "704.000.000" [ref=f1e1842]
+                  - cell "140.800.000" [ref=f1e1843]
+                  - cell "0" [ref=f1e1844]
+                  - cell "0.0% 0.0" [ref=f1e1845]:
+                    - generic [ref=f1e1846]: 0.0%
+                    - progressbar "Progres pembayaran PPN PB.007/PO/NK-WIKA/02/SINTONG/04/2026" [ref=f1e1848]
+                  - cell "PPN Reimburse" [ref=f1e1849]
+                  - cell "5.120.000.000" [ref=f1e1850]
+                  - cell "1.280.000.000" [ref=f1e1851]
+                  - cell "563.200.000" [ref=f1e1852]
+                  - cell "140.800.000" [ref=f1e1853]
+                  - cell "1/4" [ref=f1e1854]:
+                    - generic "1 dari 4 termin sudah ditagih penuh, tepat di batas termin." [ref=f1e1855]: 1/4
+                  - cell "1" [ref=f1e1856]:
+                    - generic "Ada Invoice (1)" [ref=f1e1857]: "1"
+                - row [ref=f1e1858]:
+                  - cell "5" [ref=f1e1859]
+                  - cell [ref=f1e1861]:
+                    - generic [ref=f1e1862]:
+                      - generic "PT ARLISCO ELEKTRIKA PERKASA" [ref=f1e1863]:
+                        - link "PT ARLISCO ELEKTRIKA PERKASA" [ref=f1e1864] [cursor=pointer]:
+                          - /url: /kontrak/61
+                      - generic "PB.021/PO/NK-WIKA/02/SINTONG/04/2026" [ref=f1e1865]:
+                        - link "PB.021/PO/NK-WIKA/02/SINTONG/04/2026" [ref=f1e1866] [cursor=pointer]:
+                          - /url: /kontrak/61
+                  - cell "LA & Recloser" [ref=f1e1867]
+                  - cell "375.200.000" [ref=f1e1868]
+                  - cell "356.440.000" [ref=f1e1869]
+                  - cell "75.040.000" [ref=f1e1870]
+                  - cell "20.0% 20.0" [ref=f1e1871]:
+                    - generic [ref=f1e1872]: 20.0%
+                    - progressbar "Progres pembayaran DPP PB.021/PO/NK-WIKA/02/SINTONG/04/2026" [ref=f1e1874]
+                  - cell "41.272.000" [ref=f1e1876]
+                  - cell "39.208.400" [ref=f1e1877]
+                  - cell "0" [ref=f1e1878]
+                  - cell "0.0% 0.0" [ref=f1e1879]:
+                    - generic [ref=f1e1880]: 0.0%
+                    - progressbar "Progres pembayaran PPN PB.021/PO/NK-WIKA/02/SINTONG/04/2026" [ref=f1e1882]
+                  - cell "PPN Reimburse" [ref=f1e1883]
+                  - cell "18.760.000" [ref=f1e1884]
+                  - cell "281.400.000" [ref=f1e1885]
+                  - cell "2.063.600" [ref=f1e1886]
+                  - cell "39.208.400" [ref=f1e1887]
+                  - cell "2/3" [ref=f1e1888]:
+                    - generic "2 dari 3 termin sudah ditagih penuh, tepat di batas termin." [ref=f1e1889]: 2/3
+                  - cell "2" [ref=f1e1890]:
+                    - generic "Ada Invoice (2)" [ref=f1e1891]: "2"
+                - row [ref=f1e1892]:
+                  - cell "6" [ref=f1e1893]
+                  - cell [ref=f1e1895]:
+                    - generic [ref=f1e1896]:
+                      - generic "PT CONTROL SYSTEM ARENA PARA NUSA" [ref=f1e1897]:
+                        - link "PT CONTROL SYSTEM ARENA PARA NUSA" [ref=f1e1898] [cursor=pointer]:
+                          - /url: /kontrak/62
+                      - generic "PB.027/PO/NK-WIKA/03/SINTONG/05/2026" [ref=f1e1899]:
+                        - link "PB.027/PO/NK-WIKA/03/SINTONG/05/2026" [ref=f1e1900] [cursor=pointer]:
+                          - /url: /kontrak/62
+                  - cell "ERV & BRV" [ref=f1e1901]
+                  - cell "220.000.000" [ref=f1e1902]
+                  - cell "88.000.000" [ref=f1e1903]
+                  - cell "44.000.000" [ref=f1e1904]
+                  - cell "20.0% 20.0" [ref=f1e1905]:
+                    - generic [ref=f1e1906]: 20.0%
+                    - progressbar "Progres pembayaran DPP PB.027/PO/NK-WIKA/03/SINTONG/05/2026" [ref=f1e1908]
+                  - cell "24.200.000" [ref=f1e1910]
+                  - cell "9.680.000" [ref=f1e1911]
+                  - cell "0" [ref=f1e1912]
+                  - cell "0.0% 0.0" [ref=f1e1913]:
+                    - generic [ref=f1e1914]: 0.0%
+                    - progressbar "Progres pembayaran PPN PB.027/PO/NK-WIKA/03/SINTONG/05/2026" [ref=f1e1916]
+                  - cell "PPN Include" [ref=f1e1917]
+                  - cell "132.000.000" [ref=f1e1918]
+                  - cell "44.000.000" [ref=f1e1919]
+                  - cell "14.520.000" [ref=f1e1920]
+                  - cell "9.680.000" [ref=f1e1921]
+                  - cell "2/4" [ref=f1e1922]:
+                    - generic "2 dari 4 termin sudah ditagih penuh, tepat di batas termin." [ref=f1e1923]: 2/4
+                  - cell "2" [ref=f1e1924]:
+                    - generic "Ada Invoice (2)" [ref=f1e1925]: "2"
+                - row [ref=f1e1926]:
+                  - cell "7" [ref=f1e1927]
+                  - cell [ref=f1e1929]:
+                    - generic [ref=f1e1930]:
+                      - generic "PT CONTROL SYSTEM ARENA PARA NUSA" [ref=f1e1931]:
+                        - link "PT CONTROL SYSTEM ARENA PARA NUSA" [ref=f1e1932] [cursor=pointer]:
+                          - /url: /kontrak/63
+                      - generic "PB.028/PO/NK-WIKA/02/SINTONG/05/2026" [ref=f1e1933]:
+                        - link "PB.028/PO/NK-WIKA/02/SINTONG/05/2026" [ref=f1e1934] [cursor=pointer]:
+                          - /url: /kontrak/63
+                  - cell "MOV & CV" [ref=f1e1935]
+                  - cell "2.460.000.000" [ref=f1e1936]
+                  - cell "492.000.000" [ref=f1e1937]
+                  - cell "0" [ref=f1e1938]
+                  - cell "0.0% 0.0" [ref=f1e1939]:
+                    - generic [ref=f1e1940]: 0.0%
+                    - progressbar "Progres pembayaran DPP PB.028/PO/NK-WIKA/02/SINTONG/05/2026" [ref=f1e1942]
+                  - cell "270.600.000" [ref=f1e1943]
+                  - cell "54.120.000" [ref=f1e1944]
+                  - cell "0" [ref=f1e1945]
+                  - cell "0.0% 0.0" [ref=f1e1946]:
+                    - generic [ref=f1e1947]: 0.0%
+                    - progressbar "Progres pembayaran PPN PB.028/PO/NK-WIKA/02/SINTONG/05/2026" [ref=f1e1949]
+                  - cell "PPN Include" [ref=f1e1950]
+                  - cell "1.968.000.000" [ref=f1e1951]
+                  - cell "492.000.000" [ref=f1e1952]
+                  - cell "216.480.000" [ref=f1e1953]
+                  - cell "54.120.000" [ref=f1e1954]
+                  - cell "1/4" [ref=f1e1955]:
+                    - generic "1 dari 4 termin sudah ditagih penuh, tepat di batas termin." [ref=f1e1956]: 1/4
+                  - cell "1" [ref=f1e1957]:
+                    - generic "Ada Invoice (1)" [ref=f1e1958]: "1"
+                - row [ref=f1e1959]:
+                  - cell "8" [ref=f1e1960]
+                  - cell [ref=f1e1962]:
+                    - generic [ref=f1e1963]:
+                      - generic "PT JASEN MITRA SINERGI" [ref=f1e1964]:
+                        - link "PT JASEN MITRA SINERGI" [ref=f1e1965] [cursor=pointer]:
+                          - /url: /kontrak/64
+                      - generic "PB.029/PO/NK-WIKA/03/SINTONG/05/2026" [ref=f1e1966]:
+                        - link "PB.029/PO/NK-WIKA/03/SINTONG/05/2026" [ref=f1e1967] [cursor=pointer]:
+                          - /url: /kontrak/64
+                  - cell "Load Break Switch" [ref=f1e1968]
+                  - cell "316.729.858" [ref=f1e1969]
+                  - cell "316.729.858" [ref=f1e1970]
+                  - cell "316.729.858" [ref=f1e1971]
+                  - cell "100.0% 100.0" [ref=f1e1972]:
+                    - generic [ref=f1e1973]: 100.0%
+                    - progressbar "Progres pembayaran DPP PB.029/PO/NK-WIKA/03/SINTONG/05/2026" [ref=f1e1975]
+                  - cell "34.840.284" [ref=f1e1977]
+                  - cell "34.840.284" [ref=f1e1978]
+                  - cell "34.840.284" [ref=f1e1979]
+                  - cell "100.0% 100.0" [ref=f1e1980]:
+                    - generic [ref=f1e1981]: 100.0%
+                    - progressbar "Progres pembayaran PPN PB.029/PO/NK-WIKA/03/SINTONG/05/2026" [ref=f1e1983]
+                  - cell "PPN Include" [ref=f1e1985]
+                  - cell "0" [ref=f1e1986]
+                  - cell "0" [ref=f1e1987]
+                  - cell "0" [ref=f1e1988]
+                  - cell "0" [ref=f1e1989]
+                  - cell "1/1" [ref=f1e1990]:
+                    - generic "Semua 1 termin sudah ditagih penuh." [ref=f1e1991]: 1/1
+                  - cell "2" [ref=f1e1992]:
+                    - generic "Ada Invoice (2)" [ref=f1e1993]: "2"
+                - row [ref=f1e1994]:
+                  - cell "9" [ref=f1e1995]
+                  - cell [ref=f1e1997]:
+                    - generic [ref=f1e1998]:
+                      - generic "PT TRIMITRA WAHANA SUKSES" [ref=f1e1999]:
+                        - link "PT TRIMITRA WAHANA SUKSES" [ref=f1e2000] [cursor=pointer]:
+                          - /url: /kontrak/65
+                      - generic "PB.030/PO/NK-WIKA/02/SINTONG/05/2026" [ref=f1e2001]:
+                        - link "PB.030/PO/NK-WIKA/02/SINTONG/05/2026" [ref=f1e2002] [cursor=pointer]:
+                          - /url: /kontrak/65
+                  - cell "Manual Valve Batch 1" [ref=f1e2003]
+                  - cell "1.957.704.000" [ref=f1e2004]
+                  - cell "0" [ref=f1e2005]
+                  - cell "0" [ref=f1e2006]
+                  - cell "0.0% 0.0" [ref=f1e2007]:
+                    - generic [ref=f1e2008]: 0.0%
+                    - progressbar "Progres pembayaran DPP PB.030/PO/NK-WIKA/02/SINTONG/05/2026" [ref=f1e2010]
+                  - cell "215.347.440" [ref=f1e2011]
+                  - cell "0" [ref=f1e2012]
+                  - cell "0" [ref=f1e2013]
+                  - cell "0.0% 0.0" [ref=f1e2014]:
+                    - generic [ref=f1e2015]: 0.0%
+                    - progressbar "Progres pembayaran PPN PB.030/PO/NK-WIKA/02/SINTONG/05/2026" [ref=f1e2017]
+                  - cell "PPN Reimburse" [ref=f1e2018]
+                  - cell "1.957.704.000" [ref=f1e2019]
+                  - cell "0" [ref=f1e2020]
+                  - cell "215.347.440" [ref=f1e2021]
+                  - cell "0" [ref=f1e2022]
+                  - cell "0/1" [ref=f1e2023]:
+                    - generic "Belum ada invoice. 1 termin belum ditagih." [ref=f1e2024]: 0/1
+                  - cell "0" [ref=f1e2025]:
+                    - generic "Belum ada invoice" [ref=f1e2026]: "0"
+                - row [ref=f1e2027]:
+                  - cell "10" [ref=f1e2028]
+                  - cell [ref=f1e2030]:
+                    - generic [ref=f1e2031]:
+                      - generic "PT TRIMITRA WAHANA SUKSES" [ref=f1e2032]:
+                        - link "PT TRIMITRA WAHANA SUKSES" [ref=f1e2033] [cursor=pointer]:
+                          - /url: /kontrak/66
+                      - generic "PB.031/PO/NK-WIKA/02/SINTONG/05/2026" [ref=f1e2034]:
+                        - link "PB.031/PO/NK-WIKA/02/SINTONG/05/2026" [ref=f1e2035] [cursor=pointer]:
+                          - /url: /kontrak/66
+                  - cell "Manual Valve Batch 2" [ref=f1e2036]
+                  - cell "2.135.908.000" [ref=f1e2037]
+                  - cell "0" [ref=f1e2038]
+                  - cell "0" [ref=f1e2039]
+                  - cell "0.0% 0.0" [ref=f1e2040]:
+                    - generic [ref=f1e2041]: 0.0%
+                    - progressbar "Progres pembayaran DPP PB.031/PO/NK-WIKA/02/SINTONG/05/2026" [ref=f1e2043]
+                  - cell "234.949.880" [ref=f1e2044]
+                  - cell "0" [ref=f1e2045]
+                  - cell "0" [ref=f1e2046]
+                  - cell "0.0% 0.0" [ref=f1e2047]:
+                    - generic [ref=f1e2048]: 0.0%
+                    - progressbar "Progres pembayaran PPN PB.031/PO/NK-WIKA/02/SINTONG/05/2026" [ref=f1e2050]
+                  - cell "PPN Reimburse" [ref=f1e2051]
+                  - cell "2.135.908.000" [ref=f1e2052]
+                  - cell "0" [ref=f1e2053]
+                  - cell "234.949.880" [ref=f1e2054]
+                  - cell "0" [ref=f1e2055]
+                  - cell "0/1" [ref=f1e2056]:
+                    - generic "Belum ada invoice. 1 termin belum ditagih." [ref=f1e2057]: 0/1
+                  - cell "0" [ref=f1e2058]:
+                    - generic "Belum ada invoice" [ref=f1e2059]: "0"
+                - row [ref=f1e2060]:
+                  - cell "11" [ref=f1e2061]
+                  - cell [ref=f1e2063]:
+                    - generic [ref=f1e2064]:
+                      - generic "PT GLOBAL HADITECH" [ref=f1e2065]:
+                        - link "PT GLOBAL HADITECH" [ref=f1e2066] [cursor=pointer]:
+                          - /url: /kontrak/67
+                      - generic "PB.032/PO/NK-WIKA/02/SINTONG/06/2026" [ref=f1e2067]:
+                        - link "PB.032/PO/NK-WIKA/02/SINTONG/06/2026" [ref=f1e2068] [cursor=pointer]:
+                          - /url: /kontrak/67
+                  - cell "Flow Meter Turbine" [ref=f1e2069]
+                  - cell "1.775.000.000" [ref=f1e2070]
+                  - cell "177.500.000" [ref=f1e2071]
+                  - cell "168.625.000" [ref=f1e2072]
+                  - cell "9.5% 9.5" [ref=f1e2073]:
+                    - generic [ref=f1e2074]: 9.5%
+                    - progressbar "Progres pembayaran DPP PB.032/PO/NK-WIKA/02/SINTONG/06/2026" [ref=f1e2076]
+                  - cell "195.250.000" [ref=f1e2078]
+                  - cell "9.673.750" [ref=f1e2079]
+                  - cell "0" [ref=f1e2080]
+                  - cell "0.0% 0.0" [ref=f1e2081]:
+                    - generic [ref=f1e2082]: 0.0%
+                    - progressbar "Progres pembayaran PPN PB.032/PO/NK-WIKA/02/SINTONG/06/2026" [ref=f1e2084]
+                  - cell "PPN Include" [ref=f1e2085]
+                  - cell "1.597.500.000" [ref=f1e2086]
+                  - cell "8.875.000" [ref=f1e2087]
+                  - cell "185.576.250" [ref=f1e2088]
+                  - cell "9.673.750" [ref=f1e2089]
+                  - cell "1/4" [ref=f1e2090]:
+                    - generic "1 dari 4 termin sudah ditagih penuh, tepat di batas termin." [ref=f1e2091]: 1/4
+                  - cell "1" [ref=f1e2092]:
+                    - generic "Ada Invoice (1)" [ref=f1e2093]: "1"
+                - row [ref=f1e2094]:
+                  - cell "12" [ref=f1e2095]
+                  - cell [ref=f1e2097]:
+                    - generic [ref=f1e2098]:
+                      - generic "PT DUTA FIRZA" [ref=f1e2099]:
+                        - link "PT DUTA FIRZA" [ref=f1e2100] [cursor=pointer]:
+                          - /url: /kontrak/68
+                      - generic "PB.033/PO/NK-WIKA/03/SINTONG/06/2026" [ref=f1e2101]:
+                        - link "PB.033/PO/NK-WIKA/03/SINTONG/06/2026" [ref=f1e2102] [cursor=pointer]:
+                          - /url: /kontrak/68
+                  - cell "PG, TG" [ref=f1e2103]
+                  - cell "224.000.000" [ref=f1e2104]
+                  - cell "0" [ref=f1e2105]
+                  - cell "0" [ref=f1e2106]
+                  - cell "0.0% 0.0" [ref=f1e2107]:
+                    - generic [ref=f1e2108]: 0.0%
+                    - progressbar "Progres pembayaran DPP PB.033/PO/NK-WIKA/03/SINTONG/06/2026" [ref=f1e2110]
+                  - cell "24.640.000" [ref=f1e2111]
+                  - cell "0" [ref=f1e2112]
+                  - cell "0" [ref=f1e2113]
+                  - cell "0.0% 0.0" [ref=f1e2114]:
+                    - generic [ref=f1e2115]: 0.0%
+                    - progressbar "Progres pembayaran PPN PB.033/PO/NK-WIKA/03/SINTONG/06/2026" [ref=f1e2117]
+                  - cell "PPN Include" [ref=f1e2118]
+                  - cell "224.000.000" [ref=f1e2119]
+                  - cell "0" [ref=f1e2120]
+                  - cell "24.640.000" [ref=f1e2121]
+                  - cell "0" [ref=f1e2122]
+                  - cell "0/1" [ref=f1e2123]:
+                    - generic "Belum ada invoice. 1 termin belum ditagih." [ref=f1e2124]: 0/1
+                  - cell "0" [ref=f1e2125]:
+                    - generic "Belum ada invoice" [ref=f1e2126]: "0"
+                - row [ref=f1e2127]:
+                  - cell "13" [ref=f1e2128]
+                  - cell [ref=f1e2130]:
+                    - generic [ref=f1e2131]:
+                      - generic "PT DUTA FIRZA" [ref=f1e2132]:
+                        - link "PT DUTA FIRZA" [ref=f1e2133] [cursor=pointer]:
+                          - /url: /kontrak/69
+                      - generic "PB.036/PO/NK-WIKA/03/SINTONG/06/2026" [ref=f1e2134]:
+                        - link "PB.036/PO/NK-WIKA/03/SINTONG/06/2026" [ref=f1e2135] [cursor=pointer]:
+                          - /url: /kontrak/69
+                  - cell "RO" [ref=f1e2136]
+                  - cell "205.000.000" [ref=f1e2137]
+                  - cell "0" [ref=f1e2138]
+                  - cell "0" [ref=f1e2139]
+                  - cell "0.0% 0.0" [ref=f1e2140]:
+                    - generic [ref=f1e2141]: 0.0%
+                    - progressbar "Progres pembayaran DPP PB.036/PO/NK-WIKA/03/SINTONG/06/2026" [ref=f1e2143]
+                  - cell "22.550.000" [ref=f1e2144]
+                  - cell "0" [ref=f1e2145]
+                  - cell "0" [ref=f1e2146]
+                  - cell "0.0% 0.0" [ref=f1e2147]:
+                    - generic [ref=f1e2148]: 0.0%
+                    - progressbar "Progres pembayaran PPN PB.036/PO/NK-WIKA/03/SINTONG/06/2026" [ref=f1e2150]
+                  - cell "PPN Include" [ref=f1e2151]
+                  - cell "205.000.000" [ref=f1e2152]
+                  - cell "0" [ref=f1e2153]
+                  - cell "22.550.000" [ref=f1e2154]
+                  - cell "0" [ref=f1e2155]
+                  - cell "0/1" [ref=f1e2156]:
+                    - generic "Belum ada invoice. 1 termin belum ditagih." [ref=f1e2157]: 0/1
+                  - cell "0" [ref=f1e2158]:
+                    - generic "Belum ada invoice" [ref=f1e2159]: "0"
+                - row [ref=f1e2160]:
+                  - cell "14" [ref=f1e2161]
+                  - cell [ref=f1e2163]:
+                    - generic [ref=f1e2164]:
+                      - generic "PT CONTROL SYSTEM ARENA PARA NUSA" [ref=f1e2165]:
+                        - link "PT CONTROL SYSTEM ARENA PARA NUSA" [ref=f1e2166] [cursor=pointer]:
+                          - /url: /kontrak/70
+                      - generic "PB.038/PO/NK-WIKA/03/SINTONG/06/2026" [ref=f1e2167]:
+                        - link "PB.038/PO/NK-WIKA/03/SINTONG/06/2026" [ref=f1e2168] [cursor=pointer]:
+                          - /url: /kontrak/70
+                  - cell "PLC" [ref=f1e2169]
+                  - cell "1.670.000.000" [ref=f1e2170]
+                  - cell "0" [ref=f1e2171]
+                  - cell "0" [ref=f1e2172]
+                  - cell "0.0% 0.0" [ref=f1e2173]:
+                    - generic [ref=f1e2174]: 0.0%
+                    - progressbar "Progres pembayaran DPP PB.038/PO/NK-WIKA/03/SINTONG/06/2026" [ref=f1e2176]
+                  - cell "183.700.000" [ref=f1e2177]
+                  - cell "0" [ref=f1e2178]
+                  - cell "0" [ref=f1e2179]
+                  - cell "0.0% 0.0" [ref=f1e2180]:
+                    - generic [ref=f1e2181]: 0.0%
+                    - progressbar "Progres pembayaran PPN PB.038/PO/NK-WIKA/03/SINTONG/06/2026" [ref=f1e2183]
+                  - cell "PPN Reimburse" [ref=f1e2184]
+                  - cell "1.670.000.000" [ref=f1e2185]
+                  - cell "0" [ref=f1e2186]
+                  - cell "183.700.000" [ref=f1e2187]
+                  - cell "0" [ref=f1e2188]
+                  - cell "0/4" [ref=f1e2189]:
+                    - generic "Belum ada invoice. 4 termin belum ditagih." [ref=f1e2190]: 0/4
+                  - cell "0" [ref=f1e2191]:
+                    - generic "Belum ada invoice" [ref=f1e2192]: "0"
+                - row [ref=f1e2193]:
+                  - cell "15" [ref=f1e2194]
+                  - cell [ref=f1e2196]:
+                    - generic [ref=f1e2197]:
+                      - generic "PT VALVE AUTOMATION INDONESIA" [ref=f1e2198]:
+                        - link "PT VALVE AUTOMATION INDONESIA" [ref=f1e2199] [cursor=pointer]:
+                          - /url: /kontrak/71
+                      - generic "PB.039/PO/NK-WIKA/02/SINTONG/06/2026" [ref=f1e2200]:
+                        - link "PB.039/PO/NK-WIKA/02/SINTONG/06/2026" [ref=f1e2201] [cursor=pointer]:
+                          - /url: /kontrak/71
+                  - cell "Choke Valve" [ref=f1e2202]
+                  - cell "1.599.900.000" [ref=f1e2203]
+                  - cell "159.990.000" [ref=f1e2204]
+                  - cell "159.990.000" [ref=f1e2205]
+                  - cell "10.0% 10.0" [ref=f1e2206]:
+                    - generic [ref=f1e2207]: 10.0%
+                    - progressbar "Progres pembayaran DPP PB.039/PO/NK-WIKA/02/SINTONG/06/2026" [ref=f1e2209]
+                  - cell "175.989.000" [ref=f1e2211]
+                  - cell "17.598.900" [ref=f1e2212]
+                  - cell "0" [ref=f1e2213]
+                  - cell "0.0% 0.0" [ref=f1e2214]:
+                    - generic [ref=f1e2215]: 0.0%
+                    - progressbar "Progres pembayaran PPN PB.039/PO/NK-WIKA/02/SINTONG/06/2026" [ref=f1e2217]
+                  - cell "PPN Reimburse" [ref=f1e2218]
+                  - cell "1.439.910.000" [ref=f1e2219]
+                  - cell "0" [ref=f1e2220]
+                  - cell "158.390.100" [ref=f1e2221]
+                  - cell "17.598.900" [ref=f1e2222]
+                  - cell "1/5" [ref=f1e2223]:
+                    - generic "1 dari 5 termin sudah ditagih penuh, tepat di batas termin." [ref=f1e2224]: 1/5
+                  - cell "1" [ref=f1e2225]:
+                    - generic "Ada Invoice (1)" [ref=f1e2226]: "1"
+                - row [ref=f1e2227]:
+                  - cell "16" [ref=f1e2228]
+                  - cell [ref=f1e2230]:
+                    - generic [ref=f1e2231]:
+                      - generic "PT CONTROL SYSTEM ARENA PARA NUSA" [ref=f1e2232]:
+                        - link "PT CONTROL SYSTEM ARENA PARA NUSA" [ref=f1e2233] [cursor=pointer]:
+                          - /url: /kontrak/72
+                      - generic "PB.040/PO/NK-WIKA/02/SINTONG/06/2026" [ref=f1e2234]:
+                        - link "PB.040/PO/NK-WIKA/02/SINTONG/06/2026" [ref=f1e2235] [cursor=pointer]:
+                          - /url: /kontrak/72
+                  - cell "Transmiter" [ref=f1e2236]
+                  - cell "591.320.000" [ref=f1e2237]
+                  - cell "118.264.000" [ref=f1e2238]
+                  - cell "118.264.000" [ref=f1e2239]
+                  - cell "20.0% 20.0" [ref=f1e2240]:
+                    - generic [ref=f1e2241]: 20.0%
+                    - progressbar "Progres pembayaran DPP PB.040/PO/NK-WIKA/02/SINTONG/06/2026" [ref=f1e2243]
+                  - cell "65.045.200" [ref=f1e2245]
+                  - cell "13.009.040" [ref=f1e2246]
+                  - cell "0" [ref=f1e2247]
+                  - cell "0.0% 0.0" [ref=f1e2248]:
+                    - generic [ref=f1e2249]: 0.0%
+                    - progressbar "Progres pembayaran PPN PB.040/PO/NK-WIKA/02/SINTONG/06/2026" [ref=f1e2251]
+                  - cell "PPN Reimburse" [ref=f1e2252]
+                  - cell "473.056.000" [ref=f1e2253]
+                  - cell "0" [ref=f1e2254]
+                  - cell "52.036.160" [ref=f1e2255]
+                  - cell "13.009.040" [ref=f1e2256]
+                  - cell "1/4" [ref=f1e2257]:
+                    - generic "1 dari 4 termin sudah ditagih penuh, tepat di batas termin." [ref=f1e2258]: 1/4
+                  - cell "1" [ref=f1e2259]:
+                    - generic "Ada Invoice (1)" [ref=f1e2260]: "1"
+                - row [ref=f1e2261]:
+                  - cell "17" [ref=f1e2262]
+                  - cell [ref=f1e2264]:
+                    - generic [ref=f1e2265]:
+                      - generic "PT INDOLOK BAKTI UTAMA" [ref=f1e2266]:
+                        - link "PT INDOLOK BAKTI UTAMA" [ref=f1e2267] [cursor=pointer]:
+                          - /url: /kontrak/73
+                      - generic "PB.042/PO/NK-WIKA/02/SINTONG/07/2026" [ref=f1e2268]:
+                        - link "PB.042/PO/NK-WIKA/02/SINTONG/07/2026" [ref=f1e2269] [cursor=pointer]:
+                          - /url: /kontrak/73
+                  - cell "Fire Protection" [ref=f1e2270]
+                  - cell "78.013.943" [ref=f1e2271]
+                  - cell "39.006.972" [ref=f1e2272]
+                  - cell "39.006.972" [ref=f1e2273]
+                  - cell "50.0% 50.0" [ref=f1e2274]:
+                    - generic [ref=f1e2275]: 50.0%
+                    - progressbar "Progres pembayaran DPP PB.042/PO/NK-WIKA/02/SINTONG/07/2026" [ref=f1e2277]
+                  - cell "8.581.534" [ref=f1e2279]
+                  - cell "4.290.767" [ref=f1e2280]
+                  - cell "0" [ref=f1e2281]
+                  - cell "0.0% 0.0" [ref=f1e2282]:
+                    - generic [ref=f1e2283]: 0.0%
+                    - progressbar "Progres pembayaran PPN PB.042/PO/NK-WIKA/02/SINTONG/07/2026" [ref=f1e2285]
+                  - cell "PPN Reimburse" [ref=f1e2286]
+                  - cell "39.006.971" [ref=f1e2287]
+                  - cell "0" [ref=f1e2288]
+                  - cell "4.290.767" [ref=f1e2289]
+                  - cell "4.290.767" [ref=f1e2290]
+                  - cell "1/2" [ref=f1e2291]:
+                    - generic "1 dari 2 termin sudah ditagih penuh, tepat di batas termin." [ref=f1e2292]: 1/2
+                  - cell "1" [ref=f1e2293]:
+                    - generic "Ada Invoice (1)" [ref=f1e2294]: "1"
+                - row [ref=f1e2295]:
+                  - cell "18" [ref=f1e2296]
+                  - cell [ref=f1e2298]:
+                    - generic [ref=f1e2299]:
+                      - generic "PT ALFA VALVE INDONESIA" [ref=f1e2300]:
+                        - link "PT ALFA VALVE INDONESIA" [ref=f1e2301] [cursor=pointer]:
+                          - /url: /kontrak/74
+                      - generic "PB.044/PO/NK-WIKA/03/SINTONG/07/2026" [ref=f1e2302]:
+                        - link "PB.044/PO/NK-WIKA/03/SINTONG/07/2026" [ref=f1e2303] [cursor=pointer]:
+                          - /url: /kontrak/74
+                  - cell "Strainer" [ref=f1e2304]
+                  - cell "460.000.000" [ref=f1e2305]
+                  - cell "0" [ref=f1e2306]
+                  - cell "0" [ref=f1e2307]
+                  - cell "0.0% 0.0" [ref=f1e2308]:
+                    - generic [ref=f1e2309]: 0.0%
+                    - progressbar "Progres pembayaran DPP PB.044/PO/NK-WIKA/03/SINTONG/07/2026" [ref=f1e2311]
+                  - cell "50.600.000" [ref=f1e2312]
+                  - cell "0" [ref=f1e2313]
+                  - cell "0" [ref=f1e2314]
+                  - cell "0.0% 0.0" [ref=f1e2315]:
+                    - generic [ref=f1e2316]: 0.0%
+                    - progressbar "Progres pembayaran PPN PB.044/PO/NK-WIKA/03/SINTONG/07/2026" [ref=f1e2318]
+                  - cell "PPN Reimburse" [ref=f1e2319]
+                  - cell "460.000.000" [ref=f1e2320]
+                  - cell "0" [ref=f1e2321]
+                  - cell "50.600.000" [ref=f1e2322]
+                  - cell "0" [ref=f1e2323]
+                  - cell "0/1" [ref=f1e2324]:
+                    - generic "Belum ada invoice. 1 termin belum ditagih." [ref=f1e2325]: 0/1
+                  - cell "0" [ref=f1e2326]:
+                    - generic "Belum ada invoice" [ref=f1e2327]: "0"
+                - row [ref=f1e2328]:
+                  - cell "19" [ref=f1e2329]
+                  - cell [ref=f1e2331]:
+                    - generic [ref=f1e2332]:
+                      - generic "PT RAYA TALENTA GAJERA" [ref=f1e2333]:
+                        - link "PT RAYA TALENTA GAJERA" [ref=f1e2334] [cursor=pointer]:
+                          - /url: /kontrak/75
+                      - generic "PB.049/PO/NK-WIKA/02/SINTONG/07/2026" [ref=f1e2335]:
+                        - link "PB.049/PO/NK-WIKA/02/SINTONG/07/2026" [ref=f1e2336] [cursor=pointer]:
+                          - /url: /kontrak/75
+                  - cell "FACP" [ref=f1e2337]
+                  - cell "395.000.000" [ref=f1e2338]
+                  - cell "0" [ref=f1e2339]
+                  - cell "0" [ref=f1e2340]
+                  - cell "0.0% 0.0" [ref=f1e2341]:
+                    - generic [ref=f1e2342]: 0.0%
+                    - progressbar "Progres pembayaran DPP PB.049/PO/NK-WIKA/02/SINTONG/07/2026" [ref=f1e2344]
+                  - cell "43.450.000" [ref=f1e2345]
+                  - cell "0" [ref=f1e2346]
+                  - cell "0" [ref=f1e2347]
+                  - cell "0.0% 0.0" [ref=f1e2348]:
+                    - generic [ref=f1e2349]: 0.0%
+                    - progressbar "Progres pembayaran PPN PB.049/PO/NK-WIKA/02/SINTONG/07/2026" [ref=f1e2351]
+                  - cell "PPN Include" [ref=f1e2352]
+                  - cell "395.000.000" [ref=f1e2353]
+                  - cell "0" [ref=f1e2354]
+                  - cell "43.450.000" [ref=f1e2355]
+                  - cell "0" [ref=f1e2356]
+                  - cell "0/2" [ref=f1e2357]:
+                    - generic "Belum ada invoice. 2 termin belum ditagih." [ref=f1e2358]: 0/2
+                  - cell "0" [ref=f1e2359]:
+                    - generic "Belum ada invoice" [ref=f1e2360]: "0"
+                - row [ref=f1e2361]:
+                  - cell "20" [ref=f1e2362]
+                  - cell [ref=f1e2364]:
+                    - generic [ref=f1e2365]:
+                      - generic "PT ARIFIN SAINS TEKNOLOGI" [ref=f1e2366]:
+                        - link "PT ARIFIN SAINS TEKNOLOGI" [ref=f1e2367] [cursor=pointer]:
+                          - /url: /kontrak/76
+                      - generic "PB.050/PO/NK-WIKA/02/SINTONG/08/2026" [ref=f1e2368]:
+                        - link "PB.050/PO/NK-WIKA/02/SINTONG/08/2026" [ref=f1e2369] [cursor=pointer]:
+                          - /url: /kontrak/76
+                  - cell "Mini Power Center" [ref=f1e2370]
+                  - cell "385.000.000" [ref=f1e2371]
+                  - cell "0" [ref=f1e2372]
+                  - cell "0" [ref=f1e2373]
+                  - cell "0.0% 0.0" [ref=f1e2374]:
+                    - generic [ref=f1e2375]: 0.0%
+                    - progressbar "Progres pembayaran DPP PB.050/PO/NK-WIKA/02/SINTONG/08/2026" [ref=f1e2377]
+                  - cell "42.350.000" [ref=f1e2378]
+                  - cell "0" [ref=f1e2379]
+                  - cell "0" [ref=f1e2380]
+                  - cell "0.0% 0.0" [ref=f1e2381]:
+                    - generic [ref=f1e2382]: 0.0%
+                    - progressbar "Progres pembayaran PPN PB.050/PO/NK-WIKA/02/SINTONG/08/2026" [ref=f1e2384]
+                  - cell "PPN Reimburse" [ref=f1e2385]
+                  - cell "385.000.000" [ref=f1e2386]
+                  - cell "0" [ref=f1e2387]
+                  - cell "42.350.000" [ref=f1e2388]
+                  - cell "0" [ref=f1e2389]
+                  - cell "0/2" [ref=f1e2390]:
+                    - generic "Belum ada invoice. 2 termin belum ditagih." [ref=f1e2391]: 0/2
+                  - cell "0" [ref=f1e2392]:
+                    - generic "Belum ada invoice" [ref=f1e2393]: "0"
+                - row [ref=f1e2394]:
+                  - cell "21" [ref=f1e2395]
+                  - cell [ref=f1e2397]:
+                    - generic [ref=f1e2398]:
+                      - generic "PT DWIRESTU REJEKIGUNA" [ref=f1e2399]:
+                        - link "PT DWIRESTU REJEKIGUNA" [ref=f1e2400] [cursor=pointer]:
+                          - /url: /kontrak/77
+                      - generic "PB.054/PO/NK-WIKA/03/SINTONG/08/2026" [ref=f1e2401]:
+                        - link "PB.054/PO/NK-WIKA/03/SINTONG/08/2026" [ref=f1e2402] [cursor=pointer]:
+                          - /url: /kontrak/77
+                  - cell "Level Gauge Magnetic" [ref=f1e2403]
+                  - cell "250.000.000" [ref=f1e2404]
+                  - cell "25.000.000" [ref=f1e2405]
+                  - cell "25.000.000" [ref=f1e2406]
+                  - cell "10.0% 10.0" [ref=f1e2407]:
+                    - generic [ref=f1e2408]: 10.0%
+                    - progressbar "Progres pembayaran DPP PB.054/PO/NK-WIKA/03/SINTONG/08/2026" [ref=f1e2410]
+                  - cell "27.500.000" [ref=f1e2412]
+                  - cell "2.750.000" [ref=f1e2413]
+                  - cell "0" [ref=f1e2414]
+                  - cell "0.0% 0.0" [ref=f1e2415]:
+                    - generic [ref=f1e2416]: 0.0%
+                    - progressbar "Progres pembayaran PPN PB.054/PO/NK-WIKA/03/SINTONG/08/2026" [ref=f1e2418]
+                  - cell "PPN Include" [ref=f1e2419]
+                  - cell "225.000.000" [ref=f1e2420]
+                  - cell "0" [ref=f1e2421]
+                  - cell "24.750.000" [ref=f1e2422]
+                  - cell "2.750.000" [ref=f1e2423]
+                  - cell "1/2" [ref=f1e2424]:
+                    - generic "1 dari 2 termin sudah ditagih penuh, tepat di batas termin." [ref=f1e2425]: 1/2
+                  - cell "1" [ref=f1e2426]:
+                    - generic "Ada Invoice (1)" [ref=f1e2427]: "1"
+                - row [ref=f1e2428]:
+                  - cell "22" [ref=f1e2429]
+                  - cell [ref=f1e2431]:
+                    - generic [ref=f1e2432]:
+                      - generic "PT POWERINDO" [ref=f1e2433]:
+                        - link "PT POWERINDO" [ref=f1e2434] [cursor=pointer]:
+                          - /url: /kontrak/78
+                      - generic "PB.056/PO/NK-WIKA/03/SINTONG/08/2026" [ref=f1e2435]:
+                        - link "PB.056/PO/NK-WIKA/03/SINTONG/08/2026" [ref=f1e2436] [cursor=pointer]:
+                          - /url: /kontrak/78
+                  - cell "Neutral Ground Resistor" [ref=f1e2437]
+                  - cell "240.000.000" [ref=f1e2438]
+                  - cell "0" [ref=f1e2439]
+                  - cell "0" [ref=f1e2440]
+                  - cell "0.0% 0.0" [ref=f1e2441]:
+                    - generic [ref=f1e2442]: 0.0%
+                    - progressbar "Progres pembayaran DPP PB.056/PO/NK-WIKA/03/SINTONG/08/2026" [ref=f1e2444]
+                  - cell "26.400.000" [ref=f1e2445]
+                  - cell "0" [ref=f1e2446]
+                  - cell "0" [ref=f1e2447]
+                  - cell "0.0% 0.0" [ref=f1e2448]:
+                    - generic [ref=f1e2449]: 0.0%
+                    - progressbar "Progres pembayaran PPN PB.056/PO/NK-WIKA/03/SINTONG/08/2026" [ref=f1e2451]
+                  - cell "PPN Reimburse" [ref=f1e2452]
+                  - cell "240.000.000" [ref=f1e2453]
+                  - cell "0" [ref=f1e2454]
+                  - cell "26.400.000" [ref=f1e2455]
+                  - cell "0" [ref=f1e2456]
+                  - cell "0/2" [ref=f1e2457]:
+                    - generic "Belum ada invoice. 2 termin belum ditagih." [ref=f1e2458]: 0/2
+                  - cell "0" [ref=f1e2459]:
+                    - generic "Belum ada invoice" [ref=f1e2460]: "0"
+                - row [ref=f1e2461]:
+                  - cell "23" [ref=f1e2462]
+                  - cell [ref=f1e2464]:
+                    - generic [ref=f1e2465]:
+                      - generic "PT MERCURY TEKINDO INDONESIA" [ref=f1e2466]:
+                        - link "PT MERCURY TEKINDO INDONESIA" [ref=f1e2467] [cursor=pointer]:
+                          - /url: /kontrak/79
+                      - generic "PB.061/PO/NK-WIKA/03/SINTONG/09/2026" [ref=f1e2468]:
+                        - link "PB.061/PO/NK-WIKA/03/SINTONG/09/2026" [ref=f1e2469] [cursor=pointer]:
+                          - /url: /kontrak/79
+                  - cell "Grounding & Lightning" [ref=f1e2470]
+                  - cell "500.120.000" [ref=f1e2471]
+                  - cell "0" [ref=f1e2472]
+                  - cell "0" [ref=f1e2473]
+                  - cell "0.0% 0.0" [ref=f1e2474]:
+                    - generic [ref=f1e2475]: 0.0%
+                    - progressbar "Progres pembayaran DPP PB.061/PO/NK-WIKA/03/SINTONG/09/2026" [ref=f1e2477]
+                  - cell "55.013.200" [ref=f1e2478]
+                  - cell "0" [ref=f1e2479]
+                  - cell "0" [ref=f1e2480]
+                  - cell "0.0% 0.0" [ref=f1e2481]:
+                    - generic [ref=f1e2482]: 0.0%
+                    - progressbar "Progres pembayaran PPN PB.061/PO/NK-WIKA/03/SINTONG/09/2026" [ref=f1e2484]
+                  - cell "PPN Reimburse" [ref=f1e2485]
+                  - cell "500.120.000" [ref=f1e2486]
+                  - cell "0" [ref=f1e2487]
+                  - cell "55.013.200" [ref=f1e2488]
+                  - cell "0" [ref=f1e2489]
+                  - cell "0/1" [ref=f1e2490]:
+                    - generic "Belum ada invoice. 1 termin belum ditagih." [ref=f1e2491]: 0/1
+                  - cell "0" [ref=f1e2492]:
+                    - generic "Belum ada invoice" [ref=f1e2493]: "0"
+                - row [ref=f1e2494]:
+                  - cell "24" [ref=f1e2495]
+                  - cell [ref=f1e2497]:
+                    - generic [ref=f1e2498]:
+                      - generic "PT SUTRAKABEL INTIMANDIRI" [ref=f1e2499]:
+                        - link "PT SUTRAKABEL INTIMANDIRI" [ref=f1e2500] [cursor=pointer]:
+                          - /url: /kontrak/80
+                      - generic "PB.063/PO/NK-WIKA/03/SINTONG/09/2026" [ref=f1e2501]:
+                        - link "PB.063/PO/NK-WIKA/03/SINTONG/09/2026" [ref=f1e2502] [cursor=pointer]:
+                          - /url: /kontrak/80
+                  - cell "Cable" [ref=f1e2503]
+                  - cell "3.549.904.399" [ref=f1e2504]
+                  - cell "0" [ref=f1e2505]
+                  - cell "0" [ref=f1e2506]
+                  - cell "0.0% 0.0" [ref=f1e2507]:
+                    - generic [ref=f1e2508]: 0.0%
+                    - progressbar "Progres pembayaran DPP PB.063/PO/NK-WIKA/03/SINTONG/09/2026" [ref=f1e2510]
+                  - cell "390.489.484" [ref=f1e2511]
+                  - cell "0" [ref=f1e2512]
+                  - cell "0" [ref=f1e2513]
+                  - cell "0.0% 0.0" [ref=f1e2514]:
+                    - generic [ref=f1e2515]: 0.0%
+                    - progressbar "Progres pembayaran PPN PB.063/PO/NK-WIKA/03/SINTONG/09/2026" [ref=f1e2517]
+                  - cell "—" [ref=f1e2518]
+                  - cell "3.549.904.399" [ref=f1e2519]
+                  - cell "0" [ref=f1e2520]
+                  - cell "390.489.484" [ref=f1e2521]
+                  - cell "0" [ref=f1e2522]
+                  - cell "—" [ref=f1e2523]:
+                    - generic "Kontrak ini belum punya jadwal termin, jadi invoice tidak bisa dicocokkan ke termin" [ref=f1e2524]: —
+                  - cell "0" [ref=f1e2525]:
+                    - generic "Belum ada invoice" [ref=f1e2526]: "0"
+                - row [ref=f1e2527]:
+                  - cell "25" [ref=f1e2528]
+                  - cell [ref=f1e2530]:
+                    - generic [ref=f1e2531]:
+                      - generic "PT KOROSI SPECINDO" [ref=f1e2532]:
+                        - link "PT KOROSI SPECINDO" [ref=f1e2533] [cursor=pointer]:
+                          - /url: /kontrak/81
+                      - generic "PB.064/PO/NK-WIKA/03/SINTONG/09/2026" [ref=f1e2534]:
+                        - link "PB.064/PO/NK-WIKA/03/SINTONG/09/2026" [ref=f1e2535] [cursor=pointer]:
+                          - /url: /kontrak/81
+                  - cell "Corrosion Coupon" [ref=f1e2536]
+                  - cell "432.647.000" [ref=f1e2537]
+                  - cell "0" [ref=f1e2538]
+                  - cell "0" [ref=f1e2539]
+                  - cell "0.0% 0.0" [ref=f1e2540]:
+                    - generic [ref=f1e2541]: 0.0%
+                    - progressbar "Progres pembayaran DPP PB.064/PO/NK-WIKA/03/SINTONG/09/2026" [ref=f1e2543]
+                  - cell "47.591.170" [ref=f1e2544]
+                  - cell "0" [ref=f1e2545]
+                  - cell "0" [ref=f1e2546]
+                  - cell "0.0% 0.0" [ref=f1e2547]:
+                    - generic [ref=f1e2548]: 0.0%
+                    - progressbar "Progres pembayaran PPN PB.064/PO/NK-WIKA/03/SINTONG/09/2026" [ref=f1e2550]
+                  - cell "PPN Reimburse" [ref=f1e2551]
+                  - cell "432.647.000" [ref=f1e2552]
+                  - cell "0" [ref=f1e2553]
+                  - cell "47.591.170" [ref=f1e2554]
+                  - cell "0" [ref=f1e2555]
+                  - cell "0/3" [ref=f1e2556]:
+                    - generic "Belum ada invoice. 3 termin belum ditagih." [ref=f1e2557]: 0/3
+                  - cell "0" [ref=f1e2558]:
+                    - generic "Belum ada invoice" [ref=f1e2559]: "0"
+            - generic [ref=f1e2560]:
+              - combobox "Baris per halaman" [ref=f1e2561] [cursor=pointer]:
+                - option "10 / hal"
+                - option "15 / hal"
+                - option "25 / hal" [selected]
+                - option "50 / hal"
+                - option "100 / hal"
+                - option "Semua"
+              - button "Halaman sebelumnya" [disabled] [ref=f1e2562]:
+                - generic [ref=f1e2563]: 
+              - generic [ref=f1e2564]:
+                - button "1" [ref=f1e2565]
+                - button "2" [ref=f1e2566] [cursor=pointer]
+              - button "Halaman berikutnya" [ref=f1e2567] [cursor=pointer]:
+                - generic [ref=f1e2568]: 
+  - text:       

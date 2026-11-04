@@ -102,40 +102,40 @@
         <nav class="sidebar-nav">
           {% block sidebar_nav %}
           <div class="sidebar-section">Ringkasan</div>
-          <button class="nav-item" onclick="navigateTo('/dashboard')" data-label="Dashboard">
+          <a class="nav-item" href="/dashboard" data-label="Dashboard">
             <i class="bi bi-grid-1x2"></i> <span>Dashboard</span>
-          </button>
-          <button class="nav-item" onclick="navigateTo('/status-dokumen')" id="navStatusDokumen" data-label="Status Dokumen">
+          </a>
+          <a class="nav-item" href="/status-dokumen" id="navStatusDokumen" data-label="Status Dokumen">
             <i class="bi bi-file-earmark-check"></i> <span>Status Dokumen</span>
             {% if document_revisi_count|default(0) > 0 %}
             <span class="nav-badge nav-badge-warning">{{ document_revisi_count }}</span>
             {% endif %}
-          </button>
-          <button class="nav-item" onclick="navigateTo('/inv-minggu-ini')" data-label="Inv. Minggu Ini">
+          </a>
+          <a class="nav-item" href="/inv-minggu-ini" data-label="Inv. Minggu Ini">
             <i class="bi bi-calendar-week"></i> <span>Inv. Minggu Ini</span>
             {% if period_week_vendors|default(0) > 0 %}
             <span class="nav-badge nav-badge-neutral" title="{{ period_week_vendors }} levelansir aktif minggu ini">{{ period_week_vendors }}</span>
             {% endif %}
-          </button>
-          <button class="nav-item" onclick="navigateTo('/inv-bulan-ini')" data-label="Inv. Bulan Ini">
+          </a>
+          <a class="nav-item" href="/inv-bulan-ini" data-label="Inv. Bulan Ini">
             <i class="bi bi-calendar3"></i> <span>Inv. Bulan Ini</span>
             {% if period_month_vendors|default(0) > 0 %}
             <span class="nav-badge nav-badge-neutral" title="{{ period_month_vendors }} levelansir aktif bulan ini">{{ period_month_vendors }}</span>
             {% endif %}
-          </button>
-          <button class="nav-item" onclick="navigateTo('/laporan-jatuh-tempo')" data-label="Jatuh Tempo">
+          </a>
+          <a class="nav-item" href="/laporan-jatuh-tempo" data-label="Jatuh Tempo">
             <i class="bi bi-calendar-x"></i> <span>Jatuh Tempo</span>
-          </button>
-          <button class="nav-item" onclick="navigateTo('/levelansir-retensi')" data-label="Retensi">
+          </a>
+          <a class="nav-item" href="/levelansir-retensi" data-label="Retensi">
             <i class="bi bi-person-lock"></i> <span>Retensi</span>
-          </button>
+          </a>
 
           <div class="sidebar-section">Data Invoice</div>
-          <button class="nav-item" onclick="navigateTo('/data-hutang')" data-label="Daftar Invoice">
+          <a class="nav-item" href="/data-hutang" data-label="Daftar Invoice">
             <i class="bi bi-table"></i> <span>Daftar Invoice</span>
-          </button>
+          </a>
           {% set _exc_n = exclude_cat_count|default(0) + exclude_rek_count|default(0) %}
-          <button class="nav-item" onclick="navigateTo('/exclude-invoice')" id="navExclude" data-label="Exclude Invoice">
+          <a class="nav-item" href="/exclude-invoice" id="navExclude" data-label="Exclude Invoice">
             <i class="bi bi-slash-circle"></i> <span>Exclude Invoice</span>
             <span
               class="nav-badge nav-badge-neutral"
@@ -145,48 +145,51 @@
             >
               {{ _exc_n }}
             </span>
-          </button>
+          </a>
 
-          <div class="sidebar-section">Progress Invoice</div>
-          <button class="nav-item" onclick="navigateTo('/kontrak/')" id="navProgressKontrak" data-label="Progress Kontrak">
-            <i class="bi bi-file-earmark-text"></i> <span>Progress Kontrak</span>
+          <div class="sidebar-section">Kontrak</div>
+          <a class="nav-item" href="/kontrak/rekap-no-po" id="navRekapKontrak" data-label="Rekap PO Kontrak">
+            <i class="bi bi-clipboard-data"></i> <span>Rekap PO Kontrak</span>
+          </a>
+          <a class="nav-item" href="/kontrak/" id="navProgressKontrak" data-label="Progress Inv. Kontrak">
+            <i class="bi bi-file-earmark-text"></i> <span>Progress Inv. Kontrak</span>
             <span class="nav-badge nav-badge-warning nav-badge-icon" id="sidebarPoBadge" data-po-count="{{ po_review_count|default(0) }}" title="{{ po_review_count|default(0) }} No PO perlu ditinjau (kandidat typo)"{% if po_review_count|default(0) <= 0 %} hidden{% endif %}><i class="bi bi-exclamation"></i></span>
-          </button>
-          <button class="nav-item" onclick="navigateTo('/invoice-cicilan')" data-label="Progress Cicilan">
-            <i class="bi bi-arrow-repeat"></i> <span>Progress Cicilan</span>
-          </button>
+          </a>
+          <a class="nav-item" href="/invoice-cicilan" data-label="Progress Inv. Cicilan">
+            <i class="bi bi-arrow-repeat"></i> <span>Progress Inv. Cicilan</span>
+          </a>
 
           <div class="sidebar-section">Rekap Invoice</div>
-          <button class="nav-item" onclick="navigateTo('/laporan-bulanan')" data-label="Rekap DPP Bulanan">
+          <a class="nav-item" href="/laporan-bulanan" data-label="Rekap DPP Bulanan">
             <i class="bi bi-file-earmark-bar-graph"></i>
             <span>Rekap DPP Bulanan</span>
-          </button>
-          <button class="nav-item" onclick="navigateTo('/laporan-mingguan')" data-label="Rekap DPP Mingguan">
+          </a>
+          <a class="nav-item" href="/laporan-mingguan" data-label="Rekap DPP Mingguan">
             <i class="bi bi-calendar-week"></i>
             <span>Rekap DPP Mingguan</span>
-          </button>
+          </a>
           <div class="sidebar-section">Rekap Pajak</div>
-          <button class="nav-item" onclick="navigateTo('/laporan-ppn')" data-label="Rekap PPN Bulanan">
+          <a class="nav-item" href="/laporan-ppn" data-label="Rekap PPN Bulanan">
             <i class="bi bi-file-earmark-text"></i>
             <span>Rekap PPN Bulanan</span>
-          </button>
-          <button class="nav-item" onclick="navigateTo('/laporan-ppn-mingguan')" data-label="Rekap PPN Mingguan">
+          </a>
+          <a class="nav-item" href="/laporan-ppn-mingguan" data-label="Rekap PPN Mingguan">
             <i class="bi bi-calendar-week"></i>
             <span>Rekap PPN Mingguan</span>
-          </button>
+          </a>
 
           <div class="sidebar-section">Import Data</div>
-          <button class="nav-item" onclick="navigateTo('/import')" data-label="Import Invoice">
+          <a class="nav-item" href="/import" data-label="Import Invoice">
             <i class="bi bi-receipt"></i> <span>Import Invoice</span>
-          </button>
-          <button class="nav-item" onclick="navigateTo('/kontrak/import')" data-label="Import Kontrak">
+          </a>
+          <a class="nav-item" href="/kontrak/import" data-label="Import Kontrak">
             <i class="bi bi-file-earmark-arrow-up"></i> <span>Import Kontrak</span>
-          </button>
+          </a>
 
           <div class="sidebar-section">Kepatuhan</div>
-          <button
+          <a
             class="nav-item"
-            onclick="navigateTo('/verifikasi')"
+            href="/verifikasi"
             id="navVerifikasi"
           >
             <i class="bi bi-shield-exclamation"></i>
@@ -198,18 +201,18 @@
               {{ verification_total }}
             </span>
             {% endif %}
-          </button>
-          <button class="nav-item" onclick="navigateTo('/audit')" id="navAudit" data-label="Catatan Audit">
+          </a>
+          <a class="nav-item" href="/audit" id="navAudit" data-label="Catatan Audit">
             <i class="bi bi-clock-history"></i> <span>Catatan Audit</span>
             {% if audit_total > 0 %}
             <span class="nav-badge nav-badge-info">{{ audit_total }}</span>
             {% endif %}
-          </button>
+          </a>
 
           <div class="sidebar-section">Proyek</div>
-          <button class="nav-item" onclick="navigateTo('/project/')" data-label="Daftar Proyek">
+          <a class="nav-item" href="/project/" data-label="Daftar Proyek">
             <i class="bi bi-building"></i> <span>Daftar Proyek</span>
-          </button>
+          </a>
           {% endblock %}
         </nav>
         {% block sidebar_footer %} {% endblock %}
@@ -566,7 +569,7 @@
           try {
               if (typeof Chart === 'undefined' || !Chart.getChart) return;
               const scope = root || document;
-               ['chartKategori', 'chartAging', 'chartMonthly', 'chartDaily', 'chartJtMonthly'].forEach(function (id) {
+               ['chartKategori', 'chartAging', 'chartMonthly', 'chartDaily', 'chartJtMonthly', 'rpChartBar', 'rpChartDonut'].forEach(function (id) {
                   const el = scope.getElementById ? scope.getElementById(id) : document.getElementById(id);
                   const inst = el && Chart.getChart(el);
                   if (inst) inst.destroy();
@@ -742,7 +745,8 @@
           const HTMX_READY_ROUTES = [
               '/dashboard', '/inv-minggu-ini', '/inv-bulan-ini',
               '/data-hutang', '/status-dokumen', '/levelansir-retensi', '/invoice-cicilan',
-          '/kontrak/', '/kontrak/import', '/project/', '/verifikasi', '/audit', '/import',
+          '/kontrak/', '/kontrak/import', '/kontrak/rekap-no-po',
+          '/project/', '/verifikasi', '/audit', '/import',
           '/laporan-bulanan', '/laporan-mingguan', '/laporan-jatuh-tempo',
               '/laporan-ppn', '/laporan-ppn-mingguan', '/exclude-invoice',
       ];
@@ -750,9 +754,9 @@
           const path = (url || '').split('?')[0];
           return HTMX_READY_ROUTES.indexOf(path) !== -1;
       }
-       function navigateTo(url) {
-           toggleMobileNavigation(false);
-           saveSidebarScroll();
+      function navigateTo(url) {
+          toggleMobileNavigation(false);
+          saveSidebarScroll();
           updateActiveNav(url.split('?')[0]);
           if (window.htmx && isHtmxReady(url)) {
               // htmx.ajax() di HTMX 2.0.4 mengabaikan opsi pushUrl, jadi URL
@@ -768,6 +772,20 @@
               window.location.href = url;
           }
       }
+
+      (function initSidebarLinks() {
+          const nav = document.querySelector('.sidebar-nav');
+          if (!nav) return;
+          nav.addEventListener('click', function (event) {
+              const link = event.target.closest && event.target.closest('a.nav-item');
+              if (!link || event.defaultPrevented || event.button !== 0) return;
+              if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+              const href = link.getAttribute('href');
+              if (!href || href.charAt(0) !== '/') return;
+              event.preventDefault();
+              navigateTo(href);
+          });
+      })();
 
       // Back/forward: muat ulang halaman lewat pipeline HTMX yang sama seperti
       // navigasi biasa (handler lama dibuang di htmx:beforeSwap, script halaman
@@ -814,12 +832,14 @@
               activeText = 'Daftar Proyek';
           } else if (path === '/kontrak/import') {
               activeText = 'Import Kontrak';
+          } else if (path === '/kontrak/rekap-no-po') {
+              activeText = 'Rekap PO Kontrak';
           } else if (path.startsWith('/kontrak')) {
-              activeText = 'Progress Kontrak';
+              activeText = 'Progress Inv. Kontrak';
           } else if (path === '/data-hutang') {
               activeText = 'Daftar Invoice';
           } else if (path === '/invoice-cicilan') {
-              activeText = 'Progress Cicilan';
+              activeText = 'Progress Inv. Cicilan';
           } else if (path === '/levelansir-retensi') {
               activeText = 'Retensi';
           } else if (path === '/import') {

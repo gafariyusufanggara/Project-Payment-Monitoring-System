@@ -1,0 +1,360 @@
+{
+  "schema_version": 1,
+  "generated": true,
+  "host_id": "codex",
+  "profile": "minimal",
+  "distribution_manifest": "/home/runner/work/Vibe-Skills/Vibe-Skills/dist/distribution/manifest.json",
+  "release": {
+    "version": "4.1.1",
+    "channel": "stable",
+    "updated": "2026-10-18"
+  },
+  "public_install": {
+    "source_kind": "public_release",
+    "host_neutral": true,
+    "skills_dir_centered": true
+  },
+  "asset": {
+    "root_dir_name": "vibe-skills-4.1.1-public",
+    "file_name": "vibe-skills-4.1.1-public.zip",
+    "payload_digest_sha256": "15fccdb1fcc32e935e4a7233dac8194de4027ed5091068855375cdd605524ed2"
+  },
+  "inputs": {
+    "runtime_core_manifest": "/home/runner/work/Vibe-Skills/Vibe-Skills/config/runtime-core-packaging.minimal.json",
+    "runtime_core_package_id": "runtime-core-minimal",
+    "runtime_script_manifest": "/home/runner/work/Vibe-Skills/Vibe-Skills/config/runtime-script-manifest.json",
+    "runtime_config_manifest": "/home/runner/work/Vibe-Skills/Vibe-Skills/config/runtime-config-manifest.json",
+    "adapter_id": "codex",
+    "adapter_default_target_root": ".agents",
+    "skill_catalog_owner": "skill-catalog",
+    "skill_catalog_root": "/home/runner/work/Vibe-Skills/Vibe-Skills/dist/distribution/catalog",
+    "profiles_manifest": "/home/runner/work/Vibe-Skills/Vibe-Skills/dist/distribution/catalog/profiles/index.json",
+    "groups_manifest": "/home/runner/work/Vibe-Skills/Vibe-Skills/dist/distribution/catalog/groups/index.json",
+    "metadata_manifest": "/home/runner/work/Vibe-Skills/Vibe-Skills/dist/distribution/catalog/metadata/index.json",
+    "skill_source_root": "/home/runner/work/Vibe-Skills/Vibe-Skills/dist/distribution/catalog/skills"
+  },
+  "runtime_payload_roles": {
+    "source_manifest": "/home/runner/work/Vibe-Skills/Vibe-Skills/config/runtime-script-manifest.json",
+    "role_groups": {
+      "files": {
+        "bootstrap_entrypoints": [
+          "scripts/bootstrap/one-shot-setup.ps1",
+          "scripts/bootstrap/one-shot-setup.sh",
+          "scripts/bootstrap/sync-local-compat.ps1"
+        ],
+        "compatibility_entrypoints": [
+          "scripts/router/invoke-pack-route.py"
+        ],
+        "router_entrypoints": [
+          "scripts/router/resolve-pack-route.ps1"
+        ],
+        "verification_gates": [
+          "scripts/verify/vibe-bom-frontmatter-gate.ps1",
+          "scripts/verify/vibe-bootstrap-doctor-gate.ps1",
+          "scripts/verify/vibe-canonical-entry-truth-gate.ps1",
+          "scripts/verify/vibe-governed-runtime-contract-gate.ps1",
+          "scripts/verify/vibe-installed-runtime-freshness-gate.ps1",
+          "scripts/verify/vibe-linux-router-no-pwsh-gate.ps1",
+          "scripts/verify/vibe-no-silent-fallback-contract-gate.ps1",
+          "scripts/verify/vibe-no-self-introduced-fallback-gate.ps1",
+          "scripts/verify/vibe-release-truth-consistency-gate.ps1",
+          "scripts/verify/vibe-runtime-execution-proof-gate.ps1",
+          "scripts/verify/vibe-release-install-runtime-coherence-gate.ps1"
+        ],
+        "runtime_support_files": [
+          "scripts/common/python_helpers.sh",
+          "scripts/common/vibe-governance-helpers.ps1",
+          "scripts/common/adapter_registry_query.py",
+          "scripts/common/AntiProxyGoalDrift.ps1"
+        ],
+        "compatibility_shim_files": [
+          "scripts/install/Install-VgoAdapter.ps1",
+          "scripts/uninstall/Uninstall-VgoAdapter.ps1"
+        ],
+        "compatibility_runtime_neutral_router_files": [
+          "scripts/router/runtime_neutral/router_contract.py",
+          "scripts/router/runtime_neutral/custom_admission.py"
+        ],
+        "compatibility_runtime_neutral_verification_support_files": [
+          "scripts/verify/runtime_neutral/_bootstrap.py"
+        ],
+        "compatibility_runtime_neutral_verification_files": [
+          "scripts/verify/runtime_neutral/bootstrap_doctor.py",
+          "scripts/verify/runtime_neutral/coherence_gate.py",
+          "scripts/verify/runtime_neutral/freshness_gate.py",
+          "scripts/verify/runtime_neutral/opencode_preview_smoke.py",
+          "scripts/verify/runtime_neutral/release_notes_quality.py",
+          "scripts/verify/runtime_neutral/release_truth_gate.py",
+          "scripts/verify/runtime_neutral/router_ai_connectivity_probe.py",
+          "scripts/verify/runtime_neutral/router_bridge_gate.py",
+          "scripts/verify/runtime_neutral/runtime_delivery_acceptance.py",
+          "scripts/verify/runtime_neutral/workflow_acceptance_runner.py"
+        ],
+        "router_module_support_files": [
+          "scripts/router/modules/00-core-utils.ps1",
+          "scripts/router/modules/01-openai-responses.ps1",
+          "scripts/router/modules/10-observability.ps1",
+          "scripts/router/modules/11-route-probe.ps1",
+          "scripts/router/modules/12-heartbeat.ps1",
+          "scripts/router/modules/19-custom-admission.ps1",
+          "scripts/router/modules/20-routing-rules.ps1",
+          "scripts/router/modules/21-capability-interview.ps1",
+          "scripts/router/modules/22-intent-contract.ps1",
+          "scripts/router/modules/30-openspec.ps1",
+          "scripts/router/modules/31-gsd-overlay.ps1",
+          "scripts/router/modules/32-prompt-overlay.ps1",
+          "scripts/router/modules/33-memory-governance.ps1",
+          "scripts/router/modules/34-data-scale-overlay.ps1",
+          "scripts/router/modules/35-quality-debt-overlay.ps1",
+          "scripts/router/modules/36-framework-interop-overlay.ps1",
+          "scripts/router/modules/37-ml-lifecycle-overlay.ps1",
+          "scripts/router/modules/38-python-clean-code-overlay.ps1",
+          "scripts/router/modules/39-system-design-overlay.ps1",
+          "scripts/router/modules/40-cuda-kernel-overlay.ps1",
+          "scripts/router/modules/42-ai-rerank-overlay.ps1",
+          "scripts/router/modules/43-retrieval-overlay.ps1",
+          "scripts/router/modules/44-dialectic-team-gate.ps1",
+          "scripts/router/modules/44-exploration-overlay.ps1",
+          "scripts/router/modules/45-daily-dialectic-guard.ps1",
+          "scripts/router/modules/47-closure-overlay.ps1",
+          "scripts/router/modules/48-llm-acceleration-overlay.ps1",
+          "scripts/router/modules/49-prompt-asset-boost.ps1"
+        ],
+        "governed_runtime_support_files": [
+          "scripts/runtime/Freeze-RuntimeInputPacket.ps1",
+          "scripts/runtime/Invoke-AntiProxyGoalDriftCompaction.ps1",
+          "scripts/runtime/Invoke-DeepInterview.ps1",
+          "scripts/runtime/Invoke-PhaseCleanup.ps1",
+          "scripts/runtime/Invoke-PlanExecute.ps1",
+          "scripts/runtime/Invoke-SkeletonCheck.ps1",
+          "scripts/runtime/Invoke-VibeCanonicalEntry.ps1",
+          "scripts/runtime/VibeMemoryActivation.Common.ps1",
+          "scripts/runtime/VibeMemoryBackends.Common.ps1",
+          "scripts/runtime/VibeRuntime.Common.ps1",
+          "scripts/runtime/VibeSkillRouting.Common.ps1",
+          "scripts/runtime/VibeWorkspaceMemory.Common.ps1",
+          "scripts/runtime/Write-RequirementDoc.ps1",
+          "scripts/runtime/Write-XlPlan.ps1",
+          "scripts/runtime/invoke-vibe-runtime.ps1",
+          "scripts/runtime/memory_backend_driver.py",
+          "scripts/runtime/skill_authority_driver.py",
+          "scripts/runtime/workspace_memory_driver.py"
+        ]
+      },
+      "directories": {
+        "semantic_owners": [
+          "apps/vgo-cli",
+          "packages/contracts",
+          "packages/installer-core",
+          "packages/runtime-core",
+          "packages/verification-core"
+        ],
+        "runtime_support": [],
+        "compatibility_shims": []
+      }
+    },
+    "notes": {
+      "flat_projection_contract": "The top-level files/directories lists remain the compatibility projection for existing payload consumers.",
+      "semantic_owner_rule": "Semantic ownership stays with package-owned cores and the CLI app; script directories listed under compatibility_shims remain adapter surfaces only.",
+      "runtime_support_projection_rule": "scripts/common is no longer projected as a broad runtime directory; runtime payload consumers receive only the explicitly required common support files listed in files.",
+      "compatibility_shim_projection_rule": "Compatibility shim payloads are projected explicitly under files; runtime payload consumers no longer receive broad runtime_neutral shim directories.",
+      "router_module_projection_rule": "Router modules are projected as explicit files; runtime payload consumers no longer receive scripts/router/modules as a broad directory root.",
+      "governed_runtime_projection_rule": "Governed runtime scripts are projected as explicit files; runtime payload consumers no longer receive scripts/runtime as a broad directory root."
+    }
+  },
+  "runtime_config_payload_roles": {
+    "source_manifest": "/home/runner/work/Vibe-Skills/Vibe-Skills/config/runtime-config-manifest.json",
+    "role_groups": {
+      "files": {
+        "runtime_governance_files": [
+          "config/fallback-governance.json",
+          "config/implementation-guardrails.json",
+          "config/live-document-contract.json",
+          "config/operator-preview-contract.json",
+          "config/phase-cleanup-policy.json",
+          "config/plan-execution-policy.json",
+          "config/powershell-host-policy.json",
+          "config/secrets-policy.json",
+          "config/proof-class-registry.json",
+          "config/project-delivery-acceptance-contract.json",
+          "config/requirement-doc-policy.json",
+          "config/runtime-config-manifest.json",
+          "config/runtime-contract.json",
+          "config/runtime-core-packaging.json",
+          "config/runtime-input-packet-policy.json",
+          "config/runtime-modes.json",
+          "config/runtime-script-manifest.json",
+          "config/tool-registry.json",
+          "config/vibe-entry-surfaces.json",
+          "config/version-governance.json"
+        ],
+        "router_and_discovery_policy_files": [
+          "config/ai-rerank-policy.json",
+          "config/adapter-registry.json",
+          "config/capability-catalog.json",
+          "config/connector-admission-policy.json",
+          "config/connector-provider-policy.json",
+          "config/connector-sandbox-policy.json",
+          "config/deep-discovery-policy.json",
+          "config/dialectic-team-policy.json",
+          "config/docling-provider-policy.json",
+          "config/exploration-domain-map.json",
+          "config/exploration-intent-profiles.json",
+          "config/exploration-policy.json",
+          "config/heartbeat-policy.json",
+          "config/observability-policy.json",
+          "config/openspec-policy.json",
+          "config/retrieval-intent-profiles.json",
+          "config/retrieval-policy.json",
+          "config/retrieval-rerank-weights.json",
+          "config/retrieval-source-registry.json",
+          "config/router-model-governance.json",
+          "config/router-provider-defaults.json",
+          "config/router-provider-registry.json",
+          "config/skill-execution-safety-policy.json",
+          "config/forbidden-mcp-policy.json",
+          "config/router-thresholds.json",
+          "config/skill-alias-map.json"
+        ],
+        "memory_policy_files": [
+          "config/memory-backend-adapters.json",
+          "config/memory-disclosure-policy.json",
+          "config/memory-governance.json",
+          "config/memory-ingest-policy.json",
+          "config/memory-retrieval-budget-policy.json",
+          "config/memory-runtime-v3-policy.json",
+          "config/memory-stage-activation-policy.json",
+          "config/memory-tier-router.json",
+          "config/workspace-memory-plane.json"
+        ],
+        "overlay_and_specialist_policy_files": [
+          "config/agency-overlays.json",
+          "config/closure-overlay.json",
+          "config/cuda-kernel-overlay.json",
+          "config/daily-dialectic-guard.json",
+          "config/data-scale-overlay.json",
+          "config/framework-interop-overlay.json",
+          "config/gsd-overlay.json",
+          "config/llm-acceleration-policy.json",
+          "config/ml-lifecycle-overlay.json",
+          "config/prompt-asset-boost.json",
+          "config/prompt-overlay.json",
+          "config/python-clean-code-overlay.json",
+          "config/quality-debt-overlay.json",
+          "config/system-design-overlay.json"
+        ],
+        "distribution_and_lock_files": [
+          "config/plugins-manifest.codex.json",
+          "config/settings.template.codex.json",
+          "config/upstream-lock.json"
+        ],
+        "opencode_preview_files": [
+          "config/opencode/agents/vibe-implement.md",
+          "config/opencode/agents/vibe-plan.md",
+          "config/opencode/agents/vibe-review.md",
+          "config/opencode/commands/vibe-implement.md",
+          "config/opencode/commands/vibe-review.md",
+          "config/opencode/commands/vibe.md",
+          "config/opencode/opencode.json.example"
+        ]
+      },
+      "directories": {
+        "managed_runtime_config_roots": [],
+        "preview_host_config_roots": []
+      }
+    },
+    "notes": {
+      "flat_projection_contract": "The top-level files/directories lists remain the compatibility projection consumed by runtime payload materializers.",
+      "explicit_projection_rule": "Runtime config payloads are projected entirely through explicit files; broad config directory roots remain empty by design.",
+      "semantic_group_rule": "Role groups are exclusive responsibility buckets so governance audits can tighten ownership boundaries without changing payload behavior.",
+      "opencode_projection_rule": "OpenCode preview support is projected as explicit files; runtime payload consumers no longer receive config/opencode as a broad directory root."
+    }
+  },
+  "runtime_core_payload_roles": {
+    "source_manifest": "/home/runner/work/Vibe-Skills/Vibe-Skills/config/runtime-core-packaging.minimal.json",
+    "payload_roles": {
+      "target_directories": {
+        "runtime_targets": [
+          "skills",
+          "config"
+        ],
+        "command_targets": [
+          "commands"
+        ]
+      },
+      "copy_files": {
+        "required_lockfiles": [
+          {
+            "source": "config/upstream-lock.json",
+            "target": "config/upstream-lock.json",
+            "optional": false
+          }
+        ],
+        "optional_lockfiles": [],
+        "required_runtime_config": [
+          {
+            "source": "config/adapter-registry.json",
+            "target": "config/adapter-registry.json",
+            "optional": false
+          },
+          {
+            "source": "config/powershell-host-policy.json",
+            "target": "config/powershell-host-policy.json",
+            "optional": false
+          }
+        ]
+      },
+      "notes": {
+        "flat_projection_contract": "Resolved profile packaging fields remain the compatibility projection consumed by installer implementations.",
+        "delivery_boundary_rule": "Base manifest owns shared delivery semantics; profile overlays own profile-specific copy and inventory differences; generated profile manifests are compatibility projections only."
+      },
+      "copy_directories": {
+        "active_sources": [
+          {
+            "source": "commands",
+            "target": "commands"
+          }
+        ]
+      }
+    }
+  },
+  "governance_runtime_roles": {
+    "source_governance": "/home/runner/work/Vibe-Skills/Vibe-Skills/config/version-governance.json",
+    "runtime_payload_roles": {
+      "files": {
+        "root_entrypoints": [
+          "SKILL.md",
+          "check.ps1",
+          "check.sh",
+          "install.ps1",
+          "install.sh",
+          "core/skill-contracts/v1/vibe.json"
+        ],
+        "governance_manifests": [
+          "config/runtime-core-packaging.json",
+          "config/runtime-core-packaging.minimal.json",
+          "config/runtime-core-packaging.full.json",
+          "config/runtime-script-manifest.json",
+          "config/runtime-config-manifest.json"
+        ]
+      },
+      "directories": {
+        "runtime_support_assets": [
+          "adapters",
+          "docs",
+          "protocols",
+          "templates",
+          "mcp"
+        ]
+      },
+      "notes": {
+        "flat_projection_contract": "runtime_payload.files and runtime_payload.directories remain the compatibility projection for existing payload consumers.",
+        "owner_boundary_rule": "The install receipt owns the installed file inventory and hashes; runtime semantics remain in the package-owned cores shipped by that receipt."
+      }
+    }
+  },
+  "ownership": {
+    "semantic_owner": "scripts/release/build_release_bundle.py",
+    "generated_outputs_only": true
+  }
+}

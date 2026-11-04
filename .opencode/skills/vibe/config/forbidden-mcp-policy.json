@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "updated_at": "2026-11-03",
+  "installation": "allowed",
+  "runtime_recommendation": "allowed",
+  "applies_to": "mcp_server_ids",
+  "id_match": "exact",
+  "forbidden_mcp_ids": [],
+  "forbidden_sync_skill_ids": [
+    "superclaude-framework-compat"
+  ],
+  "non_mcp_exclusions": [
+    "ordinary_installation_receipts",
+    "file_integrity_hashes",
+    "host_native_capabilities"
+  ],
+  "reason": "Local override (SETUP OPENCODE): Playwright, chrome-devtools, context7 are REQUIRED for UI verification and up-to-date docs in this workspace. Approval evidence: docs/sops/WEB_DEV.md and sops/DESIGN.md of the project SOP. Security posture: local servers only, no telemetry, no remote egress for page content beyond target URL."
+}

@@ -71,8 +71,10 @@ def contract_detail(contract_id):
         return redirect(url_for('contract.list_contracts'))
     invoices = db_contract.get_contract_invoices(c['no_kontrak'])
     termins = db_contract.enrich_termins(db_contract.get_termins(contract_id), c)
+    project_list = _projects()
     return render_template('contract_detail.html', contract=c, invoices=invoices,
-                           termins=termins, project_list=_projects(),
+                           termins=termins, project_list=project_list,
+                           project_labels={str(pid): label for pid, label in project_list},
                            ppn_rate=db_contract.PPN_RATE)
 
 
@@ -119,7 +121,7 @@ def contract_action(contract_id):
             request.form.get('metode_pembayaran', ''),
             request.form.get('durasi_termin', ''),
             request.form.get('tipe_kontrak', ''),
-            request.form.get('metode_penetapan', ''),
+            request.form.get('metode_penetapan', c.get('metode_penetapan') or ''),
             request.form.get('ppn_rate', ''))
         flash('Kontrak berhasil diperbarui.', 'success')
     except Exception as e:
@@ -553,3 +555,44 @@ def po_review():
                            active_tab=tab,
                            threshold=SIMILARITY_THRESHOLD,
                            project_list=_projects())
+
+
+# ── REKAP KONTRAK (Rekap No PO) ──────────────────────────────────────────────
+
+@bp.route('/rekap-no-po')
+def rekap_no_po():
+    """Halaman ringkasan kontrak per periode — turunan dari data
+    vendor_contracts (Import Kontrak). Tidak ada import baru;
+    angka mengikuti registry kontrak yang tersimpan.
+
+    Query: period=YYYY-MM (dropdown), atau year & month (kompatibilitas);
+    default bulan berjalan. Bila periode tidak ada di tanggal kontrak,
+    build_rekap memilih periode terakhir yang tersedia.
+    """
+    from datetime import date as _date
+    from services.rekap_po import build_rekap
+    pid = _active_project_id()
+    contracts = db_contract.get_contracts(pid)
+    today = _date.today()
+    year, month = today.year, today.month
+    raw_period = (request.args.get('period') or '').strip()
+    if len(raw_period) == 7 and raw_period[4] == '-':
+        try:
+            year, month = int(raw_period[:4]), int(raw_period[5:])
+        except ValueError:
+            year, month = today.year, today.month
+    else:
+        try:
+            year = int(request.args.get('year', year))
+            month = int(request.args.get('month', month))
+        except ValueError:
+            year, month = today.year, today.month
+    if month < 1:
+        month, year = 12, year - 1
+    elif month > 12:
+        month, year = 1, year + 1
+    ctx = build_rekap(contracts, year, month)
+    ctx['project_list'] = _projects()
+    ctx['active_pid'] = str(pid)
+    ctx['filter_url'] = url_for('contract.rekap_no_po')
+    return render_template('rekap_po.html', **ctx)

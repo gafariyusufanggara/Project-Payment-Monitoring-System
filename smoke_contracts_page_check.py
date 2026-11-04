@@ -176,7 +176,7 @@ _expected = ['No.', 'Vendor / Rekanan', 'Item Pekerjaan',
              'Metode Bayar',
              'Belum Ditagih (DPP)', 'Sisa Hutang (DPP)',
              'Belum Ditagih (PPN)', 'Sisa Hutang (PPN)',
-             'Termin Ditagih', 'Stat. Invoice']
+             'Termin Ditagih', 'Invoice']
 assert _hdr == _expected, f'urutan kolom salah:\n{_hdr}\n!=\n{_expected}'
 print('[4b] urutan kolom OK: DPP -> PPN, Belum Ditagih + Sisa Hutang per pajak')
 
@@ -632,6 +632,38 @@ for _cls in ('contracts.html', 'contract_detail.html'):
 assert 'Sisa hutang: ' in _html9, \
     'hint KPI harus memakai label "Sisa hutang"'
 print('[11c] istilah Belum Ditagih vs Sisa Hutang konsisten OK')
+
+# --- 11d. Detail kontrak: grup identitas, proyek, dan metode penetapan ---
+_detail_id = contracts[0]['id']
+_detail = client.get(f'/kontrak/{_detail_id}').get_data(as_text=True)
+_read = re.search(r'<dl class="kd-def" id="kdRead">(.*?)</dl>', _detail, re.S)
+assert _read, 'blok baca Identitas Kontrak tidak ditemukan'
+_read_groups = re.findall(r'<div class="kd-def__sec">(.*?)</div>', _read.group(1))
+assert _read_groups == ['Identitas Kontrak', 'Nilai &amp; Pajak',
+                        'Pekerjaan &amp; Jadwal', 'Status Penagihan'], \
+    f'urutan grup Identitas Kontrak salah: {_read_groups}'
+assert 'Metode Penetapan' not in _read.group(1), \
+    'metode penetapan tidak perlu tampil di blok baca'
+_form = re.search(r'<form[^>]*id="kdForm".*?</form>', _detail, re.S)
+assert _form, 'form Identitas Kontrak tidak ditemukan'
+_form_groups = re.findall(r'<h2 class="kd-group__title">(.*?)</h2>', _form.group(0))
+assert _form_groups == ['Identitas Kontrak', 'Nilai &amp; Pajak', 'Pekerjaan &amp; Jadwal'], \
+    f'grup form Identitas Kontrak salah: {_form_groups}'
+for _field in ('project_id', 'nilai_kontrak', 'ppn_rate',
+               'metode_pembayaran', 'tipe_pekerjaan', 'item_pekerjaan',
+               'tgl_kontrak', 'tgl_selesai', 'durasi_termin'):
+    assert f'name="{_field}"' in _form.group(0), f'field {_field} tidak ada di form'
+assert 'name="metode_penetapan"' not in _form.group(0), \
+    'metode penetapan tidak perlu tampil di form'
+assert '— Tanpa proyek —' in _form.group(0), 'opsi tanpa proyek tidak ada'
+assert '<div class="kd-s4"><dt>Proyek</dt>' in _read.group(1)
+assert '<div class="kd-s8"><dt>Tipe Kontrak</dt>' in _read.group(1), \
+    'Tipe Kontrak harus mulai sejajar dengan Nilai DPP di bawahnya'
+assert re.search(r'<div class="kd-s4">\s*<label class="kd-label" for="project_id">',
+                 _form.group(0))
+assert re.search(r'<div class="kd-s8">\s*<label class="kd-label" for="tipe_kontrak">',
+                 _form.group(0)), 'Tipe Kontrak di form harus mulai sejajar dengan PPN di bawahnya'
+print(f'[11d] detail kontrak OK: 4 grup baca, 3 grup form, proyek editable tanpa metode penetapan')
 
 
 print('ALL CHECKS PASSED')

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
-{% block title %}Kontrak Vendor - Project Payment Monitoring System{% endblock %}
-{% block topbar_title %}Progress Kontrak{% endblock %}
+{% block title %}Progress Invoice Kontrak - Project Payment Monitoring System{% endblock %}
+{% block topbar_title %}Progress Invoice Kontrak{% endblock %}
 {% block topbar_icon %}bi-file-earmark-text-fill{% endblock %}
 {% block topbar_badges %}
 <span class="topbar-badge tb-total"><i class="bi bi-file-earmark-text"></i> {{ summary.total_kontrak }} Kontrak</span>
@@ -53,8 +53,8 @@
   .kc-typo-banner a:hover { text-decoration: underline; }
 
   .kc-page #kcTable thead th.col-sticky-right,
-  .kc-page #kcTable tbody td.col-sticky-right { min-width: 96px; }
-  /* Stat. Invoice — pill kecil sebagai satu-satunya penanda kelompok. */
+  .kc-page #kcTable tbody td.col-sticky-right { min-width: 84px; }
+  /* Invoice — pill kecil sebagai satu-satunya penanda kelompok. */
   .kc-stat-pill { display: inline-block; min-width: 26px; padding: 3px 8px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; line-height: 1.2; }
   .kc-stat-pill--ok { background: #e6f4f1; color: #115e59; }
   .kc-stat-pill--none { background: #fdf6d8; color: #8a6d00; }
@@ -265,7 +265,7 @@
               <th class="text-end" title="PPN kontrak yang belum ditagih = PPN Kontrak − Tagihan PPN. Bukan utang.">Belum Ditagih (PPN)</th>
               <th class="text-end" title="PPN yang sudah ditagih tapi belum dibayar = Tagihan PPN − Bayar PPN. Inilah utang PPN nyata ke vendor.">Sisa Hutang (PPN)</th>
               <th class="text-center" title="Pencocokan invoice ke jadwal termin kontrak. Menampilkan berapa termin yang sudah ditagih penuh dari total termin.">Termin Ditagih</th>
-              <th class="text-center col-sticky-right">Stat. Invoice</th>
+              <th class="text-center col-sticky-right">Invoice</th>
             </tr>
           </thead>
           <tbody id="kcBody">

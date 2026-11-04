@@ -1,0 +1,260 @@
+- generic [active] [ref=f3e1]:
+  - generic [ref=f3e2]:
+    - complementary [ref=f3e3]:
+      - generic [ref=f3e4]:
+        - generic [ref=f3e5]: 
+        - generic [ref=f3e7]:
+          - generic [ref=f3e8]: Project Payment
+          - generic [ref=f3e9]: Monitoring System
+      - navigation [ref=f3e10]:
+        - generic [ref=f3e11]: Ringkasan
+        - link " Dashboard" [ref=f3e12] [cursor=pointer]:
+          - /url: /dashboard
+          - generic [ref=f3e13]: 
+          - generic [ref=f3e14]: Dashboard
+        - link " Status Dokumen" [ref=f3e15] [cursor=pointer]:
+          - /url: /status-dokumen
+          - generic [ref=f3e16]: 
+          - generic [ref=f3e17]: Status Dokumen
+        - link " Inv. Minggu Ini 3" [ref=f3e18] [cursor=pointer]:
+          - /url: /inv-minggu-ini
+          - generic [ref=f3e19]: 
+          - generic [ref=f3e20]: Inv. Minggu Ini
+          - generic "3 levelansir aktif minggu ini" [ref=f3e21]: "3"
+        - link " Inv. Bulan Ini 3" [ref=f3e22] [cursor=pointer]:
+          - /url: /inv-bulan-ini
+          - generic [ref=f3e23]: 
+          - generic [ref=f3e24]: Inv. Bulan Ini
+          - generic "3 levelansir aktif bulan ini" [ref=f3e25]: "3"
+        - link " Jatuh Tempo" [ref=f3e26] [cursor=pointer]:
+          - /url: /laporan-jatuh-tempo
+          - generic [ref=f3e27]: 
+          - generic [ref=f3e28]: Jatuh Tempo
+        - link " Retensi" [ref=f3e29] [cursor=pointer]:
+          - /url: /levelansir-retensi
+          - generic [ref=f3e30]: 
+          - generic [ref=f3e31]: Retensi
+        - generic [ref=f3e32]: Data Invoice
+        - link " Daftar Invoice" [ref=f3e33] [cursor=pointer]:
+          - /url: /data-hutang
+          - generic [ref=f3e34]: 
+          - generic [ref=f3e35]: Daftar Invoice
+        - link " Exclude Invoice" [ref=f3e36] [cursor=pointer]:
+          - /url: /exclude-invoice
+          - generic [ref=f3e37]: 
+          - generic [ref=f3e38]: Exclude Invoice
+        - generic [ref=f3e39]: Kontrak
+        - link " Rekap PO Kontrak" [ref=f3e40] [cursor=pointer]:
+          - /url: /kontrak/rekap-no-po
+          - generic [ref=f3e41]: 
+          - generic [ref=f3e42]: Rekap PO Kontrak
+        - link " Progress Inv. Kontrak" [ref=f3e43] [cursor=pointer]:
+          - /url: /kontrak/
+          - generic [ref=f3e44]: 
+          - generic [ref=f3e45]: Progress Inv. Kontrak
+          - text: 
+        - link " Progress Inv. Cicilan" [ref=f3e46] [cursor=pointer]:
+          - /url: /invoice-cicilan
+          - generic [ref=f3e47]: 
+          - generic [ref=f3e48]: Progress Inv. Cicilan
+        - generic [ref=f3e49]: Rekap Invoice
+        - link " Rekap DPP Bulanan" [ref=f3e50] [cursor=pointer]:
+          - /url: /laporan-bulanan
+          - generic [ref=f3e51]: 
+          - generic [ref=f3e52]: Rekap DPP Bulanan
+        - link " Rekap DPP Mingguan" [ref=f3e53] [cursor=pointer]:
+          - /url: /laporan-mingguan
+          - generic [ref=f3e54]: 
+          - generic [ref=f3e55]: Rekap DPP Mingguan
+        - generic [ref=f3e56]: Rekap Pajak
+        - link " Rekap PPN Bulanan" [ref=f3e57] [cursor=pointer]:
+          - /url: /laporan-ppn
+          - generic [ref=f3e58]: 
+          - generic [ref=f3e59]: Rekap PPN Bulanan
+        - link " Rekap PPN Mingguan" [ref=f3e60] [cursor=pointer]:
+          - /url: /laporan-ppn-mingguan
+          - generic [ref=f3e61]: 
+          - generic [ref=f3e62]: Rekap PPN Mingguan
+        - generic [ref=f3e63]: Import Data
+        - link " Import Invoice" [ref=f3e64] [cursor=pointer]:
+          - /url: /import
+          - generic [ref=f3e65]: 
+          - generic [ref=f3e66]: Import Invoice
+        - link " Import Kontrak" [ref=f3e67] [cursor=pointer]:
+          - /url: /kontrak/import
+          - generic [ref=f3e68]: 
+          - generic [ref=f3e69]: Import Kontrak
+        - generic [ref=f3e70]: Kepatuhan
+        - link " Verifikasi Data" [ref=f3e71] [cursor=pointer]:
+          - /url: /verifikasi
+          - generic [ref=f3e72]: 
+          - generic [ref=f3e73]: Verifikasi Data
+        - link " Catatan Audit" [ref=f3e74] [cursor=pointer]:
+          - /url: /audit
+          - generic [ref=f3e75]: 
+          - generic [ref=f3e76]: Catatan Audit
+        - generic [ref=f3e77]: Proyek
+        - link " Daftar Proyek" [ref=f3e78] [cursor=pointer]:
+          - /url: /project/
+          - generic [ref=f3e79]: 
+          - generic [ref=f3e80]: Daftar Proyek
+    - main [ref=f3e81]:
+      - generic [ref=f3e82]:
+        - generic [ref=f3e83]:
+          - text: 
+          - button "Sembunyikan sidebar" [expanded] [ref=f3e84] [cursor=pointer]:
+            - generic [ref=f3e85]: 
+          - heading " Rekap PO Kontrak Update 4 Nov 2026" [level=1] [ref=f3e86]:
+            - generic [ref=f3e87]: 
+            - text: Rekap PO Kontrak
+            - 'generic "Invoice: 4 Nov 2026, 10:20 | Kontrak: 2 Nov 2026, 16:24" [ref=f3e88]': Update 4 Nov 2026
+        - generic [ref=f3e89]:
+          - generic [ref=f3e90]:
+            - generic: 
+            - combobox "Filter berdasarkan proyek" [ref=f3e91] [cursor=pointer]:
+              - option "Semua Proyek" [selected]
+              - option "KSO-001 — KSO NK - WIKA Waterflood Sintong"
+          - generic: 
+          - button "Keluar dari aplikasi" [ref=f3e93] [cursor=pointer]:
+            - generic [ref=f3e94]: 
+      - generic [ref=f3e96]:
+        - generic [ref=f3e97]:
+          - generic [ref=f3e98]:
+            - generic [ref=f3e99]: 
+            - generic [ref=f3e101]:
+              - generic [ref=f3e102]: Total Kontrak
+              - generic [ref=f3e103]: "1"
+          - generic [ref=f3e104]:
+            - generic [ref=f3e105]: 
+            - generic [ref=f3e107]:
+              - generic [ref=f3e108]: Nilai Kontrak (DPP)
+              - generic [ref=f3e109]: 20.100.000.000
+          - generic [ref=f3e110]:
+            - generic [ref=f3e111]: 
+            - generic [ref=f3e113]:
+              - generic [ref=f3e114]: SD Des 2025 (Kumulatif)
+              - generic [ref=f3e115]: 20.100.000.000
+          - generic [ref=f3e116]:
+            - generic [ref=f3e117]: 
+            - generic [ref=f3e119]:
+              - generic [ref=f3e120]: Bulan Ini
+              - generic [ref=f3e121]: 20.100.000.000
+        - generic [ref=f3e122]:
+          - generic [ref=f3e123]:
+            - heading "Nilai Kontrak Per Bulan (per Kategori)" [level=6] [ref=f3e124]
+            - img "Grafik batang bertumpuk nilai kontrak tiap bulan, dipisah per kategori KSO, Unit Bisnis, dan Pusat." [ref=f3e127]
+          - generic [ref=f3e128]:
+            - heading "Komposisi Nilai Kontrak (per Kategori)" [level=6] [ref=f3e129]
+            - 'img "Diagram donat komposisi nilai kontrak s/d periode terpilih per kategori: KSO, Unit Bisnis, dan Pusat." [ref=f3e132]'
+        - generic [ref=f3e134]:
+          - generic [ref=f3e137]:
+            - form "Pilih periode" [ref=f3e138]:
+              - generic [ref=f3e139]:
+                - generic [ref=f3e140]:
+                  - generic [aria-hidden] [ref=f3e141]: 
+                  - text: Periode
+                - combobox "Pilih periode kontrak" [ref=f3e142] [cursor=pointer]:
+                  - option "Des 2025" [selected]
+                  - option "Mar 2026"
+                  - option "Apr 2026"
+                  - option "Mei 2026"
+                  - option "Jun 2026"
+                  - option "Jul 2026"
+                  - option "Agu 2026"
+                  - option "Sep 2026"
+                  - option "Okt 2026"
+            - generic [ref=f3e143]:
+              - generic [ref=f3e144]:
+                - generic [aria-hidden] [ref=f3e145]: 
+                - text: Kategori
+              - combobox "Filter kategori kontrak" [ref=f3e146] [cursor=pointer]:
+                - option "Semua Kategori"
+                - option "KSO"
+                - option "Unit Bisnis"
+                - option "Pusat" [selected]
+            - generic [ref=f3e147]:
+              - generic: 
+              - textbox "Cari kontrak" [ref=f3e148]:
+                - /placeholder: Cari no. kontrak / vendor...
+              - text: 
+              - generic [aria-hidden]: /
+            - generic [ref=f3e984]: 1 dari 1 kontrak
+            - generic "Periode terpilih" [ref=f3e149]:
+              - generic [aria-hidden] [ref=f3e150]: 
+              - generic [ref=f3e151]: Des 2025
+          - table [ref=f3e153]:
+            - rowgroup [ref=f3e154]:
+              - row [ref=f3e155]:
+                - columnheader "Nomor urut tampilan" [ref=f3e156]
+                - columnheader "Identitas" [ref=f3e157]
+                - columnheader "NILAI KONTRAK" [ref=f3e158]
+                - columnheader "S/D BULAN LALU" [ref=f3e159]
+                - columnheader "BULAN INI" [ref=f3e160]
+                - columnheader "SD BULAN INI" [ref=f3e161]
+                - columnheader "Kategori nilai kontrak" [ref=f3e162]
+                - columnheader "Jumlah invoice yang cocok dengan kontrak ini" [ref=f3e163]
+              - row [ref=f3e164]:
+                - columnheader "No." [ref=f3e165]
+                - columnheader "Vendor / Rekanan" [ref=f3e166]
+                - columnheader "Item Pekerjaan" [ref=f3e167]
+                - columnheader "Tgl Kontrak" [ref=f3e168]
+                - columnheader "KSO" [ref=f3e169]
+                - columnheader "Unit Bisnis" [ref=f3e170]
+                - columnheader "Pusat" [ref=f3e171]
+                - columnheader "KSO" [ref=f3e172]
+                - columnheader "Unit Bisnis" [ref=f3e173]
+                - columnheader "Pusat" [ref=f3e174]
+                - columnheader "KSO" [ref=f3e175]
+                - columnheader "Unit Bisnis" [ref=f3e176]
+                - columnheader "Pusat" [ref=f3e177]
+                - columnheader "KSO" [ref=f3e178]
+                - columnheader "Unit Bisnis" [ref=f3e179]
+                - columnheader "Pusat" [ref=f3e180]
+                - columnheader "Kategori" [ref=f3e181]
+                - columnheader "Invoice" [ref=f3e182]
+            - rowgroup [ref=f3e183]:
+              - row [ref=f3e1010]:
+                - cell "1" [ref=f3e185]
+                - cell [ref=f3e187]:
+                  - generic [ref=f3e188]:
+                    - generic "PT SULZER INDONESIA" [ref=f3e189]:
+                      - link "PT SULZER INDONESIA" [ref=f3e190] [cursor=pointer]:
+                        - /url: /kontrak/57
+                    - generic "PB.001/KONTRAK/NK-WIKA/03/SINTONG/12/2025" [ref=f3e191]:
+                      - link "PB.001/KONTRAK/NK-WIKA/03/SINTONG/12/2025" [ref=f3e192] [cursor=pointer]:
+                        - /url: /kontrak/57
+                - cell "Water Injection Pump" [ref=f3e193]
+                - cell "24 Des 2025" [ref=f3e194]
+                - cell "0" [ref=f3e195]
+                - cell "0" [ref=f3e196]
+                - cell "20.100.000.000" [ref=f3e197]
+                - cell "0" [ref=f3e198]
+                - cell "0" [ref=f3e199]
+                - cell "0" [ref=f3e1011]
+                - cell "0" [ref=f3e201]
+                - cell "0" [ref=f3e202]
+                - cell "20.100.000.000" [ref=f3e1012]
+                - cell "0" [ref=f3e204]
+                - cell "0" [ref=f3e205]
+                - cell "20.100.000.000" [ref=f3e206]
+                - cell "Pusat" [ref=f3e207]
+                - cell "1" [ref=f3e209]:
+                  - generic "Ada Invoice (1)" [ref=f3e210]: "1"
+            - rowgroup [ref=f3e967]:
+              - row [ref=f3e1013]:
+                - cell "TOTAL" [ref=f3e969]
+                - cell "0" [ref=f3e994]
+                - cell "0" [ref=f3e1003]
+                - cell "20.100.000.000" [ref=f3e1014]
+                - cell "0" [ref=f3e996]
+                - cell "0" [ref=f3e1005]
+                - cell "0" [ref=f3e1015]
+                - cell "0" [ref=f3e998]
+                - cell "0" [ref=f3e1007]
+                - cell "20.100.000.000" [ref=f3e1016]
+                - cell "0" [ref=f3e1000]
+                - cell "0" [ref=f3e1008]
+                - cell "20.100.000.000" [ref=f3e1017]
+                - cell [ref=f3e982]
+                - cell [ref=f3e983]
+  - text:       

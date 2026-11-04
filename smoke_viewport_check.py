@@ -35,7 +35,7 @@ PHYS_H = 844
 PAGES = [
     ("/login", "Login", True),
     ("/", "Dashboard", False),
-    ("/invoice-cicilan", "Progress Cicilan", False),
+    ("/invoice-cicilan", "Progress Invoice Cicilan", False),
     ("/levelansir-retensi", "Retensi", False),
     ("/status-dokumen", "Status Dokumen", False),
     ("/verifikasi", "Verifikasi Data", False),
