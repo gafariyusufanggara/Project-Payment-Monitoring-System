@@ -14,6 +14,7 @@ Run:  python smoke_rekap_po_check.py   (read-only data nyata)
 import os
 import re
 import sys
+from datetime import date
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -52,6 +53,7 @@ _contracts = [
 _r = rekap_po.build_rekap(_contracts, 2026, 10)
 
 assert _r['total_kontrak'] == 5, f"total_kontrak {_r['total_kontrak']} != 5"
+assert _r['total_vendor'] == 5, f"total_vendor {_r['total_vendor']} != 5"
 assert _r['grand_totals']['kontrak_kini'] == 3_850_000_000, _r['grand_totals']
 # S/D lalu = A(100jt) + C(3M) = 3,1M ; Bulan ini = B(500jt) + D(200jt) = 700jt
 assert _r['grand_totals']['sd_bulan_lalu'] == 3_100_000_000, _r['grand_totals']
@@ -81,6 +83,7 @@ assert all(_row_e['periods']['sdl'][b] == 0 and _row_e['periods']['bln'][b] == 0
 # tanggal tetap tampil agar tidak hilang permanen.
 _old = rekap_po.build_rekap(_contracts, 2026, 1)
 assert _old['total_kontrak'] == 2, _old['total_kontrak']
+assert _old['total_vendor'] == 2, _old['total_vendor']
 assert _old['grand_totals']['kontrak_kini'] == 150_000_000, _old['grand_totals']
 _old_b = next(x for x in _old['rows'] if x['no_kontrak'] == 'B/2')
 assert _old_b['visible'] is False, 'kontrak setelah periode harus tidak tampil'
@@ -96,10 +99,14 @@ with client.session_transaction() as s:
 _html = client.get('/kontrak/rekap-no-po').get_data(as_text=True)
 assert client.get('/kontrak/rekap-no-po').status_code == 200, \
     'halaman Rekap Kontrak tidak HTTP 200'
+_money = appmod.app.jinja_env.filters['money']
 for _needle in ('id="rpTable"', 'id="rpChartBar"', 'id="rpChartDonut"',
                 'NILAI KONTRAK', 'S/D BULAN LALU', 'BULAN INI', 'SD BULAN INI',
-                'id="rpKpiCount"', 'id="rpKpiKontrak"', 'data-period-visible='):
+                'id="rpKpiPrev"', 'id="rpKpiBln"', 'id="rpKpiSdi"',
+                'data-period-visible='):
     assert _needle in _html, f'elemen {_needle!r} tidak ada di halaman'
+assert 'id="rpKpiCount"' not in _html and 'id="rpKpiKontrak"' not in _html, \
+    'KPI lama (Total Kontrak/Nilai Kontrak) masih ada'
 _n_contracts = len(db_contract.get_contracts('all'))
 _n_rows = len(re.findall(r'data-bucket="', _html))
 assert _n_rows == _n_contracts, f'baris tabel {_n_rows} != kontrak {_n_contracts}'
@@ -172,8 +179,12 @@ assert _o != _d, 'ganti periode tidak mengubah halaman'
 _old_ctx = rekap_po.build_rekap(db_contract.get_contracts('all'), 2025, 12)
 _n_rows_all = len(db_contract.get_contracts('all'))
 assert _old_ctx['total_kontrak'] < _n_rows_all, 'periode lama harus menyembunyikan kontrak'
-assert f'id="rpKpiCount">{_old_ctx["total_kontrak"]}<' in _d, \
-    'KPI Total Kontrak tidak mengikuti periode'
+assert f'id="rpKpiPrev">{_money(_old_ctx["grand_totals"]["sd_bulan_lalu"])}' in _d, \
+    'KPI S/D Bulan Lalu tidak mengikuti periode'
+assert f'id="rpKpiBln">{_money(_old_ctx["grand_totals"]["bulan_ini"])}' in _d, \
+    'KPI Bulan Ini tidak mengikuti periode'
+assert f'id="rpKpiSdi">{_money(_old_ctx["grand_totals"]["sd_bulan_ini"])}' in _d, \
+    'KPI S/D Bulan Ini tidak mengikuti periode'
 _n_hidden = _n_rows_all - _old_ctx['total_kontrak']
 assert _d.count('data-period-visible="0"') == _n_hidden, \
     'jumlah baris tersembunyi tidak sesuai periode'
@@ -191,15 +202,31 @@ assert "'/kontrak/rekap-no-po'" in _base, \
 for _needle in ('function applyPeriod', 'function buildSeries', 'rpUpdateBarChart',
                 'rpUpdateDonut', 'rpFilterRows', 'tds[4 + i]',
                 'data-period-visible=', 'data-tgl=', 'data-foot="sdl.kso"',
-                'data-foot="kini.kso"', 'id="rpKpiSd"', 'id="rpKpiCount"',
-                'id="rpKpiKontrak"', 'name="period"', 'id="rpFilterBucket"',
+                'data-foot="kini.kso"', 'id="rpKpiPrev"', 'id="rpKpiBln"',
+                'id="rpKpiSdi"', 'name="period"', 'id="rpFilterBucket"',
                 "getElementById('rpFilterBucket')", 'rpRefreshFilteredSummary',
+                "getElementById('rpVendorBadgeText')", "getElementById('rpContractBadgeText')",
                 'moneyNumber', "filterPass !== '1'"):
     assert _needle in _html, f'{_needle!r} tidak ada (filter client-side belum lengkap)'
 assert 'rpPeriodGo' not in _html and 'rpPeriodSubmit' not in _html, \
     'ganti periode masih memakai navigasi halaman, bukan hitung ulang di tempat'
 assert _html.index('id="rpPeriod"') < _html.index('id="rpFilterBucket"') < _html.index('id="rpSearch"'), \
     'filter kategori harus berada setelah periode dan sebelum pencarian'
+assert _html.index('rp-filter-rail') < _html.index('class="rp-kpis"'), \
+    'periode + kategori harus berada di atas KPI'
+_toolbar = re.search(r'<div class="table-toolbar">(.*?)<div class="table-scroll">', _html, re.S)
+assert _toolbar, 'toolbar tabel tidak ditemukan'
+_toolbar_html = _toolbar.group(1)
+assert 'id="rpSearch"' in _toolbar_html, 'form pencarian harus tetap di toolbar tabel'
+for _badge_id in ('rpVendorBadge', 'rpContractBadge', 'rpPeriodBadge'):
+    assert f'id="{_badge_id}"' in _toolbar_html, f'badge {_badge_id} harus ada di toolbar tabel'
+assert (_toolbar_html.index('id="rpVendorBadge"')
+        < _toolbar_html.index('id="rpContractBadge"')
+        < _toolbar_html.index('id="rpPeriodBadge"')
+        > _toolbar_html.index('id="rpCount"')), \
+    'urutan badge harus Vendor, Kontrak, Periode (periode paling kanan)'
+assert 'id="rpPeriod"' not in _toolbar_html and 'id="rpFilterBucket"' not in _toolbar_html, \
+    'pemilihan periode/kategori tidak boleh tersisa di toolbar tabel'
 for _opt in ('Semua Kategori', 'value="kso"', 'value="unit"', 'value="pusat"'):
     assert _opt in _html, f'opsi filter kategori {_opt!r} tidak ada'
 assert 'te.instances[rpTable.id]' in _html, \
@@ -214,11 +241,24 @@ assert 'id="rpPeriodBadge"' in _html and 'id="rpPeriodBadgeText"' in _html, \
     'badge periode terpilih tidak ada di toolbar'
 _badge = re.search(r'id="rpPeriodBadgeText">([^<]+)</span>', _html)
 assert _badge and _badge.group(1).strip(), 'badge periode kosong'
-_sel_opt = re.search(r'<option value="(\d{4}-\d{2})" selected>([^<]+)</option>', _html)
+_sel_opt = re.search(
+    r'id="rpPeriod".*?<option value="(all|\d{4}-\d{2})" selected>([^<]+)</option>',
+    _html, re.S)
 assert _sel_opt and _badge.group(1).strip() == _sel_opt.group(2).strip(), \
     'teks badge periode tidak sama dengan opsi terpilih'
 assert "getElementById('rpPeriodBadgeText')" in _html, \
     'badge periode tidak diperbarui saat periode diganti'
+# Badge jumlah vendor/kontrak mengikuti baris yang lolos periode (awal: kategori
+# semua, pencarian kosong) dan harus punya angka awal dari server.
+_vendor_badge = re.search(r'id="rpVendorBadgeText">(\d+)</span>', _html)
+_contract_badge = re.search(r'id="rpContractBadgeText">(\d+)</span>', _html)
+assert _vendor_badge and _contract_badge, \
+    'badge Vendor/Kontrak tidak berangka'
+assert int(_contract_badge.group(1)) == _n_rows, \
+    'badge Kontrak awal harus sama dengan jumlah baris kontrak'
+_visible_vendors = {v.strip() for v in re.findall(r'data-vendor="([^"]*)"', _html) if v.strip()}
+assert int(_vendor_badge.group(1)) == len(_visible_vendors), \
+    'badge Vendor awal harus sama dengan jumlah vendor unik pada periode'
 assert "'rpChartBar'" in _base, 'chart Rekap tidak dibersihkan saat HTMX swap'
 # Label sumbu-X harus nama bulan, bukan indeks tick (Chart.js memberi index
 # mentah ke callback; tanpa getLabelForValue yang tampil "1 2 3").
@@ -227,26 +267,69 @@ assert 'this.getLabelForValue(value)' in _html, \
 assert "return val + '\\n' + yr" not in _html, 'callback sumbu-X masih memakai indeks mentah'
 assert 'autoSkip: true' in _html and 'maxRotation: 0' in _html, \
     'tick sumbu-X belum dirapikan (autoSkip / tanpa rotasi)'
-print('[6] filter periode OK: satu dropdown, hitung ulang tabel/KPI/chart di tempat')
+# Semua Bulan memakai bulan berjalan; chart tetap berhenti di data terakhir.
+# KPI berurutan: S/D Bulan Lalu -> Bulan Ini -> S/D Bulan Ini.
+_all_ctx = rekap_po.build_rekap(
+    db_contract.get_contracts('all'), 2026, 10,
+    all_months=True, today=date(2026, 11, 4))
+assert _all_ctx['selected_key'] == 'all' and _all_ctx['period_label'] == 'Semua Bulan'
+assert _all_ctx['month_label'] == 'Nov 2026', _all_ctx['month_label']
+assert _all_ctx['prev_month_label'] == 'Okt 2026', _all_ctx['prev_month_label']
+assert _all_ctx['bars_labels'][-1] == 'Okt', _all_ctx['bars_labels']
+assert (_all_ctx['grand_totals']['sd_bulan_ini']
+        == _all_ctx['grand_totals']['sd_bulan_lalu']
+        + _all_ctx['grand_totals']['bulan_ini']), _all_ctx['grand_totals']
+assert _html.index('id="rpKpiPrev"') < _html.index('id="rpKpiBln"') < _html.index('id="rpKpiSdi"'), \
+    'urutan KPI harus S/D Bulan Lalu, Bulan Ini, S/D Bulan Ini'
+_prev_label = re.search(r'id="rpKpiPrevLabel">([^<]+)</div>', _html)
+assert _prev_label and _prev_label.group(1).strip() == 'S/D Bulan Lalu', \
+    'label KPI S/D Bulan Lalu tidak boleh menyertakan periode dalam kurung'
+assert f'id="rpKpiPrev">{_money(_all_ctx["grand_totals"]["sd_bulan_lalu"])}' in _html, \
+    'nilai KPI S/D Bulan Lalu tidak sama dengan kumulatif'
+assert f'Bulan Ini ({_all_ctx["month_label"]})' in _html, \
+    'label KPI Bulan Ini tidak menyebut bulan aktif pada mode Semua Bulan'
+assert f'id="rpKpiBln">{_money(_all_ctx["grand_totals"]["bulan_ini"])}' in _html, \
+    'nilai KPI Bulan Ini tidak sama dengan nominal bulan aktif'
+assert f'S/D Bulan Ini ({_all_ctx["month_label"]})' in _html, \
+    'label KPI S/D Bulan Ini tidak menyebut bulan aktif'
+assert f'id="rpKpiSdi">{_money(_all_ctx["grand_totals"]["sd_bulan_ini"])}' in _html, \
+    'nilai KPI S/D Bulan Ini tidak sama dengan kumulatif'
+assert f'BULAN INI · {_all_ctx["month_label"].upper()}' in _html, \
+    'header kolom BULAN INI tidak menyebut bulan aktif'
+assert 'S/D BULAN LALU</th>' in _html, \
+    'header kolom S/D BULAN LALU tidak statis'
+assert 'NILAI KONTRAK</th>' in _html, \
+    'header NILAI KONTRAK tidak statis'
+assert 'S/D BULAN LALU ·' not in _html and 'NILAI KONTRAK ·' not in _html, \
+    'header tabel kumulatif tidak boleh menambah periode'
+_oct_ctx = rekap_po.build_rekap(db_contract.get_contracts('all'), 2026, 10)
+assert re.search(r'id="rpKpiPrevLabel">S/D Bulan Lalu</div>', _o) \
+    and 'Bulan Ini (Okt 2026)' in _o \
+    and 'S/D Bulan Ini (Okt 2026)' in _o, 'label KPI tidak mengikuti periode'
+assert f'id="rpKpiPrev">{_money(_oct_ctx["grand_totals"]["sd_bulan_lalu"])}' in _o, \
+    'nilai KPI S/D Bulan Lalu pada periode Okt tidak kumulatif'
+assert f'id="rpKpiSdi">{_money(_oct_ctx["grand_totals"]["sd_bulan_ini"])}' in _o, \
+    'nilai KPI S/D Bulan Ini pada periode Okt tidak kumulatif'
+print('[6] filter periode OK: rail di atas KPI, toolbar hanya pencarian + badge')
 
-# --- 8. Opsi dropdown = bulan yang ada di tanggal kontrak ---
+# --- 8. Opsi dropdown = 'Semua Bulan' + bulan yang ada di data TGL Kontrak ---
 _periods = re.findall(r'<option value="(\d{4}-\d{2})"', _html)
 _ctract_months = sorted({str(c.get('tgl_kontrak'))[:7] for c in db_contract.get_contracts('all')
                          if str(c.get('tgl_kontrak') or '')[:4].isdigit()})
 assert _periods == _ctract_months, \
     f'opsi periode {_periods} != bulan tanggal kontrak {_ctract_months}'
-_selected = re.search(r'<option value="(\d{4}-\d{2})" selected>', _html)
-assert _selected, 'tidak ada periode terpilih di dropdown'
-assert _selected.group(1) in _periods, 'periode terpilih tidak ada di daftar opsi'
+assert '<option value="all" selected>Semua Bulan</option>' in _html, \
+    'opsi Semua Bulan harus ada dan terpilih sebagai default'
+assert _periods == _ctract_months and _periods[-1] == max(_ctract_months), \
+    'opsi bulan harus berakhir di bulan kontrak terakhir, bukan bulan berjalan'
 
-# period= sama dengan year/month; periode tak tersedia jatuh ke bulan terakhir
+# period= sama dengan year/month; periode tak tersedia jatuh ke Semua Bulan
 _a = client.get('/kontrak/rekap-no-po?period=2026-10').get_data(as_text=True)
 _b = client.get('/kontrak/rekap-no-po?year=2026&month=10').get_data(as_text=True)
 assert _a == _b, 'parameter period tidak menghasilkan halaman yang sama dengan year/month'
-_latest = _periods[-1]
 _fallback = client.get('/kontrak/rekap-no-po?period=2000-01').get_data(as_text=True)
-assert f'<option value="{_latest}" selected>' in _fallback, \
-    'periode tak tersedia tidak jatuh ke bulan terakhir yang ada data'
-print(f'[7] dropdown periode OK: {len(_periods)} bulan dari tanggal kontrak, default {_latest}')
+assert '<option value="all" selected>Semua Bulan</option>' in _fallback, \
+    'periode tak tersedia tidak jatuh ke Semua Bulan'
+print(f'[7] dropdown periode OK: Semua Bulan + {len(_periods)} bulan data, default Semua Bulan')
 
 print('ALL CHECKS PASSED')

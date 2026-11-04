@@ -13,25 +13,30 @@
 {% include "partials/_search_box.html" %}
 <style>
   .rp-wrap { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-  .rp-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-  @media (max-width: 1024px) { .rp-kpis { grid-template-columns: repeat(2, 1fr); } }
-  @media (max-width: 576px) { .rp-kpis { grid-template-columns: 1fr; } }
+  .rp-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  @media (max-width: 1024px) {
+    .rp-kpis { grid-template-columns: repeat(2, 1fr); }
+    .rp-kpis .ds-kpi:last-child { grid-column: 1 / -1; }
+  }
+  @media (max-width: 576px) {
+    .rp-kpis { grid-template-columns: 1fr; }
+    .rp-kpis .ds-kpi:last-child { grid-column: auto; }
+  }
 
   .rp-toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .rp-toolbar .ds-search.ft-search { flex: 1 1 260px; max-width: 320px; }
-  .rp-period-sel { display: inline-flex; align-items: center; gap: 6px; border: 1px solid #dce3eb; border-radius: 10px; background: #fff; padding: 0 8px; height: 34px; font-size: 0.78rem; }
-  .rp-period-lbl { display: inline-flex; align-items: center; gap: 6px; padding-right: 6px; font-size: 0.72rem; font-weight: 700; white-space: nowrap; }
-  .rp-period-lbl i { font-size: 0.8rem; }
-  .rp-period-sel select { height: 28px; border: none; background: transparent; font-size: 0.78rem; cursor: pointer; outline: none; padding: 0 4px; font-family: inherit; color: #16324f; font-weight: 600; max-width: 160px; }
-  .rp-period-sel select:focus { box-shadow: 0 0 0 3px rgba(0,86,145,0.15); border-radius: 6px; }
-  .rp-period-btn { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border: 1px solid #dce3eb; border-radius: 6px; background: #f7f8f9; color: #33414f; cursor: pointer; font-size: 0.8rem; transition: background-color 0.2s, border-color 0.2s, color 0.2s; }
-  .rp-period-btn:hover { background: #eaf0f6; border-color: #16324f; color: #16324f; }
-  .rp-period-btn:focus-visible { outline: 2px solid #16324f; outline-offset: 2px; }
-  .rp-period-sel select:focus-visible { outline: 2px solid #16324f; outline-offset: 1px; }
-  .rp-period-badge { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border: 1px solid var(--dt-border); border-radius: 10px; background: var(--dt-accent-soft); color: var(--dt-navy); font-size: 0.74rem; font-weight: 700; white-space: nowrap; }
-  .rp-period-badge i { font-size: 0.82rem; }
+  .rp-filter-rail { margin-bottom: 0; flex-wrap: wrap; row-gap: 8px; }
+  .rp-filter-rail .lp-rail-label { border-right: 0; margin-right: 0; padding-right: 0; }
+  .rp-period-form { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .rp-badges { margin-left: auto; display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+  .rp-period-badge, .rp-count-badge { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border: 1px solid var(--dt-border); border-radius: 10px; background: var(--dt-accent-soft); color: var(--dt-navy); font-size: 0.74rem; font-weight: 700; white-space: nowrap; }
+  .rp-period-badge i, .rp-count-badge i { font-size: 0.82rem; }
+  @media (max-width: 576px) {
+    .rp-filter-rail, .rp-filter-rail .lp-rail-group, .rp-period-form { width: 100%; }
+    .rp-filter-rail .lp-sel { flex: 1 1 auto; max-width: none; }
+  }
   @media (prefers-reduced-motion: reduce) {
-    .rp-period-btn, .rp-chart-box { transition: none; }
+    .rp-chart-box { transition: none; }
     .animate-in { animation: none !important; }
   }
 
@@ -118,24 +123,44 @@
   ::selection { background: #eaf0f6; }
 </style>
 
-<div class="rp-wrap animate-in" data-rp-year="{{ year }}" data-rp-month="{{ month }}">
+<div class="rp-wrap animate-in" data-rp-year="{{ year }}" data-rp-month="{{ month }}" data-rp-all-year="{{ all_year }}" data-rp-all-month="{{ all_month }}">
+
+  <div class="lp-rail lp-rail--select rp-filter-rail" role="group" aria-label="Filter periode dan kategori">
+    <form method="GET" action="{{ filter_url }}" class="lp-rail-group rp-period-form" aria-label="Pilih periode">
+      <label class="lp-rail-label" for="rpPeriod"><i class="bi bi-calendar3" aria-hidden="true"></i> Periode</label>
+      <select id="rpPeriod" name="period" class="lp-sel" aria-label="Pilih periode kontrak" {% if not period_options %}disabled{% endif %}>
+        {% for p in period_options %}
+          <option value="{{ p.key }}" {% if p.key == selected_key %}selected{% endif %}>{{ p.label }}</option>
+        {% endfor %}
+        {% if not period_options %}
+          <option value="">Belum ada tanggal kontrak</option>
+        {% endif %}
+      </select>
+      <noscript><button type="submit" class="lp-btn"><i class="bi bi-check-lg"></i> Terapkan</button></noscript>
+    </form>
+    <div class="lp-rail-group">
+      <label class="lp-rail-label" for="rpFilterBucket"><i class="bi bi-funnel" aria-hidden="true"></i> Kategori</label>
+      <select id="rpFilterBucket" class="lp-sel" aria-label="Filter kategori kontrak">
+        <option value="">Semua Kategori</option>
+        <option value="kso">KSO</option>
+        <option value="unit">Unit Bisnis</option>
+        <option value="pusat">Pusat</option>
+      </select>
+    </div>
+  </div>
 
   <div class="rp-kpis">
-    <div class="ds-kpi ds-kpi--compact" tabindex="0">
-      <div class="kpi-ico kpi-ico--blue"><i class="bi bi-file-earmark-text"></i></div>
-      <div><div class="ds-kpi__label">Total Kontrak</div><div class="ds-kpi__value" id="rpKpiCount">{{ total_kontrak }}</div></div>
+    <div class="ds-kpi ds-kpi--compact" tabindex="0" title="Nilai DPP kumulatif sampai akhir bulan sebelum periode aktif">
+      <div class="kpi-ico kpi-ico--green"><i class="bi bi-calendar-minus"></i></div>
+      <div><div class="ds-kpi__label" id="rpKpiPrevLabel">S/D Bulan Lalu</div><div class="ds-kpi__value" id="rpKpiPrev">{{ grand_totals.sd_bulan_lalu|money }}</div><div class="ds-kpi__hint">Kumulatif</div></div>
     </div>
-    <div class="ds-kpi ds-kpi--compact" tabindex="0">
-      <div class="kpi-ico kpi-ico--blue"><i class="bi bi-cash-coin"></i></div>
-      <div><div class="ds-kpi__label">Nilai Kontrak (DPP)</div><div class="ds-kpi__value" id="rpKpiKontrak">{{ grand_totals.kontrak_kini|money }}</div></div>
-    </div>
-    <div class="ds-kpi ds-kpi--compact" tabindex="0">
-      <div class="kpi-ico kpi-ico--green"><i class="bi bi-calendar-check"></i></div>
-      <div><div class="ds-kpi__label" id="rpKpiSdLabel">SD {{ month_label }} (Kumulatif)</div><div class="ds-kpi__value" id="rpKpiSd">{{ grand_totals.sd_bulan_ini|money }}</div></div>
-    </div>
-    <div class="ds-kpi ds-kpi--compact{% if grand_totals.bulan_ini > 0 %} ds-kpi--warn{% endif %}" id="rpKpiBlnCard" tabindex="0">
+    <div class="ds-kpi ds-kpi--compact{% if grand_totals.bulan_ini > 0 %} ds-kpi--warn{% endif %}" id="rpKpiBlnCard" tabindex="0" title="Nominal kontrak yang tanggalnya jatuh di bulan aktif">
       <div class="kpi-ico kpi-ico--amber"><i class="bi bi-calendar-event"></i></div>
-      <div><div class="ds-kpi__label">Bulan Ini</div><div class="ds-kpi__value" id="rpKpiBln">{{ grand_totals.bulan_ini|money }}</div></div>
+      <div><div class="ds-kpi__label" id="rpKpiBlnLabel">Bulan Ini ({{ month_label }})</div><div class="ds-kpi__value" id="rpKpiBln">{{ grand_totals.bulan_ini|money }}</div><div class="ds-kpi__hint">Nominal bulan aktif</div></div>
+    </div>
+    <div class="ds-kpi ds-kpi--compact" tabindex="0" title="Nilai DPP kumulatif sampai akhir bulan aktif; sama dengan S/D Bulan Lalu + Bulan Ini">
+      <div class="kpi-ico kpi-ico--violet"><i class="bi bi-calendar-check"></i></div>
+      <div><div class="ds-kpi__label" id="rpKpiSdiLabel">S/D Bulan Ini ({{ month_label }})</div><div class="ds-kpi__value" id="rpKpiSdi">{{ grand_totals.sd_bulan_ini|money }}</div><div class="ds-kpi__hint">S/D Bulan Lalu + Bulan Ini</div></div>
     </div>
   </div>
 
@@ -155,29 +180,6 @@
       <div class="table-toolbar">
         <div class="table-toolbar-filters">
           <div class="rp-toolbar">
-            <form method="GET" action="{{ filter_url }}" aria-label="Pilih periode" style="display:flex;align-items:center;gap:6px">
-              <div class="rp-period-sel">
-                <label class="rp-period-lbl" for="rpPeriod"><i class="bi bi-calendar3" aria-hidden="true"></i> Periode</label>
-                <select id="rpPeriod" name="period" aria-label="Pilih periode kontrak" {% if not period_options %}disabled{% endif %}>
-                  {% for p in period_options %}
-                    <option value="{{ p.key }}" {% if p.key == selected_key %}selected{% endif %}>{{ p.label }}</option>
-                  {% endfor %}
-                  {% if not period_options %}
-                    <option value="">Belum ada tanggal kontrak</option>
-                  {% endif %}
-                </select>
-              </div>
-              <noscript><button type="submit" class="rp-period-btn"><i class="bi bi-check-lg"></i></button></noscript>
-            </form>
-            <div class="rp-period-sel rp-cat-sel">
-              <label class="rp-period-lbl" for="rpFilterBucket"><i class="bi bi-funnel" aria-hidden="true"></i> Kategori</label>
-              <select id="rpFilterBucket" aria-label="Filter kategori kontrak">
-                <option value="">Semua Kategori</option>
-                <option value="kso">KSO</option>
-                <option value="unit">Unit Bisnis</option>
-                <option value="pusat">Pusat</option>
-              </select>
-            </div>
             <div class="search-box ds-search ft-search">
               <i class="bi bi-search"></i>
               <input type="text" id="rpSearch" placeholder="Cari no. kontrak / vendor..." autocomplete="off" aria-label="Cari kontrak" />
@@ -185,10 +187,20 @@
               <kbd class="ft-search-kbd" aria-hidden="true">/</kbd>
             </div>
             <span class="search-count" id="rpCount" aria-live="polite"></span>
-            <span class="rp-period-badge" id="rpPeriodBadge" title="Periode terpilih">
-              <i class="bi bi-calendar3" aria-hidden="true"></i>
-              <span id="rpPeriodBadgeText">{{ month_label }}</span>
-            </span>
+            <div class="rp-badges">
+              <span class="rp-count-badge" id="rpVendorBadge" title="Jumlah vendor pada filter aktif">
+                <i class="bi bi-people" aria-hidden="true"></i>
+                <span id="rpVendorBadgeText">{{ total_vendor }}</span> Vendor
+              </span>
+              <span class="rp-count-badge" id="rpContractBadge" title="Jumlah kontrak pada filter aktif">
+                <i class="bi bi-file-earmark-text" aria-hidden="true"></i>
+                <span id="rpContractBadgeText">{{ total_kontrak }}</span> Kontrak
+              </span>
+              <span class="rp-period-badge" id="rpPeriodBadge" title="{% if selected_key == 'all' %}Semua Bulan s/d {{ month_label }}{% else %}Periode terpilih{% endif %}">
+                <i class="bi bi-calendar3" aria-hidden="true"></i>
+                <span id="rpPeriodBadgeText">{{ period_label }}</span>
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -199,10 +211,10 @@
             <tr class="rp-grp-row">
               <th colspan="1" class="rp-grp rp-grp-id" data-gstart="0" data-gspan="1" title="Nomor urut tampilan"></th>
               <th colspan="3" class="rp-grp rp-grp-id" data-gstart="1" data-gspan="3" title="Vendor/rekanan, item pekerjaan, dan tanggal kontrak">Identitas</th>
-              <th colspan="3" class="rp-grp rp-grp-kini" data-gstart="5" data-gspan="3" title="Total DPP kontrak yang sudah ada s/d akhir periode terpilih">NILAI KONTRAK</th>
-              <th colspan="3" class="rp-grp rp-grp-sdl" data-gstart="8" data-gspan="3" title="Kumulatif sampai akhir bulan sebelum periode terpilih">S/D BULAN LALU</th>
-              <th colspan="3" class="rp-grp rp-grp-bln" data-gstart="11" data-gspan="3" title="Nilai kontrak yang tanggalnya jatuh di bulan terpilih">BULAN INI</th>
-              <th colspan="3" class="rp-grp rp-grp-sdi" data-gstart="14" data-gspan="3" title="Kumulatif sampai akhir bulan terpilih">SD BULAN INI</th>
+              <th colspan="3" class="rp-grp rp-grp-kini" data-gstart="5" data-gspan="3" title="Total DPP kontrak yang sudah ada s/d akhir periode aktif">NILAI KONTRAK</th>
+              <th colspan="3" class="rp-grp rp-grp-sdl" data-gstart="8" data-gspan="3" title="Kumulatif sampai akhir bulan sebelum periode aktif">S/D BULAN LALU</th>
+              <th colspan="3" class="rp-grp rp-grp-bln" id="rpGrpBln" data-gstart="11" data-gspan="3" title="Nilai kontrak yang tanggalnya jatuh di bulan terpilih">BULAN INI · {{ month_label|upper }}</th>
+              <th colspan="3" class="rp-grp rp-grp-sdi" id="rpGrpSdi" data-gstart="14" data-gspan="3" title="Kumulatif sampai akhir bulan terpilih">SD BULAN INI · {{ month_label|upper }}</th>
               <th colspan="1" scope="col" class="rp-grp rp-grp-id col-sticky-right-2" data-gstart="16" data-gspan="1" title="Kategori nilai kontrak"></th>
               <th colspan="1" scope="col" class="rp-grp rp-grp-stat col-sticky-right" data-gstart="17" data-gspan="1" title="Jumlah invoice yang cocok dengan kontrak ini"></th>
             </tr>
@@ -315,6 +327,7 @@
     var bucket = (document.getElementById('rpFilterBucket') || {}).value || '';
     var shown = 0;
     var periodTotal = 0;
+    var vendors = {};
     rows.forEach(function(tr) {
       var periodOk = tr.dataset.periodVisible !== '0';
       if (periodOk) periodTotal++;
@@ -322,8 +335,16 @@
              && (!q || (tr.getAttribute('data-search') || '').indexOf(q) !== -1)
              && (!bucket || tr.getAttribute('data-bucket') === bucket);
       tr.dataset.filterPass = hit ? '1' : '0';
-      if (hit) shown++;
+      if (hit) {
+        shown++;
+        var vendor = (tr.getAttribute('data-vendor') || '').trim();
+        if (vendor) vendors[vendor] = 1;
+      }
     });
+    var vendorEl = document.getElementById('rpVendorBadgeText');
+    if (vendorEl) vendorEl.textContent = String(Object.keys(vendors).length);
+    var contractEl = document.getElementById('rpContractBadgeText');
+    if (contractEl) contractEl.textContent = String(shown);
     var te = window.TableEnhance;
     var rpTable = document.getElementById('rpTable');
     var enhanced = !!(te && te.instances && rpTable && te.instances[rpTable.id]);
@@ -379,16 +400,17 @@
   }
 
   function buildSeries(rows, y, m) {
-    var minK = null;
+    var minK = null, maxK = null;
     rows.forEach(function (r) {
       if (!r.tgl) return;
       var k = r.tgl.y * 100 + r.tgl.m;
       if (minK === null || k < minK) minK = k;
+      if (maxK === null || k > maxK) maxK = k;
     });
     var empty = { labels: [], years: [], data: [[], [], []] };
     if (minK === null) return empty;
     var cy = Math.floor(minK / 100), cm = minK % 100;
-    var endK = y * 100 + m;
+    var endK = Math.min(y * 100 + m, maxK);
     if (minK > endK) return empty;
     var labels = [], years = [], data = { kso: [], unit: [], pusat: [] };
     while (cy * 100 + cm <= endK) {
@@ -404,7 +426,13 @@
     return { labels: labels, years: years, data: [data.kso, data.unit, data.pusat] };
   }
 
-  function applyPeriod(y, m) {
+  function applyPeriod(y, m, all) {
+    var wrap = document.querySelector('.rp-wrap');
+    if (all && wrap) {
+      y = +wrap.dataset.rpAllYear;
+      m = +wrap.dataset.rpAllMonth;
+    }
+    if (!y || !m) return;
     var rows = readRows();
     var prevEnd = m === 1 ? monthEnd(y - 1, 12) : monthEnd(y, m - 1);
     var end = monthEnd(y, m);
@@ -431,17 +459,28 @@
       });
     });
 
-    var sdLabel = document.getElementById('rpKpiSdLabel');
-    if (sdLabel) sdLabel.textContent = 'SD ' + MONTHS[m] + ' ' + y + ' (Kumulatif)';
+    var prevY = m === 1 ? y - 1 : y;
+    var prevM = m === 1 ? 12 : m - 1;
+    var prevLabel = document.getElementById('rpKpiPrevLabel');
+    if (prevLabel) prevLabel.textContent = 'S/D Bulan Lalu';
+    var blnLabel = document.getElementById('rpKpiBlnLabel');
+    if (blnLabel) blnLabel.textContent = 'Bulan Ini (' + MONTHS[m] + ' ' + y + ')';
+    var sdiLabel = document.getElementById('rpKpiSdiLabel');
+    if (sdiLabel) sdiLabel.textContent = 'S/D Bulan Ini (' + MONTHS[m] + ' ' + y + ')';
+    var grpBln = document.getElementById('rpGrpBln');
+    if (grpBln) grpBln.textContent = 'BULAN INI · ' + (MONTHS[m] + ' ' + y).toUpperCase();
+    var grpSdi = document.getElementById('rpGrpSdi');
+    if (grpSdi) grpSdi.textContent = 'SD BULAN INI · ' + (MONTHS[m] + ' ' + y).toUpperCase();
     var badgeText = document.getElementById('rpPeriodBadgeText');
-    if (badgeText) badgeText.textContent = MONTHS[m] + ' ' + y;
+    if (badgeText) badgeText.textContent = all ? 'Semua Bulan' : MONTHS[m] + ' ' + y;
+    var badge = document.getElementById('rpPeriodBadge');
+    if (badge) badge.title = all ? 'Semua Bulan s/d ' + MONTHS[m] + ' ' + y : 'Periode terpilih';
 
-    var wrap = document.querySelector('.rp-wrap');
     if (wrap) { wrap.dataset.rpYear = y; wrap.dataset.rpMonth = m; }
     var key = y + '-' + (m < 10 ? '0' + m : m);
-    var sel = document.querySelector('.rp-toolbar select[name="period"]');
-    if (sel) sel.value = key;
-    history.replaceState(null, '', location.pathname + '?period=' + key);
+    var sel = document.getElementById('rpPeriod');
+    if (sel) sel.value = all ? 'all' : key;
+    history.replaceState(null, '', all ? location.pathname : location.pathname + '?period=' + key);
     if (typeof window.rpFilterRows === 'function') window.rpFilterRows();
   }
 
@@ -483,19 +522,17 @@
       if (totals[key[0]] && key[1]) td.textContent = rpMoney(totals[key[0]][key[1]]);
     });
 
-    var countEl = document.getElementById('rpKpiCount');
-    if (countEl) countEl.textContent = String(visible.length);
-    var nilaiKontrak = totals.kini.kso + totals.kini.unit + totals.kini.pusat;
-    var kontrakVal = document.getElementById('rpKpiKontrak');
-    if (kontrakVal) kontrakVal.textContent = rpMoney(nilaiKontrak);
-    var sumSdi = totals.sdi.kso + totals.sdi.unit + totals.sdi.pusat;
+    var prevTotal = totals.sdl.kso + totals.sdl.unit + totals.sdl.pusat;
+    var prevVal = document.getElementById('rpKpiPrev');
+    if (prevVal) prevVal.textContent = rpMoney(prevTotal);
     var sumBln = totals.bln.kso + totals.bln.unit + totals.bln.pusat;
-    var sdVal = document.getElementById('rpKpiSd');
-    if (sdVal) sdVal.textContent = rpMoney(sumSdi);
     var blnVal = document.getElementById('rpKpiBln');
     if (blnVal) blnVal.textContent = rpMoney(sumBln);
     var blnCard = document.getElementById('rpKpiBlnCard');
     if (blnCard) blnCard.classList.toggle('ds-kpi--warn', sumBln > 0);
+    var sumSdi = totals.sdi.kso + totals.sdi.unit + totals.sdi.pusat;
+    var sdiVal = document.getElementById('rpKpiSdi');
+    if (sdiVal) sdiVal.textContent = rpMoney(sumSdi);
 
     if (typeof window.rpUpdateDonut === 'function') {
       window.rpUpdateDonut([totals.kini.kso, totals.kini.unit, totals.kini.pusat]);
@@ -509,16 +546,19 @@
   window.rpRefreshFilteredSummary = refreshFilteredSummary;
 
   function bindPeriod() {
-    var toolbar = document.querySelector('.rp-toolbar');
-    if (!toolbar) return;
-    var form = toolbar.querySelector('form');
+    var sel = document.getElementById('rpPeriod');
+    var form = sel && sel.form;
     if (!form) return;
     function commit() {
       var v = (form.period && form.period.value) || '';
+      if (v === 'all') {
+        applyPeriod(null, null, true);
+        return;
+      }
       if (v.length !== 7 || v[4] !== '-') return;
       var y = +v.slice(0, 4), m = +v.slice(5, 7);
       if (!y || !m) return;
-      applyPeriod(y, m);
+      applyPeriod(y, m, false);
     }
     form.addEventListener('submit', function (e) { e.preventDefault(); commit(); });
     form.addEventListener('change', function (e) {

@@ -566,8 +566,9 @@ def rekap_no_po():
     angka mengikuti registry kontrak yang tersimpan.
 
     Query: period=YYYY-MM (dropdown), atau year & month (kompatibilitas);
-    default bulan berjalan. Bila periode tidak ada di tanggal kontrak,
-    build_rekap memilih periode terakhir yang tersedia.
+    default 'Semua Bulan'. Mode ini memakai bulan berjalan saat ini sebagai
+    bulan aktif; periode yang tidak ada di tanggal kontrak juga jatuh ke
+    'Semua Bulan'.
     """
     from datetime import date as _date
     from services.rekap_po import build_rekap
@@ -576,22 +577,28 @@ def rekap_no_po():
     today = _date.today()
     year, month = today.year, today.month
     raw_period = (request.args.get('period') or '').strip()
-    if len(raw_period) == 7 and raw_period[4] == '-':
-        try:
-            year, month = int(raw_period[:4]), int(raw_period[5:])
-        except ValueError:
-            year, month = today.year, today.month
-    else:
+    all_months = raw_period in ('', 'all')
+    if raw_period and raw_period != 'all':
+        if len(raw_period) == 7 and raw_period[4] == '-':
+            try:
+                year, month = int(raw_period[:4]), int(raw_period[5:])
+                all_months = False
+            except ValueError:
+                all_months = True
+        else:
+            all_months = True
+    elif raw_period == '' and ('year' in request.args or 'month' in request.args):
         try:
             year = int(request.args.get('year', year))
             month = int(request.args.get('month', month))
         except ValueError:
             year, month = today.year, today.month
+        all_months = False
     if month < 1:
         month, year = 12, year - 1
     elif month > 12:
         month, year = 1, year + 1
-    ctx = build_rekap(contracts, year, month)
+    ctx = build_rekap(contracts, year, month, all_months=all_months, today=today)
     ctx['project_list'] = _projects()
     ctx['active_pid'] = str(pid)
     ctx['filter_url'] = url_for('contract.rekap_no_po')

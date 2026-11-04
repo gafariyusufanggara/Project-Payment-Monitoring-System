@@ -4,11 +4,14 @@ __pycache__/
 config.json
 *.rar
 .env
+.png
 graphify-out/
 .serena/
 docs/*.xlsx
 docs/*.csv
 docs/*.xls
+.playwright-mcp/
+.pytest_cache/
 
 # impeccable-live-ignore-start
 .impeccable/hook.cache.json

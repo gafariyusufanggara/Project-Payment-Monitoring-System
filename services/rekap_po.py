@@ -5,15 +5,20 @@ Sumber data: vendor_contracts yang sudah ter-import dari Import Kontrak.
 Tidak ada tabel baru; hitungan murni dari DB.
 
 Periode:
-  Tahun & bulan dipilih user (default bulan berjalan). Batas akhir
-  'bulan ini' = hari terakhir bulan terpilih (tidak perlu tanggal hari ini
-  supaya pengguna bisa melihat bulan kapan saja).
+  Default 'Semua Bulan' = seluruh kontrak s/d bulan berjalan saat ini.
+  Dropdown berisi 'Semua Bulan' + bulan-bulan yang benar-benar ada di data
+  TGL Kontrak. Saat memilih bulan tertentu, bulan aktif mengikuti pilihan
+  tersebut. Chart tetap berhenti di bulan data terakhir yang tersedia.
 
   S/D Bulan Lalu   : tanggal kontrak <= hari terakhir bulan sebelum
   Bulan Ini        : tanggal kontrak di bulan terpilih
   SD Bulan Ini     : tanggal kontrak <= hari terakhir bulan terpilih (= S/D lalu + Bulan ini)
   NILAI KONTRAK    : seluruh DPP kontrak yang sudah ada s/d akhir bulan terpilih.
   Kontrak yang tanggalnya setelah periode terpilih tidak ditampilkan.
+
+  KPI Rekap:
+    Nilai Kontrak s/d bulan aktif = S/D Bulan Lalu + Bulan Ini.
+    S/D Bulan Lalu = kumulatif sebelum bulan aktif, bukan nominal satu bulan.
 
 Bucket (sesuai sheet):
   KSO   : DPP < 300 juta
@@ -68,7 +73,7 @@ def _days_in(y, m):
     return date(y, m + 1, 1)
 
 
-def build_rekap(contracts, year, month):
+def build_rekap(contracts, year, month, all_months=False, today=None):
     """Bangun data halaman Rekap Kontrak.
 
     Args:
@@ -96,25 +101,32 @@ def build_rekap(contracts, year, month):
             'jumlah_invoice': int(c.get('jumlah_invoice') or 0),
         })
 
-    # --- Periode yang tersedia = bulan-bulan yang benar-benar ada di tanggal
-    # kontrak. Dropdown hanya menampilkan periode ini (pola halaman Jatuh Tempo).
-    # Bila periode terpilih tidak ada, pakai periode terakhir yang tersedia.
+    # --- Periode: 'Semua Bulan' + bulan-bulan yang benar-benar ada di data
+    # TGL Kontrak. Bulan tanpa kontrak tidak dimasukkan agar sumbu chart tidak
+    # memanjang ke bulan kosong.
     seen_months = set()
     for r in rows:
         dt = _parse_dt(r['tgl_kontrak'])
         if dt is not None:
             seen_months.add((dt.year, dt.month))
     date_keys = sorted(seen_months)
-    period_options = [
+    today = today or date.today()
+    current_key = (today.year, today.month)
+    period_options = [{'key': 'all', 'label': 'Semua Bulan'}] + [
         {'key': '%04d-%02d' % (y, m), 'label': '%s %d' % (_MONTH_NAMES[m], y)}
         for (y, m) in date_keys
     ]
-    if period_options and (year, month) not in seen_months:
-        year, month = date_keys[-1]
-    selected_key = '%04d-%02d' % (year, month) if period_options else ''
-
+    if all_months or (year, month) not in seen_months:
+        all_months = True
+        year, month = current_key
+        selected_key = 'all'
+    else:
+        selected_key = '%04d-%02d' % (year, month)
+    prev_year, prev_month = (year - 1, 12) if month == 1 else (year, month - 1)
+    prev_month_label = _MONTH_NAMES[prev_month] + ' ' + str(prev_year)
     month_start = date(year, month, 1)
     month_end = _days_in(year, month) - timedelta(days=1)
+    prev_month_start = date(prev_year, prev_month, 1)
     prev_month_end = month_start - timedelta(days=1)
 
     for r in rows:
@@ -169,9 +181,11 @@ def build_rekap(contracts, year, month):
     bars_datasets = []
     if dated:
         first = min(dated)
+        last = max(dated)
+        bars_end = min((year, month), (last.year, last.month))
         cy, cm = first.year, first.month
-        # jangan pernah lewat dari bulan terpilih
-        while (cy, cm) <= (year, month):
+        # jangan pernah lewat dari bulan terpilih / bulan data terakhir
+        while (cy, cm) <= bars_end:
             bars_labels.append(_MONTH_NAMES[cm])
             bars_years.append(str(cy))
             for b in ('kso', 'unit', 'pusat'):
@@ -190,7 +204,7 @@ def build_rekap(contracts, year, month):
                 monthly[r['bucket']][key] += r['dpp']
         ordered_keys = []
         cy, cm = first.year, first.month
-        while (cy, cm) <= (year, month):
+        while (cy, cm) <= bars_end:
             ordered_keys.append((cy, cm))
             if cm == 12:
                 cy, cm = cy + 1, 1
@@ -224,6 +238,7 @@ def build_rekap(contracts, year, month):
     }
 
     bucket_order = ['kso', 'unit', 'pusat']
+    visible_count = sum(1 for r in rows if r['visible'])
     return {
         'rows': rows,
         'bucket_order': bucket_order,
@@ -240,7 +255,16 @@ def build_rekap(contracts, year, month):
         'period_options': period_options,
         'selected_key': selected_key,
         'month_label': _MONTH_NAMES[month] + ' ' + str(year),
-        'total_kontrak': sum(1 for r in rows if r['visible']),
+        'prev_month_label': prev_month_label,
+        'period_label': 'Semua Bulan' if all_months else _MONTH_NAMES[month] + ' ' + str(year),
+        'all_year': current_key[0],
+        'all_month': current_key[1],
+        'total_kontrak': visible_count,
+        'total_vendor': len({
+            (r['vendor'] or '').strip()
+            for r in rows
+            if r['visible'] and (r['vendor'] or '').strip()
+        }),
         'nav_project_list': [],  # diisi via controller
         'nav_active': 'rekap',
     }
