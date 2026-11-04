@@ -489,6 +489,12 @@ assert 'Belum Ditagih (DPP)' in _det2, \
 assert 'Sisa Hutang Kontrak' not in _det2, \
     'label lama Sisa Hutang Kontrak masih ada di detail'
 _cd = db_contract.get_contract(_cid)
+assert 'Daftar Kontrak</a>' in _det2, \
+    'tombol kembali harus berlabel Daftar Kontrak'
+assert f'>{_cd["no_kontrak"]}</span>' in _det2, \
+    'nomor kontrak/PO tidak tampil di sebelah tombol Daftar Kontrak'
+assert re.search(r'id="pageTitle".{0,400}?' + re.escape(_cd['vendor']), _det2, re.S), \
+    'nama vendor/rekanan tidak tampil di topbar'
 _money_f = appmod.app.jinja_env.filters['money']
 _kpi = dict(re.findall(
     r'Sisa Hutang \((DPP|PPN)\)</div><div class="ds-kpi__value">([^<]+)</div>',

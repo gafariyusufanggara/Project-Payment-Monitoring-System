@@ -1,0 +1,307 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]: 
+        - generic [ref=e7]:
+          - generic [ref=e8]: Project Payment
+          - generic [ref=e9]: Monitoring System
+      - navigation [ref=e10]:
+        - generic [ref=e11]: Ringkasan
+        - link " Dashboard" [ref=e12] [cursor=pointer]:
+          - /url: /dashboard
+          - generic [ref=e13]: 
+          - generic [ref=e14]: Dashboard
+        - link " Status Dokumen" [ref=e15] [cursor=pointer]:
+          - /url: /status-dokumen
+          - generic [ref=e16]: 
+          - generic [ref=e17]: Status Dokumen
+        - link " Inv. Minggu Ini 3" [ref=e18] [cursor=pointer]:
+          - /url: /inv-minggu-ini
+          - generic [ref=e19]: 
+          - generic [ref=e20]: Inv. Minggu Ini
+          - generic "3 levelansir aktif minggu ini" [ref=e21]: "3"
+        - link " Inv. Bulan Ini 3" [ref=e22] [cursor=pointer]:
+          - /url: /inv-bulan-ini
+          - generic [ref=e23]: 
+          - generic [ref=e24]: Inv. Bulan Ini
+          - generic "3 levelansir aktif bulan ini" [ref=e25]: "3"
+        - link " Jatuh Tempo" [ref=e26] [cursor=pointer]:
+          - /url: /laporan-jatuh-tempo
+          - generic [ref=e27]: 
+          - generic [ref=e28]: Jatuh Tempo
+        - link " Retensi" [ref=e29] [cursor=pointer]:
+          - /url: /levelansir-retensi
+          - generic [ref=e30]: 
+          - generic [ref=e31]: Retensi
+        - generic [ref=e32]: Data Invoice
+        - link " Daftar Invoice" [ref=e33] [cursor=pointer]:
+          - /url: /data-hutang
+          - generic [ref=e34]: 
+          - generic [ref=e35]: Daftar Invoice
+        - link " Exclude Invoice" [ref=e36] [cursor=pointer]:
+          - /url: /exclude-invoice
+          - generic [ref=e37]: 
+          - generic [ref=e38]: Exclude Invoice
+        - generic [ref=e39]: Kontrak
+        - link " Rekap PO Kontrak" [ref=e40] [cursor=pointer]:
+          - /url: /kontrak/rekap-no-po
+          - generic [ref=e41]: 
+          - generic [ref=e42]: Rekap PO Kontrak
+        - link " Progress Inv. Kontrak" [ref=e43] [cursor=pointer]:
+          - /url: /kontrak/
+          - generic [ref=e44]: 
+          - generic [ref=e45]: Progress Inv. Kontrak
+          - text: 
+        - link " Progress Inv. Cicilan" [ref=e46] [cursor=pointer]:
+          - /url: /invoice-cicilan
+          - generic [ref=e47]: 
+          - generic [ref=e48]: Progress Inv. Cicilan
+        - generic [ref=e49]: Rekap Invoice
+        - link " Rekap DPP Bulanan" [ref=e50] [cursor=pointer]:
+          - /url: /laporan-bulanan
+          - generic [ref=e51]: 
+          - generic [ref=e52]: Rekap DPP Bulanan
+        - link " Rekap DPP Mingguan" [ref=e53] [cursor=pointer]:
+          - /url: /laporan-mingguan
+          - generic [ref=e54]: 
+          - generic [ref=e55]: Rekap DPP Mingguan
+        - generic [ref=e56]: Rekap Pajak
+        - link " Rekap PPN Bulanan" [ref=e57] [cursor=pointer]:
+          - /url: /laporan-ppn
+          - generic [ref=e58]: 
+          - generic [ref=e59]: Rekap PPN Bulanan
+        - link " Rekap PPN Mingguan" [ref=e60] [cursor=pointer]:
+          - /url: /laporan-ppn-mingguan
+          - generic [ref=e61]: 
+          - generic [ref=e62]: Rekap PPN Mingguan
+        - generic [ref=e63]: Import Data
+        - link " Import Invoice" [ref=e64] [cursor=pointer]:
+          - /url: /import
+          - generic [ref=e65]: 
+          - generic [ref=e66]: Import Invoice
+        - link " Import Kontrak" [ref=e67] [cursor=pointer]:
+          - /url: /kontrak/import
+          - generic [ref=e68]: 
+          - generic [ref=e69]: Import Kontrak
+        - generic [ref=e70]: Kepatuhan
+        - link " Verifikasi Data" [ref=e71] [cursor=pointer]:
+          - /url: /verifikasi
+          - generic [ref=e72]: 
+          - generic [ref=e73]: Verifikasi Data
+        - link " Catatan Audit" [ref=e74] [cursor=pointer]:
+          - /url: /audit
+          - generic [ref=e75]: 
+          - generic [ref=e76]: Catatan Audit
+        - generic [ref=e77]: Proyek
+        - link " Daftar Proyek" [ref=e78] [cursor=pointer]:
+          - /url: /project/
+          - generic [ref=e79]: 
+          - generic [ref=e80]: Daftar Proyek
+    - main [ref=e81]:
+      - generic [ref=e82]:
+        - generic [ref=e83]:
+          - text: 
+          - button "Sembunyikan sidebar" [expanded] [ref=e84] [cursor=pointer]:
+            - generic [ref=e85]: 
+          - heading " PB.001/KONTRAK/NK-WIKA/03/SINTONG/12/2025 Update 4 Nov 2026" [level=1] [ref=e86]:
+            - generic [ref=e87]: 
+            - text: PB.001/KONTRAK/NK-WIKA/03/SINTONG/12/2025
+            - 'generic "Invoice: 4 Nov 2026, 10:20 | Kontrak: 2 Nov 2026, 16:24" [ref=e88]': Update 4 Nov 2026
+        - generic [ref=e89]:
+          - generic [ref=e90]:
+            - generic: 
+            - combobox "Filter berdasarkan proyek" [ref=e91] [cursor=pointer]:
+              - option "Semua Proyek" [selected]
+              - option "KSO-001 — KSO NK - WIKA Waterflood Sintong"
+          - generic: 
+          - button "Keluar dari aplikasi" [ref=e93] [cursor=pointer]:
+            - generic [ref=e94]: 
+      - generic [ref=e96]:
+        - generic [ref=e97]:
+          - link " Daftar" [ref=e98] [cursor=pointer]:
+            - /url: /kontrak/
+            - generic [ref=e99]: 
+            - text: Daftar
+          - generic "PT SULZER INDONESIA" [ref=e100]
+          - generic [ref=e101]: Ada Invoice
+        - generic [ref=e102]:
+          - generic [ref=e103]:
+            - generic [ref=e104]: 
+            - generic [ref=e106]:
+              - generic "Nilai Dasar Pengenaan Pajak yang dipakai sistem untuk tagihan dan progres." [ref=e107]: Nilai DPP
+              - generic [ref=e108]: 20.100.000.000
+              - generic [ref=e109]: "Ditagihkan: 2.010.000.000"
+          - generic [ref=e110]:
+            - generic [ref=e111]: 
+            - generic [ref=e113]:
+              - generic [ref=e114]: PPN Kontrak
+              - generic [ref=e115]: 2.211.000.000
+              - generic [ref=e116]: "Ditagihkan: 221.100.000"
+          - generic [ref=e117]:
+            - generic [ref=e118]: 
+            - generic [ref=e120]:
+              - generic [ref=e121]: Terbayar DPP
+              - generic [ref=e122]: 2.010.000.000
+              - generic [ref=e123]: 100.0% dari yang ditagihkan
+          - generic [ref=e124]:
+            - generic [ref=e125]: 
+            - generic [ref=e127]:
+              - generic [ref=e128]: Terbayar PPN
+              - generic [ref=e129]: 221.100.000
+              - generic [ref=e130]: 100.0% dari yang ditagihkan
+          - generic "Sisa Hutang (DPP) = Tagihan DPP − Terbayar DPP. Hanya DPP yang SUDAH DITAGIH tapi belum dibayar — inilah utang nyata ke vendor." [ref=e131]:
+            - generic [ref=e132]: 
+            - generic [ref=e134]:
+              - generic [ref=e135]: Sisa Hutang (DPP)
+              - generic [ref=e136]: "0"
+              - generic [ref=e137]: "Belum ditagih: 18.090.000.000 · Sisa tagihan: 18.090.000.000"
+          - generic "Sisa Hutang (PPN) = Tagihan PPN − Terbayar PPN. Hanya PPN yang SUDAH DITAGIH tapi belum dibayar — inilah utang PPN nyata ke vendor." [ref=e138]:
+            - generic [ref=e139]: 
+            - generic [ref=e141]:
+              - generic [ref=e142]: Sisa Hutang (PPN)
+              - generic [ref=e143]: "0"
+              - generic [ref=e144]: "Belum ditagih: 1.989.900.000 · Sisa tagihan: 1.989.900.000"
+        - region "Identitas kontrak" [ref=e145]:
+          - generic [ref=e146]:
+            - button " Identitas Kontrak" [ref=e147] [cursor=pointer]:
+              - generic [ref=e148]: 
+              - text: Identitas Kontrak
+              - generic [aria-hidden] [ref=e149]: 
+            - button " Ubah" [ref=e150] [cursor=pointer]:
+              - generic [ref=e151]: 
+              - text: Ubah
+          - text:  
+        - region "Jadwal termin" [ref=e152]:
+          - heading " Jadwal Termin" [level=2] [ref=e154]:
+            - generic [ref=e155]: 
+            - text: Jadwal Termin
+          - generic [ref=e156]:
+            - generic [ref=e157]:
+              - generic [ref=e158]: 
+              - generic [ref=e159]: 1 dari 4 termin sudah ditagih penuh, tepat di batas termin. Nilai invoice yang masuk cocok dengan pagu termin.
+            - paragraph [ref=e160]:
+              - generic [ref=e161]: Material
+              - generic [ref=e162]: PPN Reimburse
+              - generic [ref=e163]: PPN 11%
+              - generic [ref=e164]: Durasi 60 hari
+              - generic [ref=e165]:
+                - generic [ref=e166]: 
+                - text: Termin (%) mentah = 110% — dipakai
+                - strong [ref=e167]: Normalisasi
+                - text: (total 100%) untuk hitung nilai & PPN.
+            - table [ref=e169]:
+              - rowgroup [ref=e170]:
+                - row [ref=e171]:
+                  - columnheader "#" [ref=e172]
+                  - columnheader "Termin" [ref=e173]
+                  - columnheader "Termin (%)" [ref=e174]
+                  - columnheader "Normalisasi (%)" [ref=e175]
+                  - columnheader "Total Termin (Rp)" [ref=e176]
+                  - columnheader "PPN per Termin (Rp)" [ref=e177]
+                  - columnheader "Total Pembayaran (Rp)" [ref=e178]
+                  - columnheader "Status DPP" [ref=e179]
+                  - columnheader "Status PPN" [ref=e180]
+              - rowgroup [ref=e181]:
+                - row [ref=e182]:
+                  - cell "1" [ref=e183]
+                  - cell "Uang Muka" [ref=e184]
+                  - cell "10%" [ref=e185]
+                  - cell "10.00%" [ref=e186]
+                  - cell "2.010.000.000" [ref=e187]
+                  - cell "221.100.000" [ref=e188]
+                  - cell "2.010.000.000" [ref=e189]
+                  - cell "Lunas" [ref=e190]:
+                    - generic "DPP termin ini sudah tertagih penuh dan sudah dibayar penuh" [ref=e191]: Lunas
+                  - cell "Lunas" [ref=e192]:
+                    - generic "PPN termin ini sudah tertagih penuh dan sudah dibayar penuh" [ref=e193]: Lunas
+                - row [ref=e194]:
+                  - cell "2" [ref=e195]
+                  - cell "FAT" [ref=e196]
+                  - cell "30%" [ref=e197]
+                  - cell "27.00%" [ref=e198]
+                  - cell "5.427.000.000" [ref=e199]
+                  - cell "596.970.000" [ref=e200]
+                  - cell "5.427.000.000" [ref=e201]
+                  - cell "Belum Ditagih" [ref=e202]:
+                    - generic "Belum ada invoice DPP untuk termin ini" [ref=e203]: Belum Ditagih
+                  - cell "Belum Ditagih" [ref=e204]:
+                    - generic "Belum ada invoice PPN untuk termin ini" [ref=e205]: Belum Ditagih
+                - row [ref=e206]:
+                  - cell "3" [ref=e207]
+                  - cell "Material on Site/BASTB" [ref=e208]
+                  - cell "60%" [ref=e209]
+                  - cell "54.00%" [ref=e210]
+                  - cell "10.854.000.000" [ref=e211]
+                  - cell "1.193.940.000" [ref=e212]
+                  - cell "10.854.000.000" [ref=e213]
+                  - cell "Belum Ditagih" [ref=e214]:
+                    - generic "Belum ada invoice DPP untuk termin ini" [ref=e215]: Belum Ditagih
+                  - cell "Belum Ditagih" [ref=e216]:
+                    - generic "Belum ada invoice PPN untuk termin ini" [ref=e217]: Belum Ditagih
+                - row [ref=e218]:
+                  - cell "4" [ref=e219]
+                  - cell "Commisioning" [ref=e220]
+                  - cell "10%" [ref=e221]
+                  - cell "9.00%" [ref=e222]
+                  - cell "1.809.000.000" [ref=e223]
+                  - cell "198.990.000" [ref=e224]
+                  - cell "1.809.000.000" [ref=e225]
+                  - cell "Belum Ditagih" [ref=e226]:
+                    - generic "Belum ada invoice DPP untuk termin ini" [ref=e227]: Belum Ditagih
+                  - cell "Belum Ditagih" [ref=e228]:
+                    - generic "Belum ada invoice PPN untuk termin ini" [ref=e229]: Belum Ditagih
+                - row [ref=e230]:
+                  - cell [ref=e231]
+                  - cell "Total" [ref=e232]
+                  - cell "110%" [ref=e233]
+                  - cell "100.00%" [ref=e234]
+                  - cell "20.100.000.000" [ref=e235]
+                  - cell "2.211.000.000" [ref=e236]
+                  - cell "20.100.000.000" [ref=e237]
+                  - cell "2.010.000.000" [ref=e238]
+                  - cell "221.100.000" [ref=e239]
+        - region "Invoice terkait" [ref=e240]:
+          - heading " Invoice dengan No. Kontrak Ini" [level=2] [ref=e242]:
+            - generic [ref=e243]: 
+            - text: Invoice dengan No. Kontrak Ini
+          - generic [ref=e244]:
+            - paragraph [ref=e245]:
+              - text: Cocok otomatis dengan kolom
+              - strong [ref=e246]: NO PO / KONTRAK
+              - text: pada data invoice (1 baris).
+            - table [ref=e248]:
+              - rowgroup [ref=e249]:
+                - row [ref=e250]:
+                  - columnheader "No. Invoice" [ref=e251]
+                  - columnheader "Tgl Berkas Lengkap" [ref=e252]
+                  - columnheader "Tgl Jatuh Tempo" [ref=e253]
+                  - columnheader "Deskripsi" [ref=e254]
+                  - columnheader "Nilai DPP" [ref=e255]
+                  - columnheader "Pot. PPH" [ref=e256]
+                  - columnheader "Retensi" [ref=e257]
+                  - columnheader "Bayar DPP" [ref=e258]
+                  - columnheader "Tgl Bayar DPP" [ref=e259]
+                  - columnheader "Sisa DPP" [ref=e260]
+                  - columnheader "Nilai PPN" [ref=e261]
+                  - columnheader "Bayar PPN" [ref=e262]
+                  - columnheader "Tgl Bayar PPN" [ref=e263]
+                  - columnheader "Sisa PPN" [ref=e264]
+              - rowgroup [ref=e265]:
+                - row [ref=e266]:
+                  - cell "INV0007241" [ref=e267]
+                  - cell "16-01-2026" [ref=e269]
+                  - cell "02-03-2026" [ref=e270]
+                  - cell [ref=e271]:
+                    - button "Lihat teks lengkap" [ref=e272] [cursor=pointer]: TAG DP 10% PENGADAAN BARANG POMPA
+                  - cell "2.010.000.000" [ref=e273]
+                  - cell "-" [ref=e274]
+                  - cell "-" [ref=e275]
+                  - cell "2.010.000.000" [ref=e276]
+                  - cell "02-04-2026" [ref=e277]
+                  - cell "0" [ref=e278]
+                  - cell "221.100.000" [ref=e279]
+                  - cell "221.100.000" [ref=e280]
+                  - cell "10-08-2026" [ref=e281]
+                  - cell "0" [ref=e282]
+  - text:       
