@@ -131,19 +131,28 @@ def build_rekap(contracts, year, month, all_months=False, today=None):
 
     for r in rows:
         dt = _parse_dt(r['tgl_kontrak'])
-        r['visible'] = dt is None or dt <= month_end
+        if all_months:
+            r['visible'] = True
+        else:
+            r['visible'] = dt is not None and (dt.year, dt.month) == (year, month)
+        r['counted'] = dt is None or dt <= month_end
 
     # hitung agregat per periode x bucket + nilai per baris untuk periodenya
-    sdl = defaultdict(float)
-    bln = defaultdict(float)
-    sdi = defaultdict(float)
+    # foot_* = jumlah baris yang TAMPIL (footer tabel)
+    # kpi_*  = kumulatif s/d akhir periode (KPI, tidak ikut penyaringan baris)
+    foot_sdl = defaultdict(float)
+    foot_bln = defaultdict(float)
+    foot_sdi = defaultdict(float)
+    kpi_sdl = defaultdict(float)
+    kpi_bln = defaultdict(float)
+    kpi_sdi = defaultdict(float)
     all_bkt = defaultdict(float)
 
     empty_bkt = {b: 0.0 for b in ('kso', 'unit', 'pusat')}
     for r in rows:
         d = r['dpp']
         b = r['bucket']
-        if not r['visible']:
+        if not r['counted']:
             r['periods'] = {
                 'kini': dict(empty_bkt), 'sdl': dict(empty_bkt),
                 'bln': dict(empty_bkt), 'sdi': dict(empty_bkt),
@@ -158,15 +167,19 @@ def build_rekap(contracts, year, month, all_months=False, today=None):
         p_sdi = dict(empty_bkt)
         if dt is not None:
             if dt <= prev_month_end:
-                sdl[b] += d
-                sdi[b] += d
+                kpi_sdl[b] += d
+                kpi_sdi[b] += d
                 p_sdl[b] = d
                 p_sdi[b] = d
             elif dt <= month_end:
-                bln[b] += d
-                sdi[b] += d
+                kpi_bln[b] += d
+                kpi_sdi[b] += d
                 p_bln[b] = d
                 p_sdi[b] = d
+        if r['visible']:
+            for p, acc in ((p_sdl, foot_sdl), (p_bln, foot_bln), (p_sdi, foot_sdi)):
+                if p[b]:
+                    acc[b] += d
         r['periods'] = {'kini': p_kini, 'sdl': p_sdl, 'bln': p_bln, 'sdi': p_sdi}
 
     # rows: satu baris = satu kontrak. Total per periode ditampilkan footer tabel.
@@ -220,21 +233,17 @@ def build_rekap(contracts, year, month, all_months=False, today=None):
                 'maxBarThickness': 46,
             })
 
-    grand_sdl = sum(sdl.values())
-    grand_bln = sum(bln.values())
-    grand_sdi = sum(sdi.values())
-
     period_summaries = {
         'kontrak_kini': {b: float(all_bkt[b]) for b in ('kso', 'unit', 'pusat')},
-        'sd_bulan_lalu': {b: float(sdl[b]) for b in ('kso', 'unit', 'pusat')},
-        'bulan_ini': {b: float(bln[b]) for b in ('kso', 'unit', 'pusat')},
-        'sd_bulan_ini': {b: float(sdi[b]) for b in ('kso', 'unit', 'pusat')},
+        'sd_bulan_lalu': {b: float(foot_sdl[b]) for b in ('kso', 'unit', 'pusat')},
+        'bulan_ini': {b: float(foot_bln[b]) for b in ('kso', 'unit', 'pusat')},
+        'sd_bulan_ini': {b: float(foot_sdi[b]) for b in ('kso', 'unit', 'pusat')},
     }
     grand_totals = {
         'kontrak_kini': float(sum(all_bkt.values())),
-        'sd_bulan_lalu': grand_sdl,
-        'bulan_ini': grand_bln,
-        'sd_bulan_ini': grand_sdi,
+        'sd_bulan_lalu': float(sum(kpi_sdl.values())),
+        'bulan_ini': float(sum(kpi_bln.values())),
+        'sd_bulan_ini': float(sum(kpi_sdi.values())),
     }
 
     bucket_order = ['kso', 'unit', 'pusat']

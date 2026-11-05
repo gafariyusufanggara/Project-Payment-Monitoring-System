@@ -248,6 +248,7 @@
                 data-dpp="{{ '%.0f'|format(r.dpp) }}"
                 data-vendor="{{ r.vendor }}"
                 data-period-visible="{{ '1' if r.visible else '0' }}"
+                data-counted="{{ '1' if r.counted else '0' }}"
                 data-kso="{{ '%.0f'|format(r.dpp if r.bucket == 'kso' else 0) }}"
                 data-ub="{{ '%.0f'|format(r.dpp if r.bucket == 'unit' else 0) }}"
                 data-ps="{{ '%.0f'|format(r.dpp if r.bucket == 'pusat' else 0) }}"
@@ -288,7 +289,7 @@
           </tbody>
           <tfoot>
             <tr>
-              <td colspan="4" class="text-end" style="font-weight:700;color:#16324f">TOTAL</td>
+              <td colspan="4" class="text-end" style="font-weight:700;color:#16324f">TOTAL <span style="font-weight:500;color:#526579">(baris tampil)</span></td>
               <td class="cell-money text-end" data-foot="kini.kso">{{ period_summaries.kontrak_kini.kso|money }}</td>
               <td class="cell-money text-end" data-foot="kini.unit">{{ period_summaries.kontrak_kini.unit|money }}</td>
               <td class="cell-money text-end" data-foot="kini.pusat">{{ period_summaries.kontrak_kini.pusat|money }}</td>
@@ -442,9 +443,11 @@
       var pSdl = { kso: 0, unit: 0, pusat: 0 };
       var pBln = { kso: 0, unit: 0, pusat: 0 };
       var pSdi = { kso: 0, unit: 0, pusat: 0 };
-      var isVisible = !r.tgl || dayNum(r.tgl.y, r.tgl.m, r.tgl.d) <= end;
+      var isCounted = !r.tgl || dayNum(r.tgl.y, r.tgl.m, r.tgl.d) <= end;
+      var isVisible = all ? true : (!!r.tgl && r.tgl.y === y && r.tgl.m === m);
       r.el.dataset.periodVisible = isVisible ? '1' : '0';
-      if (isVisible) pKini[r.bucket] = r.dpp;
+      r.el.dataset.counted = isCounted ? '1' : '0';
+      if (isCounted) pKini[r.bucket] = r.dpp;
       if (r.tgl) {
         var t = dayNum(r.tgl.y, r.tgl.m, r.tgl.d);
         if (t <= prevEnd) { pSdl[r.bucket] = r.dpp; pSdi[r.bucket] = r.dpp; }
@@ -496,23 +499,27 @@
     if (!y || !m) return;
     var starts = [4, 7, 10, 13];
     var groups = ['kini', 'sdl', 'bln', 'sdi'];
-    var totals = { kini: { kso: 0, unit: 0, pusat: 0 },
-                   sdl: { kso: 0, unit: 0, pusat: 0 },
-                   bln: { kso: 0, unit: 0, pusat: 0 },
-                   sdi: { kso: 0, unit: 0, pusat: 0 } };
-    var visible = [];
+    var zero = function () { return { kso: 0, unit: 0, pusat: 0 }; };
+    var totals = { kini: zero(), sdl: zero(), bln: zero(), sdi: zero() };
+    var kpis = { kini: zero(), sdl: zero(), bln: zero(), sdi: zero() };
+    var chartRows = [];
 
     document.querySelectorAll('#rpBody tr').forEach(function (tr) {
-      if (tr.dataset.filterPass !== '1') return;
-      visible.push({
+      var counted = tr.dataset.counted === '1';
+      var shown = tr.dataset.periodVisible === '1';
+      if (counted) chartRows.push({
         tgl: parseISO(tr.getAttribute('data-tgl')),
         dpp: +tr.getAttribute('data-dpp') || 0,
         bucket: tr.getAttribute('data-bucket')
       });
+      if (!counted && !shown) return;
       var tds = tr.children;
+      var target = shown ? totals : null;
       starts.forEach(function (start, gi) {
         BKT.forEach(function (b, bi) {
-          totals[groups[gi]][b] += moneyNumber(tds[start + bi].textContent);
+          var v = moneyNumber(tds[start + bi].textContent);
+          if (target) target[groups[gi]][b] += v;
+          if (counted) kpis[groups[gi]][b] += v;
         });
       });
     });
@@ -522,22 +529,21 @@
       if (totals[key[0]] && key[1]) td.textContent = rpMoney(totals[key[0]][key[1]]);
     });
 
-    var prevTotal = totals.sdl.kso + totals.sdl.unit + totals.sdl.pusat;
+    var sumOf = function (g) { return kpis[g].kso + kpis[g].unit + kpis[g].pusat; };
     var prevVal = document.getElementById('rpKpiPrev');
-    if (prevVal) prevVal.textContent = rpMoney(prevTotal);
-    var sumBln = totals.bln.kso + totals.bln.unit + totals.bln.pusat;
+    if (prevVal) prevVal.textContent = rpMoney(sumOf('sdl'));
+    var sumBln = sumOf('bln');
     var blnVal = document.getElementById('rpKpiBln');
     if (blnVal) blnVal.textContent = rpMoney(sumBln);
     var blnCard = document.getElementById('rpKpiBlnCard');
     if (blnCard) blnCard.classList.toggle('ds-kpi--warn', sumBln > 0);
-    var sumSdi = totals.sdi.kso + totals.sdi.unit + totals.sdi.pusat;
     var sdiVal = document.getElementById('rpKpiSdi');
-    if (sdiVal) sdiVal.textContent = rpMoney(sumSdi);
+    if (sdiVal) sdiVal.textContent = rpMoney(sumOf('sdi'));
 
     if (typeof window.rpUpdateDonut === 'function') {
       window.rpUpdateDonut([totals.kini.kso, totals.kini.unit, totals.kini.pusat]);
     }
-    var series = buildSeries(visible, y, m);
+    var series = buildSeries(chartRows, y, m);
     if (typeof window.rpUpdateBarChart === 'function') {
       window.rpUpdateBarChart(series.labels, series.years, series.data);
     }

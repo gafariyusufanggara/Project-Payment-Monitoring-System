@@ -381,9 +381,9 @@ def count_excluded_rows(project_id=None):
     as read_data. Used by the base-template badge so the per-request context
     processor does not have to load the full table just to count.
     """
-    from constants import EXCLUDED_CATEGORIES, EXCLUDED_REKANAN
-    cats = [c.strip().lower() for c in EXCLUDED_CATEGORIES if (c or '').strip()]
-    reks = [r.strip().lower() for r in EXCLUDED_REKANAN if (r or '').strip()]
+    from services.exclusion import get_excluded_categories, get_excluded_rekanan
+    cats = [c.strip().lower() for c in get_excluded_categories() if (c or '').strip()]
+    reks = [r.strip().lower() for r in get_excluded_rekanan() if (r or '').strip()]
     if not cats and not reks:
         return 0
     clauses = []
@@ -422,11 +422,11 @@ def count_period_vendors(period_start, period_end, project_id=None):
     period_start, period_end: 'YYYY-MM-DD' (inklusif). project_id mengikuti
     aturan scope read_data. Rekanan kosong ('') diabaikan.
     """
-    from constants import EXCLUDED_CATEGORIES, EXCLUDED_REKANAN
+    from services.exclusion import get_excluded_categories, get_excluded_rekanan
     params = [period_start, period_end, period_start, period_end]
     excl = []
-    cats = [c.strip().lower() for c in EXCLUDED_CATEGORIES if (c or '').strip()]
-    reks = [r.strip().lower() for r in EXCLUDED_REKANAN if (r or '').strip()]
+    cats = [c.strip().lower() for c in get_excluded_categories() if (c or '').strip()]
+    reks = [r.strip().lower() for r in get_excluded_rekanan() if (r or '').strip()]
     if cats:
         excl.append('LOWER(TRIM(COALESCE("KATEGORI", \'\'))) IN (%s)'
                     % ','.join('?' for _ in cats))

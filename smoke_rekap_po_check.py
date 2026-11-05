@@ -52,8 +52,8 @@ _contracts = [
 ]
 _r = rekap_po.build_rekap(_contracts, 2026, 10)
 
-assert _r['total_kontrak'] == 5, f"total_kontrak {_r['total_kontrak']} != 5"
-assert _r['total_vendor'] == 5, f"total_vendor {_r['total_vendor']} != 5"
+assert _r['total_kontrak'] == 2, f"total_kontrak {_r['total_kontrak']} != 2"
+assert _r['total_vendor'] == 2, f"total_vendor {_r['total_vendor']} != 2"
 assert _r['grand_totals']['kontrak_kini'] == 3_850_000_000, _r['grand_totals']
 # S/D lalu = A(100jt) + C(3M) = 3,1M ; Bulan ini = B(500jt) + D(200jt) = 700jt
 assert _r['grand_totals']['sd_bulan_lalu'] == 3_100_000_000, _r['grand_totals']
@@ -79,11 +79,12 @@ assert _row_b['periods']['sdi']['unit'] == 500_000_000 and _row_b['periods']['sd
 _row_e = next(x for x in _r['rows'] if x['no_kontrak'] == 'E/5')
 assert all(_row_e['periods']['sdl'][b] == 0 and _row_e['periods']['bln'][b] == 0
            for b in ('kso', 'unit', 'pusat')), 'kontrak tanpa tanggal tidak masuk periode'
-# Periode lama = snapshot: kontrak setelah periode tidak dihitung, yang tanpa
-# tanggal tetap tampil agar tidak hilang permanen.
+# Periode lama = snapshot: hanya kontrak yang tanggalnya tepat di bulan itu yang
+# tampil; kontrak bulan lain dan tanpa tanggal disembunyikan, tetapi tetap
+# dihitung pada agregat kumulatif (S/D Bulan Lalu / S/D Bulan Ini).
 _old = rekap_po.build_rekap(_contracts, 2026, 1)
-assert _old['total_kontrak'] == 2, _old['total_kontrak']
-assert _old['total_vendor'] == 2, _old['total_vendor']
+assert _old['total_kontrak'] == 1, _old['total_kontrak']
+assert _old['total_vendor'] == 1, _old['total_vendor']
 assert _old['grand_totals']['kontrak_kini'] == 150_000_000, _old['grand_totals']
 _old_b = next(x for x in _old['rows'] if x['no_kontrak'] == 'B/2')
 assert _old_b['visible'] is False, 'kontrak setelah periode harus tidak tampil'
@@ -96,6 +97,8 @@ app = appmod.app
 client = app.test_client()
 with client.session_transaction() as s:
     s['authed'] = True
+_ctx = app.test_request_context('/')
+_ctx.push()
 _html = client.get('/kontrak/rekap-no-po').get_data(as_text=True)
 assert client.get('/kontrak/rekap-no-po').status_code == 200, \
     'halaman Rekap Kontrak tidak HTTP 200'
@@ -174,8 +177,8 @@ print(f'[3] halaman OK: {_n_rows} baris, chart + menu sidebar ada')
 _o = client.get('/kontrak/rekap-no-po?year=2026&month=10').get_data(as_text=True)
 _d = client.get('/kontrak/rekap-no-po?year=2025&month=12').get_data(as_text=True)
 assert _o != _d, 'ganti periode tidak mengubah halaman'
-# Periode lama = snapshot: baris setelah periode disembunyikan, KPI menghitung
-# baris yang tampil saja.
+# Periode lama = snapshot: baris bulan lain disembunyikan, footer TOTAL
+# menjumlah baris yang tampil, KPI tetap kumulatif s/d periode.
 _old_ctx = rekap_po.build_rekap(db_contract.get_contracts('all'), 2025, 12)
 _n_rows_all = len(db_contract.get_contracts('all'))
 assert _old_ctx['total_kontrak'] < _n_rows_all, 'periode lama harus menyembunyikan kontrak'
@@ -195,18 +198,42 @@ assert 'KONTRAK KINI' not in _d and 'Kontrak Kini' not in _d, \
 assert 'NILAI KONTRAK' in _d, 'label NILAI KONTRAK tidak ada'
 print('[4] filter periode OK')
 
+# --- 4b. Footer TOTAL = jumlah baris yang tampil; KPI tetap kumulatif ---
+_jun = rekap_po.build_rekap(db_contract.get_contracts('all'), 2026, 6)
+_visible_rows = [r for r in _jun['rows'] if r['visible']]
+assert all(r['periods']['sdl'] == {'kso': 0.0, 'unit': 0.0, 'pusat': 0.0}
+           for r in _visible_rows), 'baris bulan terpilih tidak boleh punya S/D Bulan Lalu'
+_foot_sum = sum(
+    sum(_jun['period_summaries'][_k].values())
+    for _k in ('sd_bulan_lalu', 'bulan_ini', 'sd_bulan_ini')
+)
+_row_sum = sum(
+    sum(r['periods']['sdl'].values()) + sum(r['periods']['bln'].values())
+    + sum(r['periods']['sdi'].values())
+    for r in _visible_rows
+)
+assert _foot_sum == _row_sum, (
+    f'footer TOTAL ({_foot_sum}) != jumlah sel baris tampil ({_row_sum})')
+assert _jun['grand_totals']['sd_bulan_lalu'] > 0, 'KPI S/D Bulan Lalu harus tetap kumulatif'
+assert (_jun['grand_totals']['sd_bulan_ini']
+        == _jun['grand_totals']['sd_bulan_lalu'] + _jun['grand_totals']['bulan_ini']), \
+    'KPI: S/D Bulan Ini != S/D Bulan Lalu + Bulan Ini'
+print('[4b] footer TOTAL = jumlah baris tampil, KPI tetap kumulatif')
+assert 'TOTAL <span style="font-weight:500;color:#526579">(baris tampil)</span>' in _html, \
+    'label footer harus menjelaskan TOTAL = jumlah baris yang tampil'
+
 # --- 7. Filter periode client-side (pola halaman Jatuh Tempo) ---
 _base = client.get('/dashboard').get_data(as_text=True)
 assert "'/kontrak/rekap-no-po'" in _base, \
     'rute Rekap Kontrak belum terdaftar di HTMX_READY_ROUTES'
 for _needle in ('function applyPeriod', 'function buildSeries', 'rpUpdateBarChart',
                 'rpUpdateDonut', 'rpFilterRows', 'tds[4 + i]',
-                'data-period-visible=', 'data-tgl=', 'data-foot="sdl.kso"',
+                'data-period-visible=', 'data-counted=', 'data-tgl=', 'data-foot="sdl.kso"',
                 'data-foot="kini.kso"', 'id="rpKpiPrev"', 'id="rpKpiBln"',
                 'id="rpKpiSdi"', 'name="period"', 'id="rpFilterBucket"',
                 "getElementById('rpFilterBucket')", 'rpRefreshFilteredSummary',
                 "getElementById('rpVendorBadgeText')", "getElementById('rpContractBadgeText')",
-                'moneyNumber', "filterPass !== '1'"):
+                'moneyNumber', "periodVisible === '1'", "counted === '1'", "kpis[groups[gi]][b]"):
     assert _needle in _html, f'{_needle!r} tidak ada (filter client-side belum lengkap)'
 assert 'rpPeriodGo' not in _html and 'rpPeriodSubmit' not in _html, \
     'ganti periode masih memakai navigasi halaman, bukan hitung ulang di tempat'

@@ -158,21 +158,6 @@ def save_categories(cats):
         json.dump(cfg, f, indent=2, ensure_ascii=False)
 
 
-def save_excluded(cats, rekanan):
-    """Persist exclusion lists (kategori & rekanan) to config.json."""
-    cfg = {}
-    if os.path.exists(CONFIG_FILE):
-        try:
-            with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
-                cfg = json.load(f)
-        except Exception:
-            pass
-    cfg['excluded_categories'] = list(cats)
-    cfg['excluded_rekanan'] = list(rekanan)
-    with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
-        json.dump(cfg, f, indent=2, ensure_ascii=False)
-
-
 def load_last_import():
     """Return (invoice_map, kontrak_map): {project_id_str: 'YYYY-MM-DD HH:MM'}."""
     if os.path.exists(CONFIG_FILE):
@@ -230,37 +215,14 @@ def format_update_detail(ts):
 CATEGORIES = load_categories()
 
 
-def load_excluded():
-    """Load exclusion lists — rows whose KATEGORI or rekanan matches are
-    skipped by all aggregations (dashboard + laporan), but stay visible in tables."""
-    if os.path.exists(CONFIG_FILE):
-        try:
-            with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
-                cfg = json.load(f)
-            return cfg.get('excluded_categories', []), cfg.get('excluded_rekanan', [])
-        except Exception:
-            pass
-    return [], []
-
-
-EXCLUDED_CATEGORIES, EXCLUDED_REKANAN = load_excluded()
-
-
 def is_excluded_values(kategori, rekanan):
-    """True if KATEGORI or rekanan is excluded (case-insensitive)."""
-    kat = (kategori or '').strip()
-    if kat and kat.lower() in {c.lower() for c in EXCLUDED_CATEGORIES}:
-        return True
-    rek = (rekanan or '').strip()
-    if rek and rek.lower() in {r.lower() for r in EXCLUDED_REKANAN}:
-        return True
-    return False
+    from services.exclusion import is_excluded_values as _impl
+    return _impl(kategori, rekanan)
 
 
 def is_excluded_row(row):
-    """True if row's KATEGORI or NAMA LEVELANSIR/REKANAN is excluded (case-insensitive)."""
-    return is_excluded_values(row.get('KATEGORI'),
-                              row.get('NAMA LEVELANSIR / REKANAN'))
+    from services.exclusion import is_excluded_row as _impl
+    return _impl(row)
 
 
 # ========== VALUE HELPERS ==========

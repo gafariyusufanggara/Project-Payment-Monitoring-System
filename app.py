@@ -147,8 +147,8 @@ def inject_notif_counts():
     from services.verification import get_counts
     from constants import (
         FORM_FIELDS, DATE_FIELDS, NUMERIC_FIELDS, CATEGORIES, STATUS_DPP, STATUS_PPN,
-        EXCLUDED_CATEGORIES, EXCLUDED_REKANAN,
     )
+    from services.exclusion import get_excluded_categories, get_excluded_rekanan
     from db_project import get_project_select
     from services.project_context import get_active_project_id, get_read_filter
     _rf = get_read_filter()
@@ -187,8 +187,10 @@ def inject_notif_counts():
         _upd_tip.append('Invoice: ' + _fmt_upd_d(_inv_ts))
     if _ktk_ts:
         _upd_tip.append('Kontrak: ' + _fmt_upd_d(_ktk_ts))
-    cat_n = len(EXCLUDED_CATEGORIES)
-    rek_n = len(EXCLUDED_REKANAN)
+    _exc_cats = get_excluded_categories()
+    _exc_reks = get_excluded_rekanan()
+    cat_n = len(_exc_cats)
+    rek_n = len(_exc_reks)
     exc_rows = 0
     if cat_n + rek_n > 0:
         import db as _db
@@ -203,9 +205,9 @@ def inject_notif_counts():
         return ', '.join(names[:limit]) + f' (+{len(names) - limit} lainnya)'
     _tip = []
     if cat_n:
-        _tip.append('Kategori: ' + _short(EXCLUDED_CATEGORIES))
+        _tip.append('Kategori: ' + _short(_exc_cats))
     if rek_n:
-        _tip.append('Rekanan: ' + _short(EXCLUDED_REKANAN))
+        _tip.append('Rekanan: ' + _short(_exc_reks))
     # Total levelansir aktif periode berjalan (untuk badge sidebar Inv. Minggu/Bulan Ini).
     # Ringan: single SQL COUNT DISTINCT, konsisten dgn tabel Ringkasan Levelansir.
     from services.laporan import current_week_key, current_month_key
