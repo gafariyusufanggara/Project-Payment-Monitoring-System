@@ -192,10 +192,12 @@ def build_rekap(contracts, year, month, all_months=False, today=None):
     bars_labels = []
     bars_years = []
     bars_datasets = []
+    bars_end_label = ''
     if dated:
         first = min(dated)
         last = max(dated)
         bars_end = min((year, month), (last.year, last.month))
+        bars_end_label = _MONTH_NAMES[bars_end[1]] + ' ' + str(bars_end[0])
         cy, cm = first.year, first.month
         # jangan pernah lewat dari bulan terpilih / bulan data terakhir
         while (cy, cm) <= bars_end:
@@ -255,6 +257,7 @@ def build_rekap(contracts, year, month, all_months=False, today=None):
         'grand_totals': grand_totals,
         'bars_labels': bars_labels,
         'bars_years': bars_years,
+        'bars_end_label': bars_end_label,
         'bars_datasets': bars_datasets,
         'donut_labels': [_BUCKET_LABELS[b] for b in bucket_order],
         'donut_data': [float(all_bkt[b]) for b in bucket_order],

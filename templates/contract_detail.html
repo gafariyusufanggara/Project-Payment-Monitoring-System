@@ -314,7 +314,6 @@
   {% set total_norm = termins|map(attribute='normalisasi')|sum %}
   {% set total_termin_nilai = termins|map(attribute='nilai')|sum %}
   {% set total_ppn = termins|map(attribute='ppn')|sum %}
-  {% set total_bayar = termins|map(attribute='total_bayar')|sum %}
   <section class="kd-card" aria-label="Jadwal termin">
     <div class="kd-card__head">
       <h2 class="kd-group__title"><i class="bi bi-calendar3" style="color:#16324f"></i> Jadwal Termin</h2>
@@ -376,7 +375,6 @@
               {% if not persen_ok %}<th class="num">Normalisasi (%)</th>{% endif %}
               <th class="num">Total Termin (Rp)</th>
               <th class="num">PPN per Termin (Rp)</th>
-              <th class="num">Total Pembayaran (Rp)</th>
               <th class="text-center" title="Status penagihan + pembayaran DPP tiap termin. Belum Ditagih = belum ada invoice DPP; Ditagih Sebagian = invoice baru menutup sebagian, belum ada pembayaran; Ditagih &amp; Bayar Sebagian = invoice menutup sebagian dan sudah ada pembayaran; Belum Dibayar = tertagih penuh tetapi belum ada pembayaran sama sekali; Bayar Sebagian = tertagih penuh, pembayaran baru sebagian; Lunas = tertagih penuh dan dibayar penuh.">Status DPP</th>
               <th class="text-center" title="Status penagihan + pembayaran PPN tiap termin. Belum Ditagih = belum ada invoice PPN; Ditagih Sebagian = invoice baru menutup sebagian, belum ada pembayaran; Ditagih &amp; Bayar Sebagian = invoice menutup sebagian dan sudah ada pembayaran; Belum Dibayar = tertagih penuh tetapi belum ada pembayaran sama sekali; Bayar Sebagian = tertagih penuh, pembayaran baru sebagian; Lunas = tertagih penuh dan dibayar penuh.">Status PPN</th>
             </tr>
@@ -390,7 +388,6 @@
               {% if not persen_ok %}<td class="cell-money">{{ '%.2f'|format(t.normalisasi) }}%</td>{% endif %}
               <td class="cell-money">{{ t.nilai|money }}</td>
               <td class="cell-money">{{ t.ppn|money }}</td>
-              <td class="cell-money">{{ t.total_bayar|money }}</td>
               <td class="text-center">
                 {% set st = t.status_dpp %}
                 {% if st == 'Lunas' %}
@@ -432,7 +429,6 @@
               {% if not persen_ok %}<td class="cell-money">{{ '%.2f'|format(total_norm) }}%</td>{% endif %}
               <td class="cell-money">{{ total_termin_nilai|money }}</td>
               <td class="cell-money">{{ total_ppn|money }}</td>
-              <td class="cell-money">{{ total_bayar|money }}</td>
               <td class="text-center" title="Total DPP yang sudah ditagih pada kontrak ini">{{ contract.tertagih|money }}</td>
               <td class="text-center" title="Total PPN yang sudah ditagih pada kontrak ini">{{ contract.tertagih_ppn|money }}</td>
             </tr>

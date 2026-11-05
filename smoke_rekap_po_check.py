@@ -103,6 +103,13 @@ _html = client.get('/kontrak/rekap-no-po').get_data(as_text=True)
 assert client.get('/kontrak/rekap-no-po').status_code == 200, \
     'halaman Rekap Kontrak tidak HTTP 200'
 _money = appmod.app.jinja_env.filters['money']
+_period_key = re.search(r'<option value="(\d{4}-\d{2})"', _html)
+assert _period_key, 'tidak ada opsi periode bulanan untuk uji judul chart'
+_period_key = _period_key.group(1)
+_html_period = client.get(f'/kontrak/rekap-no-po?period={_period_key}').get_data(as_text=True)
+_month_label = re.search(r'id="rpPeriodBadgeText">([^<]*)<', _html_period).group(1).strip()
+assert _month_label and _month_label != 'Semua Bulan', \
+    'label periode pada halaman berperiode harus bulan spesifik'
 for _needle in ('id="rpTable"', 'id="rpChartBar"', 'id="rpChartDonut"',
                 'NILAI KONTRAK', 'S/D BULAN LALU', 'BULAN INI', 'SD BULAN INI',
                 'id="rpKpiPrev"', 'id="rpKpiBln"', 'id="rpKpiSdi"',
@@ -233,18 +240,24 @@ for _needle in ('function applyPeriod', 'function buildSeries', 'rpUpdateBarChar
                 'id="rpKpiSdi"', 'name="period"', 'id="rpFilterBucket"',
                 "getElementById('rpFilterBucket')", 'rpRefreshFilteredSummary',
                 "getElementById('rpVendorBadgeText')", "getElementById('rpContractBadgeText')",
-                'moneyNumber', "periodVisible === '1'", "counted === '1'", "kpis[groups[gi]][b]"):
+                'moneyNumber', "periodVisible === '1'", "counted === '1'", "kpis[groups[gi]][b]",
+                "tr.dataset.filterPass !== '0'"):
     assert _needle in _html, f'{_needle!r} tidak ada (filter client-side belum lengkap)'
 assert 'rpPeriodGo' not in _html and 'rpPeriodSubmit' not in _html, \
     'ganti periode masih memakai navigasi halaman, bukan hitung ulang di tempat'
-assert _html.index('id="rpPeriod"') < _html.index('id="rpFilterBucket"') < _html.index('id="rpSearch"'), \
-    'filter kategori harus berada setelah periode dan sebelum pencarian'
+assert _html.index('id="rpPeriod"') < _html.index('id="rpFilterBucket"'), \
+    'filter kategori harus berada setelah pemilihan periode'
 assert _html.index('rp-filter-rail') < _html.index('class="rp-kpis"'), \
-    'periode + kategori harus berada di atas KPI'
+    'periode harus berada di atas KPI'
 _toolbar = re.search(r'<div class="table-toolbar">(.*?)<div class="table-scroll">', _html, re.S)
 assert _toolbar, 'toolbar tabel tidak ditemukan'
 _toolbar_html = _toolbar.group(1)
 assert 'id="rpSearch"' in _toolbar_html, 'form pencarian harus tetap di toolbar tabel'
+assert 'id="rpFilterBucket"' in _toolbar_html, 'filter kategori harus berada di toolbar tabel'
+assert _toolbar_html.index('id="rpSearch"') < _toolbar_html.index('id="rpFilterBucket"'), \
+    'filter kategori harus sejajar di kanan form pencarian'
+assert 'id="rpPeriod"' not in _toolbar_html, \
+    'pemilihan periode tidak boleh tersisa di toolbar tabel'
 for _badge_id in ('rpVendorBadge', 'rpContractBadge', 'rpPeriodBadge'):
     assert f'id="{_badge_id}"' in _toolbar_html, f'badge {_badge_id} harus ada di toolbar tabel'
 assert (_toolbar_html.index('id="rpVendorBadge"')
@@ -252,14 +265,29 @@ assert (_toolbar_html.index('id="rpVendorBadge"')
         < _toolbar_html.index('id="rpPeriodBadge"')
         > _toolbar_html.index('id="rpCount"')), \
     'urutan badge harus Vendor, Kontrak, Periode (periode paling kanan)'
-assert 'id="rpPeriod"' not in _toolbar_html and 'id="rpFilterBucket"' not in _toolbar_html, \
-    'pemilihan periode/kategori tidak boleh tersisa di toolbar tabel'
+assert 'id="rpPeriod"' not in _toolbar_html, \
+    'pemilihan periode tidak boleh tersisa di toolbar tabel'
 for _opt in ('Semua Kategori', 'value="kso"', 'value="unit"', 'value="pusat"'):
     assert _opt in _html, f'opsi filter kategori {_opt!r} tidak ada'
 assert 'te.instances[rpTable.id]' in _html, \
     'filter periode harus cek instance TableEnhance milik rpTable'
-assert 'per Kategori' in _html and '>Bucket</th>' not in _html, \
+assert '(Per Kategori)' in _html and '>Bucket</th>' not in _html, \
     'label Bucket belum diganti Kategori'
+assert 'id="rpChartBarTitle"' in _html and 'id="rpChartDonutTitle"' in _html, \
+    'judul chart harus punya id agar ikut berubah saat periode diganti'
+assert 'Nilai Kontrak Per Bulan (per Kategori)' not in _html, \
+    'judul bar chart masih memakai label lama "Per Bulan"'
+assert 'Komposisi Nilai Kontrak (per Kategori)' not in _html, \
+    'judul donut chart masih memakai label lama tanpa batas periode'
+_bar_title = re.search(r'id="rpChartBarTitle">([^<]*)<', _html_period)
+_donut_title = re.search(r'id="rpChartDonutTitle">([^<]*)<', _html_period)
+assert _bar_title and _donut_title, 'judul chart tidak ditemukan di HTML'
+assert _bar_title.group(1).strip() == f'Nilai Kontrak S/D {_month_label} (Per Kategori)', \
+    f'judul bar chart salah: {_bar_title.group(1)!r}'
+assert _donut_title.group(1).strip() == f'Komposisi Nilai Kontrak S/D {_month_label} (Per Kategori)', \
+    f'judul donut chart salah: {_donut_title.group(1)!r}'
+assert "rpChartBarTitle')" in _html and "rpChartDonutTitle')" in _html, \
+    'judul chart belum diperbarui oleh applyPeriod'
 assert 'name="month"' not in _html and 'name="year"' not in _html, \
     'masih ada dua dropdown bulan/tahun terpisah'
 assert 'data-step=' not in _html, 'tombol prev/next lama masih ada'
@@ -337,7 +365,7 @@ assert f'id="rpKpiPrev">{_money(_oct_ctx["grand_totals"]["sd_bulan_lalu"])}' in 
     'nilai KPI S/D Bulan Lalu pada periode Okt tidak kumulatif'
 assert f'id="rpKpiSdi">{_money(_oct_ctx["grand_totals"]["sd_bulan_ini"])}' in _o, \
     'nilai KPI S/D Bulan Ini pada periode Okt tidak kumulatif'
-print('[6] filter periode OK: rail di atas KPI, toolbar hanya pencarian + badge')
+print('[6] filter periode OK: rail di atas KPI, toolbar = pencarian + kategori + badge')
 
 # --- 8. Opsi dropdown = 'Semua Bulan' + bulan yang ada di data TGL Kontrak ---
 _periods = re.findall(r'<option value="(\d{4}-\d{2})"', _html)

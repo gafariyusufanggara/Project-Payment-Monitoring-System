@@ -28,12 +28,17 @@
   .rp-filter-rail { margin-bottom: 0; flex-wrap: wrap; row-gap: 8px; }
   .rp-filter-rail .lp-rail-label { border-right: 0; margin-right: 0; padding-right: 0; }
   .rp-period-form { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .rp-bucket-field { display: inline-flex; align-items: center; gap: 7px; flex: 0 0 auto; padding: 0 10px; height: 34px; border: 1px solid var(--dt-border); border-radius: 10px; background: #fff; color: #526579; }
+  .rp-bucket-field i { font-size: 0.8rem; }
+  .rp-bucket-field .lp-sel { border: 0; background: transparent; height: auto; min-width: 0; max-width: none; margin-right: 0; padding: 0 18px 0 0; font-size: 0.76rem; font-weight: 600; color: var(--dt-navy); box-shadow: none; }
   .rp-badges { margin-left: auto; display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
   .rp-period-badge, .rp-count-badge { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border: 1px solid var(--dt-border); border-radius: 10px; background: var(--dt-accent-soft); color: var(--dt-navy); font-size: 0.74rem; font-weight: 700; white-space: nowrap; }
   .rp-period-badge i, .rp-count-badge i { font-size: 0.82rem; }
   @media (max-width: 576px) {
     .rp-filter-rail, .rp-filter-rail .lp-rail-group, .rp-period-form { width: 100%; }
     .rp-filter-rail .lp-sel { flex: 1 1 auto; max-width: none; }
+    .rp-toolbar .ds-search.ft-search { flex: 1 1 100%; max-width: none; }
+    .rp-bucket-field { flex: 1 1 auto; }
   }
   @media (prefers-reduced-motion: reduce) {
     .rp-chart-box { transition: none; }
@@ -138,15 +143,6 @@
       </select>
       <noscript><button type="submit" class="lp-btn"><i class="bi bi-check-lg"></i> Terapkan</button></noscript>
     </form>
-    <div class="lp-rail-group">
-      <label class="lp-rail-label" for="rpFilterBucket"><i class="bi bi-funnel" aria-hidden="true"></i> Kategori</label>
-      <select id="rpFilterBucket" class="lp-sel" aria-label="Filter kategori kontrak">
-        <option value="">Semua Kategori</option>
-        <option value="kso">KSO</option>
-        <option value="unit">Unit Bisnis</option>
-        <option value="pusat">Pusat</option>
-      </select>
-    </div>
   </div>
 
   <div class="rp-kpis">
@@ -166,12 +162,12 @@
 
   <div class="rp-charts">
     <div class="rp-chart-box">
-      <h6 class="rp-chart-title"><span class="rp-chart-title__ico" aria-hidden="true"></span> Nilai Kontrak Per Bulan (per Kategori)</h6>
-      <div class="rp-chart-canvas"><canvas id="rpChartBar" role="img" aria-label="Grafik batang bertumpuk nilai kontrak tiap bulan, dipisah per kategori KSO, Unit Bisnis, dan Pusat."></canvas></div>
+      <h6 class="rp-chart-title"><span class="rp-chart-title__ico" aria-hidden="true"></span> <span id="rpChartBarTitle">Nilai Kontrak S/D {{ bars_end_label or month_label }} (Per Kategori)</span></h6>
+      <div class="rp-chart-canvas"><canvas id="rpChartBar" role="img" aria-label="Grafik batang bertumpuk nilai kontrak tiap bulan s/d {{ bars_end_label or month_label }} periode terpilih, dipisah per kategori KSO, Unit Bisnis, dan Pusat."></canvas></div>
     </div>
     <div class="rp-chart-box">
-      <h6 class="rp-chart-title"><span class="rp-chart-title__ico" aria-hidden="true"></span> Komposisi Nilai Kontrak (per Kategori)</h6>
-      <div class="rp-chart-canvas"><canvas id="rpChartDonut" role="img" aria-label="Diagram donat komposisi nilai kontrak s/d periode terpilih per kategori: KSO, Unit Bisnis, dan Pusat."></canvas></div>
+      <h6 class="rp-chart-title"><span class="rp-chart-title__ico" aria-hidden="true"></span> <span id="rpChartDonutTitle">Komposisi Nilai Kontrak S/D {{ bars_end_label or month_label }} (Per Kategori)</span></h6>
+      <div class="rp-chart-canvas"><canvas id="rpChartDonut" role="img" aria-label="Diagram donat komposisi nilai kontrak s/d {{ bars_end_label or month_label }} periode terpilih per kategori: KSO, Unit Bisnis, dan Pusat."></canvas></div>
     </div>
   </div>
 
@@ -186,6 +182,16 @@
               <button type="button" class="ft-search-clear" id="rpSearchClear" aria-label="Bersihkan pencarian" hidden><i class="bi bi-x-lg"></i></button>
               <kbd class="ft-search-kbd" aria-hidden="true">/</kbd>
             </div>
+            <label class="rp-bucket-field" for="rpFilterBucket">
+              <i class="bi bi-funnel" aria-hidden="true"></i>
+              <span class="visually-hidden">Filter kategori kontrak</span>
+              <select id="rpFilterBucket" class="lp-sel" aria-label="Filter kategori kontrak">
+                <option value="">Semua Kategori</option>
+                <option value="kso">KSO</option>
+                <option value="unit">Unit Bisnis</option>
+                <option value="pusat">Pusat</option>
+              </select>
+            </label>
             <span class="search-count" id="rpCount" aria-live="polite"></span>
             <div class="rp-badges">
               <span class="rp-count-badge" id="rpVendorBadge" title="Jumlah vendor pada filter aktif">
@@ -427,6 +433,18 @@
     return { labels: labels, years: years, data: [data.kso, data.unit, data.pusat] };
   }
 
+  function chartEndLabel(rows, y, m) {
+    var maxK = null;
+    rows.forEach(function (r) {
+      if (!r.tgl) return;
+      var k = r.tgl.y * 100 + r.tgl.m;
+      if (maxK === null || k > maxK) maxK = k;
+    });
+    var endK = maxK === null ? y * 100 + m : Math.min(y * 100 + m, maxK);
+    var ey = Math.floor(endK / 100), em = endK % 100;
+    return MONTHS[em] + ' ' + ey;
+  }
+
   function applyPeriod(y, m, all) {
     var wrap = document.querySelector('.rp-wrap');
     if (all && wrap) {
@@ -474,6 +492,15 @@
     if (grpBln) grpBln.textContent = 'BULAN INI · ' + (MONTHS[m] + ' ' + y).toUpperCase();
     var grpSdi = document.getElementById('rpGrpSdi');
     if (grpSdi) grpSdi.textContent = 'SD BULAN INI · ' + (MONTHS[m] + ' ' + y).toUpperCase();
+    var chartEnd = chartEndLabel(rows, y, m);
+    var chartBarTitle = document.getElementById('rpChartBarTitle');
+    if (chartBarTitle) chartBarTitle.textContent = 'Nilai Kontrak S/D ' + chartEnd + ' (Per Kategori)';
+    var chartDonutTitle = document.getElementById('rpChartDonutTitle');
+    if (chartDonutTitle) chartDonutTitle.textContent = 'Komposisi Nilai Kontrak S/D ' + chartEnd + ' (Per Kategori)';
+    var barCanvas = document.getElementById('rpChartBar');
+    if (barCanvas) barCanvas.setAttribute('aria-label', 'Grafik batang bertumpuk nilai kontrak tiap bulan s/d ' + chartEnd + ', dipisah per kategori KSO, Unit Bisnis, dan Pusat.');
+    var donutCanvas = document.getElementById('rpChartDonut');
+    if (donutCanvas) donutCanvas.setAttribute('aria-label', 'Diagram donat komposisi nilai kontrak s/d ' + chartEnd + ' periode terpilih per kategori: KSO, Unit Bisnis, dan Pusat.');
     var badgeText = document.getElementById('rpPeriodBadgeText');
     if (badgeText) badgeText.textContent = all ? 'Semua Bulan' : MONTHS[m] + ' ' + y;
     var badge = document.getElementById('rpPeriodBadge');
@@ -506,7 +533,7 @@
 
     document.querySelectorAll('#rpBody tr').forEach(function (tr) {
       var counted = tr.dataset.counted === '1';
-      var shown = tr.dataset.periodVisible === '1';
+      var shown = tr.dataset.periodVisible === '1' && tr.dataset.filterPass !== '0';
       if (counted) chartRows.push({
         tgl: parseISO(tr.getAttribute('data-tgl')),
         dpp: +tr.getAttribute('data-dpp') || 0,
@@ -541,7 +568,7 @@
     if (sdiVal) sdiVal.textContent = rpMoney(sumOf('sdi'));
 
     if (typeof window.rpUpdateDonut === 'function') {
-      window.rpUpdateDonut([totals.kini.kso, totals.kini.unit, totals.kini.pusat]);
+      window.rpUpdateDonut([kpis.kini.kso, kpis.kini.unit, kpis.kini.pusat]);
     }
     var series = buildSeries(chartRows, y, m);
     if (typeof window.rpUpdateBarChart === 'function') {
