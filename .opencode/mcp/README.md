@@ -45,23 +45,9 @@ library API call must not be written.
 - `playwright` and `chrome-devtools` drive a browser on the machine. Do not point
   them at accounts you would not want an agent to touch.
 - No secret is passed to either of them.
-- **Known open issue in this setup:** the Tavily API key is stored in plaintext
-  in `opencode.jsonc`. Move it to an environment variable
-  (`"Authorization": "Bearer {env:TAVILY_API_KEY}"`) when convenient.
-
-## VibeSkills interaction (resolved)
-
-VibeSkills v4.1.1 ships `config/forbidden-mcp-policy.json` which listed
-`chrome`, `chrome-devtools`, `playwright`, `context7`, `claude-flow` as
-forbidden. That would have made `/vibe` refuse the exact tools this SOP needs.
-
-Resolution applied in this repo: the vendored copy at
-`.opencode/skills/vibe/config/forbidden-mcp-policy.json` has `installation: allowed`,
-`runtime_recommendation: allowed`, and an empty `forbidden_mcp_ids`, with the
-reason recorded in the file. Everything else in VibeSkills is untouched.
-
-If VibeSkills is updated and this override is lost, re-apply it (see
-`.opencode/mcp/INSTALL.md`, section "Re-applying the VibeSkills MCP override").
+- Tavily: `bootstrap-windows.ps1 -TavilyKey` stores the key in the user
+  environment and writes only `"Authorization": "Bearer {env:TAVILY_API_KEY}"`
+  to the config. If you added it by hand, do the same; never commit the key.
 
 ## Verify the MCP servers are live
 

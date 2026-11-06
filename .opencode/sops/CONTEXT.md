@@ -8,35 +8,74 @@ expensive mistake available: one unrouted command can dump tens of KB.
 ## 1. Shell: always prefix with `rtk`
 
 Every shell command goes through `rtk`. It filters output (60-90% reduction) and
-passes through unchanged when it has no filter, so it is always safe.
+passes through unchanged when it has no filter. It is safe as a pass-through, but
+it is **not universal**: see the Windows limits table below — some commands do
+not exist there at all.
 
 ```bash
 rtk git status        rtk git diff        rtk git log
-rtk find <pattern>    rtk read <file>     rtk grep <pattern>
+rtk find <path>       rtk read <file>     rtk grep <pattern>
 rtk pytest tests/     rtk test <cmd>      rtk tsc
 rtk lint              rtk npm run <script>
 rtk gh pr view <n>    rtk docker ps       rtk pip list
 ```
 
-Chain each segment separately:
+Shell is Windows PowerShell 5.1, which has no `&&`. Prefer one tool call per command. Use `;` only when the next step may run after a failure:
 
-```bash
-rtk git add . && rtk git commit -m "msg"
+```powershell
+rtk git status; rtk git diff --stat
 ```
 
 Exceptions — use the raw command:
 - Debugging why a command produces unexpected output.
 - `rtk proxy <cmd>` runs unfiltered but still counts usage.
 
-### rtk limits on Windows (verified against rtk 0.40.0)
+### Command-line cheat sheet (pick before you type)
+
+| Intent | Do this | Not this |
+|---|---|---|
+| List a directory | `rtk find <path> -maxdepth 1` | `rtk ls` (not on Windows) |
+| Find files | `rtk find docs -name *.md` (scope path!) | `rtk find . -name *.md` (node_modules flood) |
+| Read file to Edit | `Read` tool | `rtk read` (output lands in context, fine for small files only) |
+| Read file to analyse | `ctx_execute_file(path, lang, code)` | `Read` the whole thing |
+| Structured search | `rtk grep <pattern> <path>` | shell `grep` |
+| JSON read | `rtk json <file.json>` | `rtk json <file.toml>` |
+| Big analysis/logs | `ctx_execute` with a filter | raw `Get-Content` / `cat` |
+| Fetch a web page | `ctx_fetch_and_index` then `ctx_search` | `curl` / `Invoke-WebRequest` (blocked) |
+
+### `rtk find` rules that keep output small
+
+- **Scope the path**: `rtk find src -name *.tsx`, not `rtk find . ...` from the
+  repo root — unscoped walks print `node_modules` (200+ lines, truncated).
+- Globs: `-name *.md` works in PowerShell. In bash, quote it (`-name '*.md'`) so the shell does not expand it first.
+- `-maxdepth N` works: `rtk find . -maxdepth 2 -name package.json`.
+- **`0 for '<pattern>'` is a valid "no match", NOT an error, and NOT proof the
+  file is absent if the path is wrong.** If the path was absolute it is absent;
+  if relative, verify the cwd first.
+- No `-not`, `-exec`, or compound predicates.
+
+### Working directory (cwd) — the silent failure
+
+`ctx_execute`, `ctx_batch_execute` and plain shell calls run from the **session
+working directory**, which is whatever folder opencode was started in. It is not
+guaranteed to be the project root.
+
+- In `ctx_batch_execute` commands, use **absolute paths**:
+  `rtk find "C:/path/to/project/docs" -name *.md`.
+- If a relative path returns `0 for '*'`, the likeliest cause is wrong cwd, not a
+  missing file. Re-check with an absolute path before reporting "file missing".
+- When the task spans a project, run `Set-Location <project>` once or pass
+  absolute paths in every command.
+
+### rtk limits on Windows (verified against rtk 0.40.0; bootstrap installs the current winget build)
 
 | Do not write | Why | Write instead |
 |---|---|---|
+| `rtk ls <path>` | proxies native `ls`, absent on Windows | `rtk find <path> -maxdepth 1` |
 | `rtk find ... -not -path ...` | rtk rejects compound predicates | scope the path: `rtk find docs ...` |
 | `rtk find ... -exec ...` | same | run the action as its own command |
-| `rtk find ... -name '*.md'` | quoted glob arrives literally, matches nothing | `-name *.md` (no quotes) |
+| `-name '*.md'` in bash | bash expands the glob before rtk sees it | quote it in bash; PowerShell passes the pattern literally |
 | `rtk json pyproject.toml` | `rtk json` parses JSON only | `rtk read pyproject.toml` |
-| `rtk ls -R` | proxies to native `ls`, absent on Windows | `rtk find <path> -maxdepth N` |
 
 `rtk find` prints `0 for <pattern>` when nothing matches. That is a valid
 result, not a failed command. Do not retry with different flags.
@@ -80,6 +119,8 @@ ctx_batch_execute(commands: [{label:"a", command:"..."}, ...],
                   queries: ["q1","q2"], concurrency: 5)
 ```
 
+- Commands run from the **session cwd** (see §1 "Working directory"). Use
+  absolute paths inside commands, or `cd <project-root>` first.
 - `concurrency: 4-8` for I/O-bound work (network, `gh`, API, multi-repo reads).
 - `concurrency: 1` for CPU-bound (build, test, lint) or state-sharing commands
   (ports, lock files, same-repo writes).
@@ -128,10 +169,14 @@ then read.
 
 ```js
 ctx_batch_execute(commands: [
-  {label:"docs-tree",  command:"rtk find docs -type f -name *.md"},
+  {label:"docs-tree",  command:"rtk find docs -name *.md"},
   {label:"docs-root",  command:"rtk find . -maxdepth 1 -name *.md"}
 ], queries: ["requirements","stack","features","design system","decisions"])
 ```
+
+The `docs` path is relative to the session cwd. If `docs-tree` returns
+`0 for '*.md'`, retry once with the absolute project path before concluding that
+`docs/` does not exist.
 
 Then read what exists, cheapest first:
 
@@ -210,16 +255,19 @@ fresh session, not an excuse to prompt.
 
 | Need | Entry |
 |---|---|
-| Ambiguous multi-part task, want skill orchestration | `$vibe` (`.opencode/skills/vibe`) |
 | Non-trivial feature | `feature-dev` (global skill) (power-pack) or `/new-feature` |
 | New UI, page, or redesign | `.opencode/skills/hallmark` or `/build-ui` |
 | UI is off but nothing is obviously broken | `.opencode/skills/refactoring-ui` or `/ui-audit` |
 | Design bans and craft rules | `.opencode/skills/design-taste` |
 | Codebase architecture survey | `improve-codebase-architecture` (global skill) |
-| Router over all skills | `.opencode/skills/vibe`, fallback `find-skills` (global skill) |
+| Need a skill by description | `find-skills` (global skill) |
 
-Do not stack two orchestrators in one turn. `$vibe` and `feature-dev` both plan;
-pick one.
+The vendored skills are `hallmark`, `refactoring-ui`, `design-taste`, and
+`i-have-adhd`. `vibe` was removed: it was broken (`apps/vgo-cli` missing) and
+added 3.5 MB. For multi-part work use `/new-feature` or `feature-dev`.
+
+Do not stack two orchestrators in one turn. `feature-dev` and `to-spec` both
+plan; pick one.
 
 ## 7. Context budget heuristics
 

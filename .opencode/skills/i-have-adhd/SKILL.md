@@ -8,6 +8,8 @@ metadata:
   category: "productivity"
 ---
 
+<!-- Copy of .opencode/instructions/ADHD.md. Keep both in sync. -->
+
 # i-have-adhd
 
 The reader has ADHD. Output is not just brief. It is shaped so an ADHD brain can act on it.

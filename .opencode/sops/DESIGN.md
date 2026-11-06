@@ -2,7 +2,7 @@
 
 Three layers. Lower number beats higher number when they disagree.
 
-- **Layer 1 — Hallmark Floor.** Non-waivable. Every output, every stack.
+- **Layer 1 — Hallmark Floor.** Non-waivable. Applies to every user-visible UI the agent writes, on every stack. Load the Hallmark skill only for new pages.
 - **Layer 2 — refactoring-ui.** The diagnostic rulebook (151 rules from
   *Refactoring UI*, the book by Tailwind's authors).
 - **Layer 3 — design-taste / impeccable.** Craft depth: OKLCH colour, motion,
@@ -121,9 +121,10 @@ Use the `playwright` MCP, not imagination. A UI claim without a screenshot is a
 guess.
 
 ```text
-browser_resize 320x800    -> screenshot  (mobile)
-browser_resize 768x1024   -> screenshot  (tablet)
-browser_resize 1440x900   -> screenshot  (desktop)
+playwright_browser_resize width=320 height=800    -> screenshot  (mobile)
+playwright_browser_resize width=768 height=1024   -> screenshot  (tablet)
+playwright_browser_resize width=1280 height=800   -> screenshot  (hero fold)
+playwright_browser_resize width=1440 height=900   -> screenshot  (desktop)
 ```
 
 Check on each: hero fits without scroll, no horizontal scrollbar, heading does
@@ -131,12 +132,13 @@ not overflow, focus ring visible via keyboard Tab, no layout shift on load.
 
 ### Accessibility and performance
 
-Use the `chrome-devtools` MCP against the running dev server:
+Use the `chrome-devtools` MCP against the production/preview server (`build`
+then `start`/`preview`), never the dev server:
 
 - Console: zero errors.
 - Network: no 404 on assets or fonts.
 - a11y tree / axe: zero critical.
-- Performance trace: LCP < 2.5 s, CLS < 0.1 on the desktop viewport.
+- Performance trace: run `chrome-devtools_performance_start_trace` then `chrome-devtools_performance_stop_trace`, then `chrome-devtools_performance_analyze_insight` for LCP and CLS. Pass: LCP < 2.5 s, CLS < 0.1 on the desktop viewport.
 
 ## Rules of engagement
 

@@ -25,7 +25,7 @@ if (-not (Test-Path $skillsDir)) {
 }
 
 $names = Get-ChildItem $skillsDir -Directory | Where-Object {
-  Test-Path (Join-Path $_.FullName 'SKILL.md')
+  $_.Name -ne 'vibe' -and (Test-Path (Join-Path $_.FullName 'SKILL.md'))
 } | Select-Object -ExpandProperty Name
 
 if ($List) {

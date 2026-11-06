@@ -21,7 +21,7 @@ Layout this file expects in a project root:
 Placeholders to fill: PROJECT_NAME, and the stack after running /stack.
 -->
 
-# PROJECT PAYMENT MONITORING SYSTEM — Agent Instructions
+# PROJECT_NAME — Agent Instructions
 
 You are a coding agent working in this repository. This file is the routing
 table. Detailed procedures live in `.opencode/sops/`.
@@ -34,19 +34,22 @@ table. Detailed procedures live in `.opencode/sops/`.
 4. `.opencode/skills/*/SKILL.md` (specialist method).
 5. Global `~/.config/opencode/AGENTS.md` (tooling: rtk, context-mode).
 
-When two rules conflict, the higher number wins. When a skill conflicts with
+When two rules conflict, the lower number wins. When a skill conflicts with
 `.opencode/sops/DESIGN.md`, the SOP wins.
 
-## Read order at session start
+## Load order (by trigger, not all up front)
 
-0. **`docs/`** — the project documents. Contents vary per project: list it, read
-   what is relevant (PRD, STACK, features, DESIGN, ADR). These are the source of
-   truth and beat every rule below them.
-1. `.opencode/STACK.md` — if missing, run `/stack` first. Never assume a stack.
-2. `.opencode/sops/WEB_DEV.md` — the phase procedure.
-3. `.opencode/sops/CONTEXT.md` — tool routing (rtk, context-mode, graphify, docs).
-4. `.opencode/sops/QUALITY_GATE.md` — definition of done.
+0. **`docs/`** — always first. Contents vary per project: list it, read what is
+   relevant (PRD, STACK, features, DESIGN, ADR). Source of truth; beats every
+   rule below.
+1. `.opencode/STACK.md` — before any implementation. If missing, run `/stack`.
+2. `.opencode/sops/WEB_DEV.md` — before the first implementation step.
+3. `.opencode/sops/CONTEXT.md` — before the first shell or context-mode call.
+4. `.opencode/sops/QUALITY_GATE.md` — before claiming done.
 5. `.opencode/sops/DESIGN.md` — only if the task touches user-visible UI.
+6. `.opencode/sops/STACKS.md` — at WEB_DEV Phase 0b, before any build or test command.
+
+Load a SOP when its trigger fires. Do not preload all five into every session.
 
 ## Hard rules (never violate)
 
@@ -54,6 +57,9 @@ When two rules conflict, the higher number wins. When a skill conflicts with
   `rtk pytest`. Unfiltered only when debugging rtk itself or when the `rtk`
   wrapper rejects the flags — limits are listed in `.opencode/sops/CONTEXT.md`
   §1 (`-not`/`-exec`, quoted globs, TOML via `rtk json`, `rtk ls`).
+- **cwd is not guaranteed to be the project root.** In `ctx_*` and shell
+  commands use absolute paths, or `cd <project-root>` first. `0 for '*'` from
+  `rtk find` means "wrong path or empty", never proof a file is missing.
 - **`docs/` is the source of truth.** Quote the requirement before writing code.
   Project documents beat upstream docs and your assumptions.
 - **No library API from memory.** Verify against official docs fetched this
@@ -66,10 +72,39 @@ When two rules conflict, the higher number wins. When a skill conflicts with
   "<question>"` precedes `grep`.
 - **Detect, never assume, the stack.**
 - **UI is not done without evidence.** `sloplint` clean plus screenshots at
-  320/768/1440 via playwright. A visual claim without a screenshot is a guess.
+  320/768/1280/1440 via playwright. A visual claim without a screenshot is a guess.
 - **No code comments unless the user asks.**
 - **No commit, no push, no PR unless the user asks.**
+- **Shell is Windows PowerShell 5.1.** No `&&`. Use separate calls or `;`. No bash-only syntax.
 - **Never invent content.** No fake metrics, testimonials, logos, or images.
+
+## Tool-call cheat sheet (read before typing a tool name)
+
+Pick the tool by intent, not by habit. Wrong tool = wrong result, not a slower one.
+
+| Intent | Right tool | Wrong tool |
+|---|---|---|
+| Read a file you will `Edit` | `Read` | `rtk read` (fine for small, wasteful for big) |
+| Analyse / summarise / parse a file | `ctx_execute_file(path, lang, code)` | `Read` the whole file |
+| Filter, count, aggregate command output | `ctx_execute` (print only the answer) | Bash, then read raw output |
+| 3+ related shell commands | `ctx_batch_execute({label, command}[])` | 3+ sequential Bash calls |
+| Verify build/lint/typecheck/test | `rtk npx tsc` / `rtk npx eslint .` / `rtk npx vitest run` | raw `npx` (no filtering) |
+| List a directory (Windows) | `rtk find <path> -maxdepth 1` | `rtk ls` (binary not on PATH) |
+| Find files | `rtk find <scoped-path> -name *.md` | `rtk find .` (node_modules flood) |
+| Read a web page | `ctx_fetch_and_index(url, source)` then `ctx_search` | `curl` / `wget` / `Invoke-WebRequest` (blocked) |
+| Find an official docs URL | `tavily_tavily_search` first | guessing a URL |
+| Browser: screenshot, resize, click, a11y snapshot | playwright MCP (`browser_*`) | chrome-devtools for screenshots |
+| Console errors, 404s, LCP/CLS, perf trace, a11y tree | chrome-devtools MCP | guessing "looks fine" |
+| Codebase question (graph exists) | `graphify query "<q>"` | `grep` first |
+| Codebase question (no graph) | `rtk grep` / `rg`, then read 2-3 files | reading 40 files |
+
+Exit codes and non-errors:
+
+- `sloplint` exit `0` clean, `1` slop found (fix every FAIL), `2` no `.html`/`.tsx`
+  target found — a scope problem, **not** a design failure.
+- `rtk find` printing `0 for '<pattern>'` is a valid empty result.
+- A failing label inside `ctx_batch_execute` ("command not found", `rtk json`
+  on a missing file) is information, not a crash. Do not retry with new flags.
 
 ## Degraded mode — when tooling is missing
 
@@ -106,7 +141,6 @@ Rules:
 | Architecture question | `code-architect` subagent or `code-architect` (global skill) |
 | Understand a feature | `code-explorer` subagent, or `graphify query` |
 | Review before handoff | `reviewer` agent |
-| Ambiguous multi-part work | `$vibe` |
 | Need a skill by description | `find-skills` (global skill) |
 
 ## Design is not optional
@@ -151,7 +185,6 @@ Everything agent-related is under `.opencode/`, so the project root stays clean.
 | `.opencode/skills/hallmark` | Anti-slop design skill + deterministic linter |
 | `.opencode/skills/refactoring-ui` | 151-rule design rulebook and diagnostic |
 | `.opencode/skills/design-taste` | Ban catalogue, motion, interaction states |
-| `.opencode/skills/vibe` | Governed skill orchestrator (`$vibe`) |
 | `.opencode/skills/i-have-adhd` | Output shaping for a reader with ADHD |
 | `.opencode/instructions/ADHD.md` | Same ruleset, as an always-on instruction file |
 | `.opencode/mcp/` | MCP rationale, snippet, and install steps |

@@ -38,8 +38,9 @@ Fix every FAIL. Fix or waive every REFLEX with real evidence in the CSS stamp.
 
 ## Verification beyond sloplint
 
-- Screenshots at 320 / 768 / 1440 via `playwright` MCP.
-- `chrome-devtools` MCP: console, network, a11y critical, LCP, CLS.
+- Screenshots at 320 / 768 / 1280 / 1440 via `playwright` MCP.
+- `chrome-devtools` MCP against the production/preview server: console, network,
+  a11y critical, LCP, CLS.
 - Keyboard pass: Tab reaches every control, focus visible.
 - Reduced motion: animations degrade to instant.
 - Empty / loading / error states exist.

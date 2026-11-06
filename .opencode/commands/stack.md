@@ -8,7 +8,9 @@ Read `.opencode/sops/STACKS.md` and execute phase 0b only (stack detection).
 
 ## Procedure
 
-1. Detect with one batch call, not ten reads:
+1. Detect with one batch call, not ten reads. Commands run from the session
+   cwd — if the session cwd is not the project root, use absolute paths or
+   `cd <project-root>` first:
 
 ```js
 ctx_batch_execute(commands: [
@@ -17,7 +19,7 @@ ctx_batch_execute(commands: [
   {label:"manifest-go",  command:"rtk find . -maxdepth 2 -name go.mod"},
   {label:"manifest-rs",  command:"rtk find . -maxdepth 2 -name Cargo.toml"},
   {label:"configs",      command:"rtk find . -maxdepth 2 -name *.config.*"},
-  {label:"locks",        command:"rtk find . -maxdepth 2 -name *lock*"}
+  {label:"locks",        command:"rtk find . -maxdepth 1 -name *lock*"}
 ], queries: ["framework","package manager","styling","test runner","component library"])
 ```
 

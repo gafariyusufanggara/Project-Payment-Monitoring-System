@@ -6,17 +6,15 @@
 #
 # Usage:
 #   powershell -NoProfile -File .opencode\scripts\copy-to-project.ps1 -Destination "C:\path\to\project"
-#   powershell -NoProfile -File .opencode\scripts\copy-to-project.ps1 -Destination "..." -WithoutSkills
 #   powershell -NoProfile -File .opencode\scripts\copy-to-project.ps1 -Destination "..." -Force
 #
-# Default copies the skills too (~5 MB). -WithoutSkills skips them (use when the
-# skills are already installed globally via install-skills.ps1).
+# Copies the skills too (~5 MB) so every hardcoded sloplint path in the SOP works.
+# -Force replaces the template-owned folders and preserves STACK.md, plans/,
+# node_modules and anything else you added under .opencode/.
 
 param(
   [Parameter(Mandatory = $true)]
   [string]$Destination,
-
-  [switch]$WithoutSkills,
 
   [switch]$Force
 )
@@ -45,11 +43,18 @@ if ((Test-Path $agentsDst) -and -not $Force) {
 Write-Host "copying .opencode/ ..."
 New-Item -ItemType Directory -Path $agentsDst -Force | Out-Null
 
-$skip = @()
-if ($WithoutSkills) { $skip = @('skills') }
+if ($Force -and (Test-Path $agentsDst)) {
+  foreach ($owned in @('sops','agents','commands','skills','instructions','mcp','scripts')) {
+    $p = Join-Path $agentsDst $owned
+    if (Test-Path $p) { Remove-Item -LiteralPath $p -Recurse -Force }
+  }
+  $readme = Join-Path $agentsDst 'README.md'
+  if (Test-Path $readme) { Remove-Item -LiteralPath $readme -Force }
+  Write-Host "  replaced template-owned folders (STACK.md, plans/ and custom files kept)"
+}
 
 $dirs = Get-ChildItem $agentsDir -Directory |
-  Where-Object { ($skip -notcontains $_.Name) -and ($_.Name -ne 'node_modules') }
+  Where-Object { $_.Name -ne 'node_modules' }
 foreach ($d in $dirs) {
   Copy-Item -Path $d.FullName -Destination (Join-Path $agentsDst $d.Name) -Recurse -Force
   Write-Host "  .opencode/$($d.Name)"
@@ -99,11 +104,9 @@ Write-Host "  1. Open opencode in $Destination"
 Write-Host "  2. Run /stack          -> writes .opencode/STACK.md from real detection"
 Write-Host "  3. Edit AGENTS.md      -> replace PROJECT_NAME"
 Write-Host "  4. Put your documents in docs/ (PRD, STACK, features) - read before any code"
-if ($WithoutSkills) {
-  Write-Host "  5. Skills were skipped. Install them globally once:" -ForegroundColor Yellow
-  Write-Host "     powershell -NoProfile -File `"$PSScriptRoot\install-skills.ps1`""
-}
 
 Write-Host ""
 Write-Host "Suggested .gitignore additions:" -ForegroundColor Cyan
 Write-Host "  .opencode/STACK.md"
+Write-Host "  .opencode/node_modules/"
+Write-Host "  graphify-out/"

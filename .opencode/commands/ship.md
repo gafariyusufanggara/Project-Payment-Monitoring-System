@@ -48,8 +48,9 @@ detail to bury.
 node .opencode/skills/hallmark/scripts/sloplint.mjs <path> --render
 ```
 
-Then `playwright` MCP: resize 320 / 768 / 1440 and screenshot each.
-Then `chrome-devtools` MCP: console errors, 404s, a11y critical, LCP, CLS.
+Then `playwright` MCP: resize 320 / 768 / 1280 / 1440 and screenshot each.
+Then `chrome-devtools` MCP against the production/preview server: console
+errors, 404s, a11y critical, LCP, CLS.
 
 Attach the screenshot paths. State each number. Do not say "looks good".
 
@@ -78,6 +79,6 @@ Include the gate table with real values:
 | lint | 0 new |
 | tests | N passed |
 | sloplint | 0 FAIL, N waived |
-| screenshots | 320 / 768 / 1440 attached |
+| screenshots | 320 / 768 / 1280 / 1440 attached |
 | a11y | 0 critical |
 | LCP / CLS | x.x s / 0.0x |

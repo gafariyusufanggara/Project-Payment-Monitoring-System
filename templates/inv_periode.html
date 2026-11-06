@@ -46,9 +46,12 @@
     font-size: 0.78rem; font-weight: 700; color: #16324f;
   }
   .rp-card__title .tag {
-    font-size: 0.7rem; font-weight: 700; padding: 2px 9px; border-radius: 999px;
-    background: #eef0f2; color: #4d5766;
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 0.58rem; font-weight: 700; padding: 2px 10px; border-radius: 6px;
   }
+  .rp-card__title .tag.inv { background: var(--lp-badge-h-bg); color: var(--lp-ink-blue); border: 1px solid var(--lp-badge-h-bd); }
+  .rp-card__title .tag.teal { background: var(--lp-badge-p-bg); color: var(--lp-teal-dark); border: 1px solid var(--lp-badge-p-bd); }
+  .rp-card__title .tag.count { background: #eef0f2; color: #4d5766; border: 1px solid transparent; }
   .rp-scroll { max-height: 560px; overflow: auto; }
   .rp-tbl { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.78rem; }
   /* Badge jumlah invoice/pembayaran di nama levelansir (warna dari laporan.css).
@@ -147,11 +150,9 @@
       <div class="rp-card__title">
         <i class="bi bi-file-earmark-bar-graph"></i>
         Ringkasan Levelansir
-        <span class="tag">{{ visible|length }} levelansir</span>
-        <span class="inv-legend" style="margin-left:auto" aria-label="Keterangan badge">
-          <span><i class="swatch swatch-h"></i>Invoice masuk</span>
-          <span><i class="swatch swatch-p"></i>Pembayaran</span>
-        </span>
+        <span class="tag inv">{{ (row.total_count if row else 0) }} Invoice</span>
+        <span class="tag teal">{{ (row.total_pay_count if row else 0) }} Pembayaran</span>
+        <span class="tag count" style="margin-left:auto">{{ visible|length }} levelansir</span>
       </div>
       {% if plist %}
       <div class="rp-scroll">

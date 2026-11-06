@@ -24,6 +24,7 @@ $ErrorActionPreference = 'Continue'
 $agentsDir = Split-Path -Parent $PSScriptRoot
 $root = Split-Path -Parent $agentsDir
 $cfgDir = Join-Path $env:USERPROFILE '.config\opencode'
+. (Join-Path $PSScriptRoot 'lib-jsonc.ps1')
 
 $fail = 0
 $warn = 0
@@ -77,17 +78,16 @@ function Chrome-Present {
   return [bool]$c
 }
 
-function Read-Json($path) {
-  if (-not (Test-Path $path)) { return $null }
-  try { return (Get-Content $path -Raw | ConvertFrom-Json) } catch { return $null }
-}
-
 function Save-Json($path, $obj) {
   if ($DryRun) { Write-Host "       DRY: write $path" -ForegroundColor DarkGray; return }
   $backup = "$path.bak-bootstrap-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
   if (Test-Path $path) { Copy-Item $path $backup -Force }
-  $obj | ConvertTo-Json -Depth 30 | Set-Content $path -Encoding UTF8
-  if (Test-Path $backup) { Info "backup: $backup" }
+  try {
+    Write-JsonFile -Path $path -Object $obj
+    if (Test-Path $backup) { Info "backup: $backup" }
+  } catch {
+    Bad "failed to write $path : $($_.Exception.Message)"
+  }
 }
 
 function Get-Prop($obj, $name) {
@@ -182,6 +182,17 @@ if (Has-Cmd 'graphify') {
   Warn 'uv missing; graphify skipped (optional)'
 }
 
+if (Has-Cmd 'graphify') {
+  if (Has-Cmd 'uv') {
+    if ($DryRun) { Write-Host '       DRY: uv tool update-shell' -ForegroundColor DarkGray }
+    else { Run 'uv' @('tool','update-shell') | Out-Null }
+  }
+  $gv = & graphify --version 2>&1 | Out-String
+  if ($gv -match 'warning: skill .* is from graphify') {
+    Warn 'graphify skill/package drift detected. Run once: graphify install'
+  }
+}
+
 # ------------------------------------------------------------ context-mode shell
 Step 'context-mode shell'
 
@@ -207,8 +218,15 @@ if (-not (Test-Path $cfgDir)) {
 
 $jsonPath  = Join-Path $cfgDir 'opencode.json'
 $jsoncPath = Join-Path $cfgDir 'opencode.jsonc'
-$jsonObj   = Read-Json $jsonPath
-$jsoncObj  = Read-Json $jsoncPath
+$jsonRead  = Read-JsonFile -Path $jsonPath
+$jsoncRead = Read-JsonFile -Path $jsoncPath
+$jsonObj   = $jsonRead.Value
+$jsoncObj  = $jsoncRead.Value
+
+$parseErrors = @()
+if (-not $jsonRead.Ok)  { $parseErrors += "opencode.json: $($jsonRead.Error)" }
+if (-not $jsoncRead.Ok) { $parseErrors += "opencode.jsonc: $($jsoncRead.Error)" }
+$configWritable = ($parseErrors.Count -eq 0)
 
 $targetPath = $null
 if ((Get-Prop $jsoncObj 'plugin') -or (Get-Prop $jsonObj 'plugin')) {
@@ -220,18 +238,24 @@ if ((Get-Prop $jsoncObj 'plugin') -or (Get-Prop $jsonObj 'plugin')) {
   $targetPath = $jsonPath
 }
 
-$cfg = Read-Json $targetPath
+$cfgRead = Read-JsonFile -Path $targetPath
+$cfg = $cfgRead.Value
 if ($null -eq $cfg) {
+  if ($cfgRead.Exists -and -not $cfgRead.Ok) { $configWritable = $false }
   $cfg = [pscustomobject]@{ '$schema' = 'https://opencode.ai/config.json' }
 }
 Info "target: $targetPath"
+
+if (-not $configWritable) {
+  Bad "config parse failed; nothing written: $($parseErrors -join '; ')"
+} else {
 
 $desiredPlugins = @(
   'opencode-power-pack@git+https://github.com/waybarrios/opencode-power-pack.git',
   'context-mode'
 )
 $otherPath = if ($targetPath -eq $jsoncPath) { $jsonPath } else { $jsoncPath }
-$otherObj = Read-Json $otherPath
+$otherObj = (Read-JsonFile -Path $otherPath).Value
 $otherPlugins = @()
 $op = Get-Prop $otherObj 'plugin'
 if ($op) { $otherPlugins = @($op) }
@@ -295,6 +319,8 @@ if ($changed -or -not (Test-Path $targetPath)) {
   Save-Json $targetPath $cfg
 } else {
   Info 'config unchanged, not rewritten'
+}
+
 }
 
 # ---------------------------------------------- context-mode package in config dir

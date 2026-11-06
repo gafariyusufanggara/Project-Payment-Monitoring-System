@@ -52,7 +52,9 @@ detection work.
 - Dev server: <command> on <port>
 ```
 
-Bootstrap detection in one shot:
+Bootstrap detection in one shot. Commands run from the session cwd — use
+absolute paths, or `cd <project-root>` first. Scope every `rtk find` to a top
+level folder so `node_modules` does not flood the output:
 
 ```js
 ctx_batch_execute(commands: [
@@ -61,7 +63,7 @@ ctx_batch_execute(commands: [
   {label:"manifest-go", command:"rtk find . -maxdepth 2 -name go.mod"},
   {label:"manifest-rs", command:"rtk find . -maxdepth 2 -name Cargo.toml"},
   {label:"configs",     command:"rtk find . -maxdepth 2 -name *.config.*"},
-  {label:"locks",       command:"rtk find . -maxdepth 2 -name *lock*"}
+  {label:"locks",       command:"rtk find . -maxdepth 1 -name *lock*"}
 ], queries: ["framework","package manager","styling","test runner"])
 ```
 
@@ -70,6 +72,8 @@ Command rules that make the batch survive on Windows (all verified):
 - No quotes around globs: `-name *.config.*`, never `-name '*.config.*'`.
 - No `-not` / `-exec` / compound action predicates; rtk rejects them.
 - `rtk json` only reads JSON. For TOML/YAML/other, use `rtk read`.
+- `locks` stays at `-maxdepth 1`. At depth 2 it can match
+  `node_modules/.package-lock.json`.
 
 ## 2. Load only this stack's rules
 
@@ -122,6 +126,8 @@ Run these with `rtk` prefix. Missing scripts are not an error — skip and say s
 
 If Biome is present instead of ESLint, substitute `rtk npx biome check .`.
 
+The Test column is a default, not a fact. Run the `test` script from `package.json` when it exists. Use `vitest` only when it is in `devDependencies`; `jest` only when it is. Never assume the runner.
+
 ## 4. Stack-specific anti-slop notes
 
 ### Next.js / React
@@ -148,7 +154,7 @@ If Biome is present instead of ESLint, substitute `rtk npx biome check .`.
 ### shadcn/ui
 - Components are owned source, not a dependency. Edit them in place.
 - Never restyle with `!important`; change the token.
-- Load the shadcn MCP `get_component` before writing a component by hand.
+- If a shadcn MCP server is configured, query it before writing a component by hand. If not configured, read the existing components in the repo and state that the MCP was unavailable.
 
 ## 5. When no stack is detected
 

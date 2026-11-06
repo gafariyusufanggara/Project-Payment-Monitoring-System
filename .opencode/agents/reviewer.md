@@ -2,16 +2,14 @@
 description: "Code and security reviewer. Reviews a diff or a set of changed files for logic bugs, convention violations, security issues, and slop, then reports only high-confidence findings. Use before merging, or when the user asks for a review."
 mode: subagent
 temperature: 0.1
-tools:
-  bash: true
-  read: true
-  grep: true
-  glob: true
-  edit: false
-  write: false
 permission:
   edit: deny
   write: deny
+  read: allow
+  grep: allow
+  glob: allow
+  list: allow
+  webfetch: allow
   bash:
     "*": deny
     "rtk git status*": allow

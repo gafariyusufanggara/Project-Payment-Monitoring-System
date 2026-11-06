@@ -4,7 +4,8 @@ A portable `.opencode/` folder plus one `AGENTS.md`. Copy both into a project an
 the agent knows how to build web apps without producing AI slop.
 
 Built for **opencode**, works with any agent that reads `AGENTS.md` +
-`SKILL.md`.
+`SKILL.md`. The SOP text is portable; the install scripts are Windows
+PowerShell 5.1 only.
 
 Project root after copying:
 
@@ -29,11 +30,10 @@ my-app/
 | `.opencode/skills/hallmark` | Anti-slop design skill with a deterministic linter (`sloplint.mjs`) |
 | `.opencode/skills/refactoring-ui` | 151-rule design rulebook distilled from *Refactoring UI* |
 | `.opencode/skills/design-taste` | Ban catalogue, motion, interaction states, OKLCH colour |
-| `.opencode/skills/vibe` | VibeSkills orchestrator (`$vibe`) |
 | `.opencode/skills/i-have-adhd` | Output shaping for a reader with ADHD |
 | `.opencode/instructions/ADHD.md` | The same ruleset for use as an always-on instruction |
 | `.opencode/mcp/` | Why these MCP servers, the config snippet, install steps |
-| `.opencode/scripts/` | `bootstrap-windows.ps1`, `check-setup.ps1`, `copy-to-project.ps1`, `install-skills.ps1` |
+| `.opencode/scripts/` | `bootstrap-windows.ps1`, `check-setup.ps1`, `check-template.ps1`, `copy-to-project.ps1`, `install-skills.ps1`, `lib-jsonc.ps1` |
 
 ## Why these tools
 
@@ -45,7 +45,6 @@ output rather than opinions.
 | Anti-slop design | **Hallmark** (46k★, MIT) | Only one that ships a deterministic linter (`sloplint.mjs`, 16 floor gates + tiered reflex gates) and renders in a real browser at 8 widths. OpenCode-aware. |
 | Design rulebook | **refactoring-ui** (358★) | 151 traceable rules, Step-0 stack detection, maps directly onto Tailwind scales. Diagnostic, not a generator. |
 | Design craft | **design-taste** (90★) | Merges impeccable + emilkowalski + taste-skill. The sharpest concrete ban catalogue. |
-| Orchestration | **VibeSkills** v4.1.1 | Routes skills per sub-task, −29.6% tokens on SkillsBench. |
 | Output style | **i-have-adhd** | Answer-first output. |
 | Browser verify | **Playwright MCP** (Microsoft) | Screenshots and interaction without a human. |
 | Perf/a11y verify | **Chrome DevTools MCP** (Google) | LCP, CLS, console, a11y tree. |
@@ -62,6 +61,12 @@ account), `wghobson/agents` (heavy duplicate of power-pack), `mcp-chrome`
 The template travels per project. The global layer lives once per machine and
 must exist before the SOP can run at full strength.
 
+**Pick the agent, the SOP does not pick itself.** opencode's default agent is
+`build`, not `web-dev`. In every new session either type `@web-dev` or press Tab
+and select one of `web-dev` / `ui-designer` / `reviewer` / `planner`. Commands
+`/stack`, `/new-feature`, `/ship` already route to `web-dev` or `ui-designer`;
+an un-routed session is just `build` with the SOP in context, nothing more.
+
 | Layer | Lives in | Carried by `copy-to-project.ps1`? | Installed by |
 |---|---|---|---|
 | SOPs, agents, commands, skills, instructions | `.opencode/` | yes | copy |
@@ -71,7 +76,7 @@ must exist before the SOP can run at full strength.
 | Plugins: `context-mode`, `opencode-power-pack` | `~/.config/opencode/` | no | `bootstrap-windows.ps1` |
 | MCP: `playwright`, `chrome-devtools`, optional `tavily` | `~/.config/opencode/` | no | `bootstrap-windows.ps1` |
 | `SHELL` env var (context-mode) | user environment | no | `bootstrap-windows.ps1` |
-| Global skills (copy of the vendored 5) | `~/.config/opencode/skills/` | no | `install-skills.ps1` |
+| Global skills (copy of the vendored skills) | `~/.config/opencode/skills/` | no | `install-skills.ps1` |
 
 Global skills that come from the `opencode-power-pack` plugin, referenced across
 the SOPs: `feature-dev`, `code-review`, `security-review`, `code-architect`,
@@ -243,29 +248,36 @@ API key in plaintext in `opencode.jsonc`. Move it to an environment variable
 ## Step 7 — Install this SOP folder
 
 Copy this whole `SETUP OPENCODE` folder somewhere permanent, for example
-`C:\dev\SETUP OPENCODE`. Then verify:
+`C:\Users\Administrator\Desktop\SETUP OPENCODE`. Then verify:
 
 ```powershell
-powershell -NoProfile -File "C:\dev\SETUP OPENCODE\.opencode\scripts\check-setup.ps1"
+powershell -NoProfile -File "C:\Users\Administrator\Desktop\SETUP OPENCODE\.opencode\scripts\check-setup.ps1"
 ```
 
 Every line should be `[OK]`. `[WARN]` items are optional (rtk, graphify,
 playwright cache). `[FAIL]` must be fixed before proceeding.
 
+Then run the template smoke test: layout, JSONC merge, agent/command
+frontmatter, and a real copy into a temp folder.
+
+```powershell
+powershell -NoProfile -File "C:\Users\Administrator\Desktop\SETUP OPENCODE\.opencode\scripts\check-template.ps1"
+```
+
 ## Step 8 — Make the skills global (optional but recommended)
 
 ```powershell
-powershell -NoProfile -File "C:\dev\SETUP OPENCODE\.opencode\scripts\install-skills.ps1"
+powershell -NoProfile -File "C:\Users\Administrator\Desktop\SETUP OPENCODE\.opencode\scripts\install-skills.ps1"
 ```
 
-Installs `hallmark`, `refactoring-ui`, `design-taste`, `vibe`, `i-have-adhd`
-into `~/.config/opencode/skills`. Now `/build-ui` works in any project without
-copying `.opencode/skills/` each time.
+Installs `hallmark`, `refactoring-ui`, `design-taste`, `i-have-adhd`
+into `~/.config/opencode/skills`. The project copy still ships its own
+`.opencode/skills/` so every hardcoded `sloplint` path in the SOP resolves.
 
 To list what is vendored:
 
 ```powershell
-powershell -NoProfile -File "C:\dev\SETUP OPENCODE\.opencode\scripts\install-skills.ps1" -List
+powershell -NoProfile -File "C:\Users\Administrator\Desktop\SETUP OPENCODE\.opencode\scripts\install-skills.ps1" -List
 ```
 
 ## Step 9 — Make ADHD output always-on (optional)
@@ -280,7 +292,7 @@ First copy the file:
 
 ```powershell
 New-Item -ItemType Directory "$env:USERPROFILE\.config\opencode\instructions" -Force
-Copy-Item "C:\dev\SETUP OPENCODE\.opencode\instructions\ADHD.md" "$env:USERPROFILE\.config\opencode\instructions\ADHD.md"
+Copy-Item "C:\Users\Administrator\Desktop\SETUP OPENCODE\.opencode\instructions\ADHD.md" "$env:USERPROFILE\.config\opencode\instructions\ADHD.md"
 ```
 
 Say "stop adhd mode" in session to disable it, as the file itself documents.
@@ -291,7 +303,7 @@ Say "stop adhd mode" in session to disable it, as the file itself documents.
 mkdir C:\dev\my-app
 cd C:\dev\my-app
 # scaffold your stack however you prefer (next/nuxt/vite/...)
-powershell -NoProfile -File "C:\dev\SETUP OPENCODE\.opencode\scripts\copy-to-project.ps1" -Destination "C:\dev\my-app"
+powershell -NoProfile -File "C:\Users\Administrator\Desktop\SETUP OPENCODE\.opencode\scripts\copy-to-project.ps1" -Destination "C:\dev\my-app"
 ```
 
 Then in opencode, inside that project:
@@ -380,16 +392,13 @@ stops. Full procedure: `.opencode/sops/CONTEXT.md` § 3b.
 | Take a feature to done | `/ship` |
 | New page / landing / redesign | `/build-ui` |
 | Something looks off but you cannot name it | `/ui-audit` |
-| Ambiguous, many moving parts | `$vibe <task>` |
 | Shorter output | `/i-have-adhd` |
 | One-file fix | Just ask; quality gate still applies |
 
-## Two ways to install into a project
-
-### A. Copy (self-contained, recommended)
+## Install into a project
 
 ```powershell
-powershell -NoProfile -File "C:\dev\SETUP OPENCODE\.opencode\scripts\copy-to-project.ps1" -Destination "<project>"
+powershell -NoProfile -File "C:\Users\Administrator\Desktop\SETUP OPENCODE\.opencode\scripts\copy-to-project.ps1" -Destination "<project>"
 ```
 
 Produces in `<project>`:
@@ -399,35 +408,21 @@ AGENTS.md          <- root, opencode auto-reads it
 .opencode/         <- sops, agents, commands, skills, instructions, mcp, scripts, README
 ```
 
-The setup then travels with the project, is commit-able, and needs no global
-state. Add `-WithoutSkills` when the skills are already installed globally
-(`install-skills.ps1`) to keep the repo ~5 MB smaller.
-
-### B. Global skills + copy the rest
-
-Install the skills once, then copy without them:
-
-```powershell
-powershell -NoProfile -File "C:\dev\SETUP OPENCODE\.opencode\scripts\install-skills.ps1"
-powershell -NoProfile -File "C:\dev\SETUP OPENCODE\.opencode\scripts\copy-to-project.ps1" -Destination "<project>" -WithoutSkills
-```
+The setup travels with the project, is commit-able, and needs no global state.
+Skills are always copied: the SOP calls `.opencode/skills/hallmark/scripts/sloplint.mjs`
+by path, so a copy without them would break every UI gate. `-Force` replaces the
+template-owned folders and preserves `.opencode/STACK.md`, `plans/`, and custom files.
 
 ## What to gitignore
 
 Commit the whole `.opencode/` if the team should share the SOP. Never commit the
-detected stack or build output:
+detected stack, dependencies, or build output:
 
 ```
 node_modules/
 .opencode/STACK.md
+.opencode/node_modules/
 graphify-out/
-```
-
-Skills are 5 MB of vendored text. If that is too heavy for the repo, use route B
-above and add:
-
-```
-.opencode/skills/
 ```
 
 ---
@@ -457,12 +452,15 @@ Full text: `.opencode/sops/DESIGN.md`, `.opencode/sops/QUALITY_GATE.md`.
 | `rtk` not found | Put `rtk.exe` on PATH, reopen terminal, or run `bootstrap-windows.ps1` |
 | `ctx_batch_execute` fails: `Executable not found in $PATH: "pwsh"` | Step 5b: set `SHELL` to `powershell.exe`, restart opencode |
 | `rtk find` says `does not support compound predicates` | Drop `-not` / `-exec`; scope the path instead |
+| `rtk find` prints `0 for '*'` | Wrong cwd or empty folder. Retry with an absolute path; `0` is not proof a file is missing |
+| `rtk ls` fails: `Binary 'ls' not found` | `rtk ls` is not available on Windows. Use `rtk find <path> -maxdepth 1` |
+| `rtk find .` floods with `node_modules` | Scope the path: `rtk find src -name *.md`, or add `-maxdepth 2` |
+| Agent does not follow the SOP | opencode's default agent is `build`, not `web-dev`. Type `@web-dev` or press Tab and select |
 | `rtk find -name '*.md'` finds nothing | Remove the quotes: `-name *.md` |
 | `rtk json pyproject.toml` says `is not a JSON file` | Use `rtk read pyproject.toml` |
 | MCP tools missing in opencode | Run `npx -y @playwright/mcp@latest --help`; check opencode log |
 | `sloplint` exits 2 | No `.html` found. For a dev server use a URL, or export HTML first |
 | `sloplint --render` cannot find Chrome | Install Chrome, or accept the static tier only and record the waiver |
-| VibeSkills refuses playwright | Override lost on update — re-apply (see `.opencode/mcp/INSTALL.md`) |
 | Skill not discovered | Skills must sit in `.opencode/skills/<name>/SKILL.md`; run `install-skills.ps1 -List` |
 | Agent assumes Next.js in a Vue repo | `/stack` first; check `.opencode/STACK.md` exists |
 | `ctx_doctor` says `No plugin array found in opencode.json or opencode.jsonc` | Cosmetic. The doctor reads `opencode.jsonc` first and stops; opencode itself merges `.json` + `.jsonc`, so context-mode loads. Confirm with `opencode debug config` and look at `plugin` |
@@ -476,7 +474,6 @@ Full text: `.opencode/sops/DESIGN.md`, `.opencode/sops/QUALITY_GATE.md`.
 | Hallmark | Nutlope / Together AI | MIT |
 | refactoring-ui skill | edisonmbli | see `.opencode/skills/refactoring-ui/` |
 | design-taste | h3nryprod01 | MIT AND Apache-2.0 |
-| VibeSkills | foryourhealth111-pixel | see `.opencode/skills/vibe/` |
 | i-have-adhd | ayghri | MIT |
 | context-mode | mksglu | MIT |
 | opencode-power-pack | waybarrios | see package |

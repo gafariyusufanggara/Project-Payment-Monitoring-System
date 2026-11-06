@@ -1,5 +1,5 @@
 ---
-description: "Audit existing UI for slop, hierarchy, spacing, type, colour, a11y and performance, with real screenshots at three viewports. Reports findings ranked by severity. Use when a UI looks off, feels generated, or before shipping a page."
+description: "Audit existing UI for slop, hierarchy, spacing, type, colour, a11y and performance, with real screenshots at four viewports. Reports findings ranked by severity. Use when a UI looks off, feels generated, or before shipping a page."
 agent: ui-designer
 subtask: false
 ---
@@ -52,10 +52,11 @@ In causal order, reading `.opencode/skills/refactoring-ui/references/`:
 
 ### 4. Real rendering
 
-`playwright` MCP: 320 / 768 / 1440, screenshot each. Look for horizontal
+`playwright` MCP: 320 / 768 / 1280 / 1440, screenshot each. Look for horizontal
 scroll, heading overflow, hero not fitting, focus invisible, misaligned grid.
 
-`chrome-devtools` MCP: console errors, network 404s, a11y critical, LCP, CLS.
+`chrome-devtools` MCP against the production/preview server: console errors,
+network 404s, a11y critical, LCP, CLS.
 
 ### 5. Judge
 

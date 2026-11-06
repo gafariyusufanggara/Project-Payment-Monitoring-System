@@ -3,6 +3,8 @@
 The end-to-end procedure. Each phase has an exit condition. Do not skip forward
 past an unmet exit condition; do not loop back without saying why.
 
+Missing tools (`rtk`, `ctx_*`, browser MCP, `graphify`): fallback per `AGENTS.md` "Degraded mode" and `.opencode/sops/CONTEXT.md` §1. Announce once, continue.
+
 ---
 
 ## Phase 0a — Read the project documents (always first)
@@ -15,10 +17,13 @@ only what is relevant:
 
 ```js
 ctx_batch_execute(commands: [
-  {label:"docs-tree", command:"rtk find docs -type f -name *.md"},
+  {label:"docs-tree", command:"rtk find docs -name *.md"},
   {label:"docs-root", command:"rtk find . -maxdepth 1 -name *.md"}
 ], queries: ["requirements","stack","features","design system"])
 ```
+
+Commands run from the session cwd. Use absolute paths (or `cd` first) and treat
+`0 for '*.md'` as "wrong path or empty", never as proof on its own.
 
 Read the files whose names map to the task. Common ones:
 
@@ -111,6 +116,7 @@ Rules during build:
   `.opencode/skills/refactoring-ui` (existing UI that must be improved). Read
   `.opencode/sops/DESIGN.md` for the floor and the bans.
 - No comments unless asked. No dead code. No `TODO` left in a handoff.
+- New behaviour gets a test when the stack has a test runner (`.opencode/sops/STACKS.md` §3). No runner: say so in the handoff.
 - No new dependency without saying why and confirming it is not already present.
 - Follow security basics: never log secrets, never put secrets in client
   bundles, validate at the boundary, encode output.
@@ -121,7 +127,7 @@ Rules during build:
 **Exit:** all commands pass, or every failure is explained and accepted by the
 user.
 
-Use `.opencode/sops/STACKS.md` for exact commands. With `rtk` prefix:
+Take exact commands from the row of your stack in `.opencode/sops/STACKS.md` §3. Prefer the `package.json` scripts when they exist. The block below is the JS example; Python, Go, Rust use their own row. With `rtk` prefix:
 
 ```bash
 rtk npm run build
@@ -130,26 +136,31 @@ rtk npx eslint .            # or biome check
 rtk npx vitest run          # or pytest / go test / cargo test
 ```
 
-Then start the dev server (background) and move to Phase 6. Do not stop at
-"build passes" for anything that renders.
+Then build and start the production/preview server (background) and move to
+Phase 6. Dev-server numbers are not gate evidence. Do not stop at "build passes"
+for anything that renders.
 
 ## Phase 6 — Verify (visual and real)
 
-**Exit:** screenshots at three viewports, zero `sloplint` FAIL, no console
-errors, no critical a11y issue.
+**Exit:** screenshots at four widths, zero `sloplint` FAIL, no console errors,
+no critical a11y issue, LCP < 2.5 s, CLS < 0.1 on desktop 1440.
 
 ```bash
 node .opencode/skills/hallmark/scripts/sloplint.mjs <path> --render
 ```
 
-Then `playwright` MCP: resize 320 / 768 / 1440, screenshot each. Then
-`chrome-devtools` MCP: console, network, a11y, performance trace.
+Then `playwright` MCP: resize 320 / 768 / 1280 / 1440, screenshot each. Then
+`chrome-devtools` MCP against the production/preview server (`next start`,
+`vite preview`, `astro preview`, etc.): console, network, a11y, performance trace.
+
+Browser MCP missing: stop, report "UI not verified, browser MCP missing". Never tick checklist below without evidence.
 
 Checklist to state explicitly in the handoff:
 
 - [ ] Mobile 320: no horizontal scroll, text readable, taps >= 44px
 - [ ] Tablet 768: grid does not collapse oddly
-- [ ] Desktop 1440: hero content above the fold, measure capped
+- [ ] Desktop 1280x800: hero headline, one sentence, primary action above the fold
+- [ ] Desktop 1440: measure capped, gutters grow, grid does not
 - [ ] Keyboard: Tab reaches every control, focus ring visible
 - [ ] Reduced motion: animations degrade to instant
 - [ ] Empty / loading / error states exist

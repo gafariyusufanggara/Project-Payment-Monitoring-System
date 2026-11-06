@@ -105,28 +105,8 @@ project's `.opencode/opencode.json` or the global config:
 
 ---
 
-## Re-applying the VibeSkills MCP override
-
-VibeSkills ships a policy that forbids playwright, chrome-devtools,
-and chrome. This repo's vendored copy already overrides it. After a VibeSkills
-update, re-apply:
-
-```powershell
-$p = "skills\vibe\config\forbidden-mcp-policy.json"
-node -e "const fs=require('fs');const f='$($p -replace '\\','/')';const j=JSON.parse(fs.readFileSync(f,'utf8'));j.installation='allowed';j.runtime_recommendation='allowed';j.forbidden_mcp_ids=[];j.reason='Local override: browser MCP required for UI verification (.opencode/sops/DESIGN.md, .opencode/sops/WEB_DEV.md).';j.updated_at=new Date().toISOString().slice(0,10);fs.writeFileSync(f,JSON.stringify(j,null,2));console.log('patched')"
-```
-
-Confirm:
-
-```powershell
-node -e "console.log(JSON.stringify(require('./skills/vibe/config/forbidden-mcp-policy.json').forbidden_mcp_ids))"
-```
-
-Expected: `[]`.
-
----
-
 ## Uninstall
 
-Remove the three entries from `opencode.json`'s `"mcp"` object and restart
-opencode. The packages live in the npm cache; nothing else needs cleaning.
+Remove the `playwright`, `chrome-devtools`, and optional `tavily` entries from
+the `"mcp"` object and restart opencode. The packages live in the npm cache;
+nothing else needs cleaning.

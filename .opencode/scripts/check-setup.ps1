@@ -36,6 +36,10 @@ if (Get-Command rtk -ErrorAction SilentlyContinue) {
 
 if (Get-Command graphify -ErrorAction SilentlyContinue) {
   Ok "graphify -> $((Get-Command graphify).Source)"
+  $gv = & graphify --version 2>&1 | Out-String
+  if ($gv -match 'warning: skill .* is from graphify') {
+    Warn "graphify skill/package drift detected. Run once: graphify install"
+  }
 } else {
   Warn "graphify not found. Run: uv tool install graphifyy"
 }
@@ -102,6 +106,14 @@ Write-Host "`n=== Layout ===" -ForegroundColor Cyan
 
 if (Test-Path (Join-Path $root 'AGENTS.md')) {
   Ok "AGENTS.md at project root (opencode reads it automatically)"
+  if (-not (Test-Path (Join-Path $root 'CARA PAKAI.md'))) {
+    $agentsRaw = Get-Content (Join-Path $root 'AGENTS.md') -Raw
+    if ($agentsRaw -match 'PROJECT_NAME') {
+      Warn "AGENTS.md still contains the PROJECT_NAME placeholder; replace it with the project name"
+    } else {
+      Ok "PROJECT_NAME replaced"
+    }
+  }
 } else {
   Bad "AGENTS.md missing from project root"
 }
@@ -127,12 +139,12 @@ $required = @(
   'AGENTS.md','.opencode/README.md',
   '.opencode/sops/WEB_DEV.md','.opencode/sops/DESIGN.md','.opencode/sops/QUALITY_GATE.md','.opencode/sops/CONTEXT.md','.opencode/sops/STACKS.md',
   '.opencode/agents/web-dev.md','.opencode/agents/ui-designer.md','.opencode/agents/reviewer.md','.opencode/agents/planner.md',
-  '.opencode/commands/ship.md','.opencode/commands/new-feature.md','.opencode/commands/ui-audit.md','.opencode/commands/build-ui.md','.opencode/commands/stack.md',
-  '.opencode/scripts/bootstrap-windows.ps1','.opencode/scripts/copy-to-project.ps1','.opencode/scripts/install-skills.ps1',
+  '.opencode/commands/ship.md','.opencode/commands/new-feature.md','.opencode/commands/ui-audit.md','.opencode/commands/build-ui.md','.opencode/commands/stack.md','.opencode/commands/i-have-adhd.md',
+  '.opencode/scripts/bootstrap-windows.ps1','.opencode/scripts/copy-to-project.ps1','.opencode/scripts/install-skills.ps1','.opencode/scripts/lib-jsonc.ps1','.opencode/scripts/check-template.ps1',
   '.opencode/instructions/ADHD.md',
   '.opencode/skills/hallmark/SKILL.md','.opencode/skills/hallmark/scripts/sloplint.mjs',
   '.opencode/skills/refactoring-ui/SKILL.md','.opencode/skills/design-taste/SKILL.md',
-  '.opencode/skills/vibe/SKILL.md','.opencode/skills/i-have-adhd/SKILL.md',
+  '.opencode/skills/i-have-adhd/SKILL.md',
   '.opencode/mcp/README.md','.opencode/mcp/INSTALL.md','.opencode/mcp/opencode-snippet.jsonc'
 )
 foreach ($f in $required) {
@@ -140,17 +152,12 @@ foreach ($f in $required) {
   if (Test-Path $p) { Ok $f } else { Bad "missing: $f" }
 }
 
-Write-Host "`n=== VibeSkills MCP override ===" -ForegroundColor Cyan
-$pol = Join-Path $root '.opencode\skills\vibe\config\forbidden-mcp-policy.json'
-if (Test-Path $pol) {
-  try {
-    $j = Get-Content $pol -Raw | ConvertFrom-Json
-    $n = @($j.forbidden_mcp_ids).Count
-    if ($n -eq 0) { Ok "forbidden_mcp_ids is empty (override applied)" }
-    else { Bad "VibeSkills still forbids $n MCP id(s): $($j.forbidden_mcp_ids -join ', '). See .opencode/mcp/INSTALL.md." }
-  } catch { Bad "cannot parse forbidden-mcp-policy.json" }
+Write-Host "`n=== Removed skills ===" -ForegroundColor Cyan
+$vibe = Join-Path $root '.opencode\skills\vibe'
+if (Test-Path $vibe) {
+  Warn "vibe is still vendored at .opencode/skills/vibe (broken, unused, ~3.5 MB). Delete it."
 } else {
-  Warn "VibeSkills policy file not found (vibe skill may not be vendored)"
+  Ok "vibe not present (removed)"
 }
 
 Write-Host "`n=== sloplint smoke test ===" -ForegroundColor Cyan
@@ -171,9 +178,17 @@ if (Get-Command rtk -ErrorAction SilentlyContinue) {
   } else {
     Ok "rtk find accepts unquoted globs and -maxdepth"
   }
-  $j = & rtk json package.json 2>&1 | Out-String
-  if ($j -match 'is not a JSON file') { Bad "rtk json TOML guard changed; check .opencode/sops/CONTEXT.md" }
-  else { Ok "rtk json behaves as documented" }
+  $pkg = Join-Path $agentsDir 'package.json'
+  if (Test-Path $pkg) {
+    $j = & rtk json $pkg 2>&1 | Out-String
+    if ($LASTEXITCODE -ne 0 -or $j -match 'is not a JSON file|not found|Failed') {
+      Bad "rtk json failed on .opencode/package.json: $($j.Trim())"
+    } else {
+      Ok "rtk json parses .opencode/package.json"
+    }
+  } else {
+    Warn "skipped rtk json check: .opencode/package.json absent"
+  }
 } else {
   Warn "rtk not installed; skipped"
 }

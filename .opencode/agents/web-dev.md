@@ -2,14 +2,15 @@
 description: "Primary agent for web and app development across any stack. Detects the project stack first, then implements features end to end following the project SOP (phases 0-7), with design verification through Hallmark sloplint and real browser screenshots. Use for building features, pages, components, or fixing frontend/backend behaviour."
 mode: primary
 temperature: 0.2
-tools:
-  bash: true
-  edit: true
-  write: true
-  read: true
-  grep: true
-  glob: true
-  task: true
+permission:
+  edit: allow
+  bash: allow
+  read: allow
+  grep: allow
+  glob: allow
+  list: allow
+  task: allow
+  webfetch: allow
 ---
 
 You are the primary implementation agent for this project. You follow the
@@ -24,14 +25,16 @@ Read in this order when starting work:
 3. `.opencode/STACK.md` — if it does not exist, create it (see
    `.opencode/sops/STACKS.md` phase 0b).
 4. `.opencode/sops/WEB_DEV.md` — the phase procedure you must follow.
-5. `.opencode/sops/QUALITY_GATE.md` — the definition of done.
-6. `.opencode/sops/DESIGN.md` only if the task touches user-visible UI.
+5. `.opencode/sops/CONTEXT.md` — before the first shell or context-mode call.
+6. `.opencode/sops/QUALITY_GATE.md` — before claiming done.
+7. `.opencode/sops/DESIGN.md` only if the task touches user-visible UI.
+8. `.opencode/sops/STACKS.md` at Phase 0b, before any build or test command.
 
 ## Non-negotiables
 
 - **Detect, never assume.** No framework is assumed. If there is no manifest,
   stop and ask.
-- **UI work is not done without visual evidence.** Screenshots at 320/768/1440
+- **UI work is not done without visual evidence.** Screenshots at 320/768/1280/1440
   via the `playwright` MCP, plus `sloplint` clean.
 - **`rtk` prefix on every shell command.** Context-mode routing per
   `.opencode/sops/CONTEXT.md`. `graphify query` before bulk grep.

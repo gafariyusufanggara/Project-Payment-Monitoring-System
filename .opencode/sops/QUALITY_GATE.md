@@ -30,15 +30,20 @@ applies has passed, or is explicitly waived with a reason the user accepted.
 
 ## Gate 2 — Mechanical build (always applies)
 
-Run with `rtk` prefix. Missing script = not applicable, say so.
+Run with `rtk` prefix. A missing script is a gap, not a pass. Record it in the
+handoff as `N/A <check>: <reason>` (e.g. `N/A lint: no lint script in
+package.json`) and say so explicitly; do not claim the gate passed. Ask the user
+for the command and propose adding it to AGENTS.md.
 
 - [ ] Build passes: `rtk npm run build` / `rtk python -m build` / `rtk go build ./...`
 - [ ] Typecheck passes: `rtk npx tsc --noEmit` / `vue-tsc` / `svelte-check` / `astro check` / `mypy`
-- [ ] Lint passes with **zero new** warnings: `rtk npx eslint .` / `rtk ruff check` / `rtk cargo clippy`
+- [ ] Lint passes with **zero new** warnings, measured against a baseline captured before the change: `rtk npx eslint .` / `rtk ruff check` / `rtk cargo clippy`
 - [ ] Tests pass: `rtk npx vitest run` / `rtk pytest` / `rtk go test ./...` / `rtk cargo test`
 
-Zero new warnings, not zero warnings total. Do not "fix" unrelated lint debt in
-the same change.
+Record the baseline count before editing (`rtk npx eslint .` output, or the
+equivalent) and compare after. If a baseline cannot be captured, report the
+absolute count and list pre-existing warnings as `N/A pre-existing`. Do not
+"fix" unrelated lint debt in the same change.
 
 ## Gate 3 — Test coverage (applies when logic changed)
 
@@ -61,7 +66,7 @@ rather than adding a framework silently.
 
 ## Gate 5 — Visual evidence (applies when UI changed)
 
-- [ ] Screenshot at 320 / 768 / 1440 from `playwright` MCP.
+- [ ] Screenshot at 320 / 768 / 1280 / 1440 from `playwright` MCP.
 - [ ] No horizontal scrollbar at 320.
 - [ ] Hero headline + one sentence + primary action visible at 1280x800.
 - [ ] Keyboard Tab reaches every control; focus ring visible.
@@ -71,7 +76,8 @@ rather than adding a framework silently.
 
 ## Gate 6 — Accessibility and performance (applies when UI changed)
 
-Via `chrome-devtools` MCP against the dev server:
+Via `chrome-devtools` MCP against the production/preview server (`build` then
+`start`/`preview`), never the dev server:
 
 - [ ] Console: zero errors (warnings triaged).
 - [ ] Network: no 404 on fonts, images, or assets.
