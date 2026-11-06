@@ -73,13 +73,16 @@ def _days_in(y, m):
     return date(y, m + 1, 1)
 
 
-def build_rekap(contracts, year, month, all_months=False, today=None):
+def build_rekap(contracts, year, month, all_months=False, today=None, only_month=False):
     """Bangun data halaman Rekap Kontrak.
 
     Args:
         contracts: list dict hasil db_contract.get_contracts(project_id).
         year: int tahun
         month: int bulan (1-12)
+        only_month: bila True, baris tampil hanya yang tanggalnya tepat di
+            bulan terpilih; bila False (default), baris tampil kumulatif
+            S/D akhir bulan terpilih.
 
     Returns:
         dict yang siap diteruskan ke render_template('rekap_po.html', ...).
@@ -133,8 +136,10 @@ def build_rekap(contracts, year, month, all_months=False, today=None):
         dt = _parse_dt(r['tgl_kontrak'])
         if all_months:
             r['visible'] = True
-        else:
+        elif only_month:
             r['visible'] = dt is not None and (dt.year, dt.month) == (year, month)
+        else:
+            r['visible'] = dt is None or dt <= month_end
         r['counted'] = dt is None or dt <= month_end
 
     # hitung agregat per periode x bucket + nilai per baris untuk periodenya
@@ -268,7 +273,8 @@ def build_rekap(contracts, year, month, all_months=False, today=None):
         'selected_key': selected_key,
         'month_label': _MONTH_NAMES[month] + ' ' + str(year),
         'prev_month_label': prev_month_label,
-        'period_label': 'Semua Bulan' if all_months else _MONTH_NAMES[month] + ' ' + str(year),
+        'period_label': 'Semua Bulan' if all_months else 'S/D ' + _MONTH_NAMES[month] + ' ' + str(year),
+        'only_month': only_month,
         'all_year': current_key[0],
         'all_month': current_key[1],
         'total_kontrak': visible_count,

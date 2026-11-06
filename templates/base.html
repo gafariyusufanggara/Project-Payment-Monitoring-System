@@ -153,7 +153,7 @@
           </a>
           <a class="nav-item" href="/kontrak/" id="navProgressKontrak" data-label="Progress Inv. Kontrak">
             <i class="bi bi-file-earmark-text"></i> <span>Progress Inv. Kontrak</span>
-            <span class="nav-badge nav-badge-warning nav-badge-icon" id="sidebarPoBadge" data-po-count="{{ po_review_count|default(0) }}" title="{{ po_review_count|default(0) }} No PO perlu ditinjau (kandidat typo)"{% if po_review_count|default(0) <= 0 %} hidden{% endif %}><i class="bi bi-exclamation"></i></span>
+            <span class="nav-badge nav-badge-warning nav-badge-icon nav-badge-inline" id="sidebarPoBadge" data-po-count="{{ po_review_count|default(0) }}" title="{{ po_review_count|default(0) }} No PO perlu ditinjau (kandidat typo)"{% if po_review_count|default(0) <= 0 %} hidden{% endif %}><i class="bi bi-exclamation"></i></span>
           </a>
           <a class="nav-item" href="/invoice-cicilan" data-label="Progress Inv. Cicilan">
             <i class="bi bi-arrow-repeat"></i> <span>Progress Inv. Cicilan</span>

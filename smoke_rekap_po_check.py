@@ -52,8 +52,9 @@ _contracts = [
 ]
 _r = rekap_po.build_rekap(_contracts, 2026, 10)
 
-assert _r['total_kontrak'] == 2, f"total_kontrak {_r['total_kontrak']} != 2"
-assert _r['total_vendor'] == 2, f"total_vendor {_r['total_vendor']} != 2"
+assert _r['total_kontrak'] == 5, f"total_kontrak {_r['total_kontrak']} != 5"
+assert _r['total_vendor'] == 5, f"total_vendor {_r['total_vendor']} != 5"
+assert _r['period_label'] == 'S/D Okt 2026', _r['period_label']
 assert _r['grand_totals']['kontrak_kini'] == 3_850_000_000, _r['grand_totals']
 # S/D lalu = A(100jt) + C(3M) = 3,1M ; Bulan ini = B(500jt) + D(200jt) = 700jt
 assert _r['grand_totals']['sd_bulan_lalu'] == 3_100_000_000, _r['grand_totals']
@@ -77,14 +78,20 @@ _row_b = next(x for x in _r['rows'] if x['no_kontrak'] == 'B/2')
 assert _row_b['bucket'] == 'unit' and _row_b['periods']['bln']['unit'] == 500_000_000
 assert _row_b['periods']['sdi']['unit'] == 500_000_000 and _row_b['periods']['sdl']['unit'] == 0
 _row_e = next(x for x in _r['rows'] if x['no_kontrak'] == 'E/5')
+assert _row_e['visible'] is True, 'kontrak tanpa tanggal harus tampil di mode S/D'
 assert all(_row_e['periods']['sdl'][b] == 0 and _row_e['periods']['bln'][b] == 0
            for b in ('kso', 'unit', 'pusat')), 'kontrak tanpa tanggal tidak masuk periode'
-# Periode lama = snapshot: hanya kontrak yang tanggalnya tepat di bulan itu yang
-# tampil; kontrak bulan lain dan tanpa tanggal disembunyikan, tetapi tetap
-# dihitung pada agregat kumulatif (S/D Bulan Lalu / S/D Bulan Ini).
+# Checkbox "Hanya Bulan Periode": mode lama = hanya baris bulan terpilih.
+_rm = rekap_po.build_rekap(_contracts, 2026, 10, only_month=True)
+assert _rm['total_kontrak'] == 2, _rm['total_kontrak']
+assert _rm['total_vendor'] == 2, _rm['total_vendor']
+assert sum(1 for r in _rm['rows'] if r['visible']) == 2
+assert all(r['tgl_kontrak'][:7] == '2026-10' for r in _rm['rows'] if r['visible'])
+# Periode lama = snapshot kumulatif: semua kontrak s/d bulan itu tampil.
 _old = rekap_po.build_rekap(_contracts, 2026, 1)
-assert _old['total_kontrak'] == 1, _old['total_kontrak']
-assert _old['total_vendor'] == 1, _old['total_vendor']
+assert _old['total_kontrak'] == 2, _old['total_kontrak']
+assert _old['period_label'] == 'S/D Jan 2026', _old['period_label']
+assert _old['total_vendor'] == 2, _old['total_vendor']
 assert _old['grand_totals']['kontrak_kini'] == 150_000_000, _old['grand_totals']
 _old_b = next(x for x in _old['rows'] if x['no_kontrak'] == 'B/2')
 assert _old_b['visible'] is False, 'kontrak setelah periode harus tidak tampil'
@@ -108,11 +115,12 @@ assert _period_key, 'tidak ada opsi periode bulanan untuk uji judul chart'
 _period_key = _period_key.group(1)
 _html_period = client.get(f'/kontrak/rekap-no-po?period={_period_key}').get_data(as_text=True)
 _month_label = re.search(r'id="rpPeriodBadgeText">([^<]*)<', _html_period).group(1).strip()
-assert _month_label and _month_label != 'Semua Bulan', \
-    'label periode pada halaman berperiode harus bulan spesifik'
+assert _month_label.startswith('S/D ') and _month_label != 'Semua Bulan', \
+    'label periode pada halaman berperiode harus kumulatif S/D bulan spesifik'
 for _needle in ('id="rpTable"', 'id="rpChartBar"', 'id="rpChartDonut"',
                 'NILAI KONTRAK', 'S/D BULAN LALU', 'BULAN INI', 'SD BULAN INI',
                 'id="rpKpiPrev"', 'id="rpKpiBln"', 'id="rpKpiSdi"',
+                'S/D Periode', 'id="rpOnlyMonth"', 'Hanya Bulan Periode',
                 'data-period-visible='):
     assert _needle in _html, f'elemen {_needle!r} tidak ada di halaman'
 assert 'id="rpKpiCount"' not in _html and 'id="rpKpiKontrak"' not in _html, \
@@ -184,11 +192,12 @@ print(f'[3] halaman OK: {_n_rows} baris, chart + menu sidebar ada')
 _o = client.get('/kontrak/rekap-no-po?year=2026&month=10').get_data(as_text=True)
 _d = client.get('/kontrak/rekap-no-po?year=2025&month=12').get_data(as_text=True)
 assert _o != _d, 'ganti periode tidak mengubah halaman'
-# Periode lama = snapshot: baris bulan lain disembunyikan, footer TOTAL
-# menjumlah baris yang tampil, KPI tetap kumulatif s/d periode.
+# Periode lama = snapshot kumulatif: semua kontrak s/d bulan itu tampil,
+# footer TOTAL menjumlah baris yang tampil, KPI tetap kumulatif s/d periode.
 _old_ctx = rekap_po.build_rekap(db_contract.get_contracts('all'), 2025, 12)
 _n_rows_all = len(db_contract.get_contracts('all'))
-assert _old_ctx['total_kontrak'] < _n_rows_all, 'periode lama harus menyembunyikan kontrak'
+_n_hidden = _n_rows_all - _old_ctx['total_kontrak']
+assert _n_hidden >= 0, 'jumlah baris kumulatif tidak boleh melebihi total kontrak'
 assert f'id="rpKpiPrev">{_money(_old_ctx["grand_totals"]["sd_bulan_lalu"])}' in _d, \
     'KPI S/D Bulan Lalu tidak mengikuti periode'
 assert f'id="rpKpiBln">{_money(_old_ctx["grand_totals"]["bulan_ini"])}' in _d, \
@@ -196,6 +205,7 @@ assert f'id="rpKpiBln">{_money(_old_ctx["grand_totals"]["bulan_ini"])}' in _d, \
 assert f'id="rpKpiSdi">{_money(_old_ctx["grand_totals"]["sd_bulan_ini"])}' in _d, \
     'KPI S/D Bulan Ini tidak mengikuti periode'
 _n_hidden = _n_rows_all - _old_ctx['total_kontrak']
+assert _n_hidden >= 0, 'jumlah baris kumulatif tidak boleh melebihi total kontrak'
 assert _d.count('data-period-visible="0"') == _n_hidden, \
     'jumlah baris tersembunyi tidak sesuai periode'
 assert _d.count('data-filter-pass="0"') == _n_hidden, \
@@ -207,9 +217,13 @@ print('[4] filter periode OK')
 
 # --- 4b. Footer TOTAL = jumlah baris yang tampil; KPI tetap kumulatif ---
 _jun = rekap_po.build_rekap(db_contract.get_contracts('all'), 2026, 6)
+_jun_only = rekap_po.build_rekap(db_contract.get_contracts('all'), 2026, 6, only_month=True)
 _visible_rows = [r for r in _jun['rows'] if r['visible']]
-assert all(r['periods']['sdl'] == {'kso': 0.0, 'unit': 0.0, 'pusat': 0.0}
-           for r in _visible_rows), 'baris bulan terpilih tidak boleh punya S/D Bulan Lalu'
+_visible_only = [r for r in _jun_only['rows'] if r['visible']]
+assert len(_visible_only) and len(_visible_only) <= len(_visible_rows), \
+    'mode Hanya Bulan Periode harus menyempitkan baris'
+assert all(r['tgl_kontrak'][:7] == '2026-06' for r in _visible_only), \
+    'mode Hanya Bulan Periode hanya boleh tampilkan bulan terpilih'
 _foot_sum = sum(
     sum(_jun['period_summaries'][_k].values())
     for _k in ('sd_bulan_lalu', 'bulan_ini', 'sd_bulan_ini')
@@ -247,6 +261,10 @@ assert 'rpPeriodGo' not in _html and 'rpPeriodSubmit' not in _html, \
     'ganti periode masih memakai navigasi halaman, bukan hitung ulang di tempat'
 assert _html.index('id="rpPeriod"') < _html.index('id="rpFilterBucket"'), \
     'filter kategori harus berada setelah pemilihan periode'
+assert _html.index('id="rpOnlyMonth"') > _html.index('id="rpFilterBucket"'), \
+    'checkbox Hanya Bulan Periode harus setelah filter kategori'
+assert _html.index('id="rpOnlyMonth"') < _html.index('id="rpCount"'), \
+    'checkbox Hanya Bulan Periode harus di toolbar sebelum badge'
 assert _html.index('rp-filter-rail') < _html.index('class="rp-kpis"'), \
     'periode harus berada di atas KPI'
 _toolbar = re.search(r'<div class="table-toolbar">(.*?)<div class="table-scroll">', _html, re.S)
@@ -256,6 +274,8 @@ assert 'id="rpSearch"' in _toolbar_html, 'form pencarian harus tetap di toolbar 
 assert 'id="rpFilterBucket"' in _toolbar_html, 'filter kategori harus berada di toolbar tabel'
 assert _toolbar_html.index('id="rpSearch"') < _toolbar_html.index('id="rpFilterBucket"'), \
     'filter kategori harus sejajar di kanan form pencarian'
+assert _toolbar_html.index('id="rpFilterBucket"') < _toolbar_html.index('id="rpOnlyMonth"'), \
+    'checkbox Hanya Bulan Periode harus setelah filter kategori'
 assert 'id="rpPeriod"' not in _toolbar_html, \
     'pemilihan periode tidak boleh tersisa di toolbar tabel'
 for _badge_id in ('rpVendorBadge', 'rpContractBadge', 'rpPeriodBadge'):
@@ -281,10 +301,13 @@ assert 'Komposisi Nilai Kontrak (per Kategori)' not in _html, \
     'judul donut chart masih memakai label lama tanpa batas periode'
 _bar_title = re.search(r'id="rpChartBarTitle">([^<]*)<', _html_period)
 _donut_title = re.search(r'id="rpChartDonutTitle">([^<]*)<', _html_period)
+_chart_ctx = rekap_po.build_rekap(db_contract.get_contracts('all'),
+                                  int(_period_key[:4]), int(_period_key[5:]))
+_chart_end = _chart_ctx['bars_end_label'] or _month_label.replace('S/D ', '')
 assert _bar_title and _donut_title, 'judul chart tidak ditemukan di HTML'
-assert _bar_title.group(1).strip() == f'Nilai Kontrak S/D {_month_label} (Per Kategori)', \
+assert _bar_title.group(1).strip() == f'Nilai Kontrak S/D {_chart_end} (Per Kategori)', \
     f'judul bar chart salah: {_bar_title.group(1)!r}'
-assert _donut_title.group(1).strip() == f'Komposisi Nilai Kontrak S/D {_month_label} (Per Kategori)', \
+assert _donut_title.group(1).strip() == f'Komposisi Nilai Kontrak S/D {_chart_end} (Per Kategori)', \
     f'judul donut chart salah: {_donut_title.group(1)!r}'
 assert "rpChartBarTitle')" in _html and "rpChartDonutTitle')" in _html, \
     'judul chart belum diperbarui oleh applyPeriod'
@@ -338,14 +361,15 @@ assert _html.index('id="rpKpiPrev"') < _html.index('id="rpKpiBln"') < _html.inde
     'urutan KPI harus S/D Bulan Lalu, Bulan Ini, S/D Bulan Ini'
 _prev_label = re.search(r'id="rpKpiPrevLabel">([^<]+)</div>', _html)
 assert _prev_label and _prev_label.group(1).strip() == 'S/D Bulan Lalu', \
-    'label KPI S/D Bulan Lalu tidak boleh menyertakan periode dalam kurung'
+    'label KPI S/D Bulan Lalu harus tetap tanpa periode'
 assert f'id="rpKpiPrev">{_money(_all_ctx["grand_totals"]["sd_bulan_lalu"])}' in _html, \
     'nilai KPI S/D Bulan Lalu tidak sama dengan kumulatif'
 assert f'Bulan Ini ({_all_ctx["month_label"]})' in _html, \
     'label KPI Bulan Ini tidak menyebut bulan aktif pada mode Semua Bulan'
 assert f'id="rpKpiBln">{_money(_all_ctx["grand_totals"]["bulan_ini"])}' in _html, \
     'nilai KPI Bulan Ini tidak sama dengan nominal bulan aktif'
-assert f'S/D Bulan Ini ({_all_ctx["month_label"]})' in _html, \
+assert ('S/D Bulan Ini (%s)' % _all_ctx["month_label"]) in _html or \
+    ('S/D %s' % _all_ctx["month_label"]) in _html, \
     'label KPI S/D Bulan Ini tidak menyebut bulan aktif'
 assert f'id="rpKpiSdi">{_money(_all_ctx["grand_totals"]["sd_bulan_ini"])}' in _html, \
     'nilai KPI S/D Bulan Ini tidak sama dengan kumulatif'
@@ -358,9 +382,9 @@ assert 'NILAI KONTRAK</th>' in _html, \
 assert 'S/D BULAN LALU ·' not in _html and 'NILAI KONTRAK ·' not in _html, \
     'header tabel kumulatif tidak boleh menambah periode'
 _oct_ctx = rekap_po.build_rekap(db_contract.get_contracts('all'), 2026, 10)
-assert re.search(r'id="rpKpiPrevLabel">S/D Bulan Lalu</div>', _o) \
+assert 'id="rpKpiPrevLabel">S/D Bulan Lalu</div>' in _o \
     and 'Bulan Ini (Okt 2026)' in _o \
-    and 'S/D Bulan Ini (Okt 2026)' in _o, 'label KPI tidak mengikuti periode'
+    and 'S/D Okt 2026' in _o, 'label KPI tidak mengikuti periode'
 assert f'id="rpKpiPrev">{_money(_oct_ctx["grand_totals"]["sd_bulan_lalu"])}' in _o, \
     'nilai KPI S/D Bulan Lalu pada periode Okt tidak kumulatif'
 assert f'id="rpKpiSdi">{_money(_oct_ctx["grand_totals"]["sd_bulan_ini"])}' in _o, \

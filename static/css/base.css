@@ -444,6 +444,15 @@
         font-size: 0.62rem;
         line-height: 1;
       }
+      .sidebar-nav .nav-item .nav-badge-inline {
+        margin-left: 2px;
+        flex-shrink: 0;
+      }
+      .sidebar-nav .nav-item > span:not(.nav-badge) {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
       .sidebar-nav .nav-item .nav-badge-critical {
         background: #e74c3c;
         box-shadow: 0 0 0 2px rgba(231, 76, 60, 0.25);
