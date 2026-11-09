@@ -119,7 +119,7 @@ def contract_action(contract_id):
             request.form.get('tipe_pekerjaan', ''),
             request.form.get('item_pekerjaan', ''),
             request.form.get('metode_pembayaran', ''),
-            request.form.get('durasi_termin', ''),
+            request.form.get('durasi_termin', c.get('durasi_termin') or ''),
             request.form.get('tipe_kontrak', ''),
             request.form.get('metode_penetapan', c.get('metode_penetapan') or ''),
             request.form.get('ppn_rate', ''))
@@ -196,6 +196,7 @@ def import_template():
         '4. "Termin (%)" = persen mentah dari PO (tidak harus total 100%);',
         '    "Normalisasi Termin (%)" dihitung ulang otomatis oleh aplikasi (total selalu 100%).',
         '5. "Nilai DPP Termin" & "Nilai PPN Termin" = nilai per termin (wajib diisi).',
+        '    "Durasi Termin Pembayaran (Hari)" juga per termin — boleh beda tiap baris.',
         '6. "PPN (%)" = tarif PPN kontrak (mis. 11%) — dipakai menghitung PPN bila Nilai PPN Termin kosong.',
         '7. Kolom "Total DPP", "Total PPN", "Total Tagihan (Exclude PPH)", "Retensi (5%)" boleh kosong (dihitung aplikasi).',
         '8. Metode Penetapan Nilai Kontrak: "PPN Exclude" / "PPN Include".',

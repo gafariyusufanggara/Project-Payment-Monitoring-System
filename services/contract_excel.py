@@ -264,6 +264,7 @@ def parse_contract_sheet(ws, project_id=''):
     col_termin_nilai = cmap.get('termin_nilai')
     col_ppn_nilai = cmap.get('ppn_nilai')
     col_tgl_termin = cmap.get('tgl_termin')
+    col_durasi = cmap.get('durasi_termin')
     col_tipe_kontrak = cmap.get('tipe_kontrak')
     col_penetapan = cmap.get('metode_penetapan')
     col_ppn_rate = cmap.get('ppn_rate')
@@ -299,8 +300,9 @@ def parse_contract_sheet(ws, project_id=''):
             persen = _pct_from_text(label)
         ppn = _to_float(ws.cell(row=row_idx, column=col_ppn_nilai).value) if col_ppn_nilai else 0.0
         tgl_termin = _row_date(row_idx, col_tgl_termin) if col_tgl_termin else ''
+        durasi = _to_float(ws.cell(row=row_idx, column=col_durasi).value) if col_durasi else 0.0
         return {'label': label, 'persen': persen, 'nilai': nilai, 'ppn_nilai': ppn,
-                'tgl_termin': tgl_termin}
+                'tgl_termin': tgl_termin, 'durasi_termin': durasi}
 
     def _is_blank_row(row_idx):
         for col_idx in range(1, min(ws.max_column, 60) + 1):
@@ -418,6 +420,10 @@ def parse_contract_sheet(ws, project_id=''):
 
         if slot['has_termin_col']:
             entry = _termin_entry(row_idx)
+            # Durasi kosong di baris lanjutan memakai durasi kontrak (baris
+            # pertama yang mengisinya).
+            if not entry['durasi_termin'] and slot['durasi_termin']:
+                entry['durasi_termin'] = _to_float(slot['durasi_termin'])
             # Penjaga: baris tanpa label DAN tanpa nilai bukan termin.
             if entry['label'] or entry['nilai'] or entry['persen']:
                 slot['termins'].append(entry)

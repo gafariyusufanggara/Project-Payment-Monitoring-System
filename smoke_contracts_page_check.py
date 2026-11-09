@@ -425,6 +425,12 @@ assert re.search(r'<th[^>]*>Status</th>', _tseg) is None, \
 assert 'PPN per Termin (Rp)' in _tseg, 'header PPN per Termin (Rp) tidak ada'
 assert re.search(r'PPN per Termin \(Rp\)[^<]*<span', _tseg) is None, \
     'header PPN per Termin (Rp) masih menyertakan persen'
+_thdr = _tseg[_tseg.index('<thead>'):_tseg.index('</thead>')]
+assert 'Tempo Termin (Hari)' in _thdr, \
+    'header Tempo Termin (Hari) tidak ada di Jadwal Termin'
+assert (_thdr.index('Termin (%)') < _thdr.index('Tempo Termin (Hari)')
+        < _thdr.index('Total Termin (Rp)')), \
+    'kolom Tempo Termin (Hari) harus berada setelah Termin (%)'
 
 _pl = _pills(_det_html)
 assert _pl, 'pill status termin tidak ter-render'
@@ -495,6 +501,9 @@ assert f'>{_cd["no_kontrak"]}</span>' in _det2, \
     'nomor kontrak/PO tidak tampil di sebelah tombol Daftar Kontrak'
 assert re.search(r'id="pageTitle".{0,400}?' + re.escape(_cd['vendor']), _det2, re.S), \
     'nama vendor/rekanan tidak tampil di topbar'
+if _cd.get('item_pekerjaan'):
+    assert re.search(r'kd-title-sub[^>]*>' + re.escape(_cd['item_pekerjaan']), _det2, re.S), \
+        'item pekerjaan tidak tampil sebagai subtitle di topbar'
 _money_f = appmod.app.jinja_env.filters['money']
 _kpi = dict(re.findall(
     r'Sisa Hutang \((DPP|PPN)\)</div><div class="ds-kpi__value">([^<]+)</div>',

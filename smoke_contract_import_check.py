@@ -117,6 +117,8 @@ rows_rt, _, _ = ce.parse_contract_sheet(ws2, project_id='1')
 assert rows_rt, 'round-trip template tidak menghasilkan kontrak'
 assert all(r['tgl_kontrak'] for r in rows_rt), (
     'round-trip: tgl_kontrak kosong — template contoh tidak konsisten')
+assert all('durasi_termin' in t for r in rows_rt for t in r['termins']), (
+    'round-trip: termin tidak membawa durasi_termin')
 print(f'[3] template download OK: {len(hdr_tpl)} kolom identik, '
       f'round-trip {len(rows_rt)} kontrak tanggal utuh')
 

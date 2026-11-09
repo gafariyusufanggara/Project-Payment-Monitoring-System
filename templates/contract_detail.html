@@ -1,6 +1,13 @@
 {% extends "base.html" %}
 {% block title %}{{ contract.no_kontrak }} - Project Payment Monitoring System{% endblock %}
-{% block topbar_title %}{{ contract.vendor or 'Vendor belum diisi' }}{% endblock %}
+{% block topbar_title %}
+<span class="kd-title-stack">
+  <span class="kd-title-main" title="{{ contract.vendor or 'Vendor belum diisi' }}">{{ contract.vendor or 'Vendor belum diisi' }}</span>
+  {% if contract.item_pekerjaan %}
+  <span class="kd-title-sub" title="{{ contract.item_pekerjaan }}">{{ contract.item_pekerjaan }}</span>
+  {% endif %}
+</span>
+{% endblock %}
 {% block topbar_icon %}bi-file-earmark-text-fill{% endblock %}
 
 {% block content %}
@@ -16,6 +23,11 @@
   .kd-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .kd-back { display: inline-flex; align-items: center; gap: 4px; padding: 6px 14px; border-radius: 10px; font-size: 0.78rem; font-weight: 600; color: #4d5766; text-decoration: none; border: 1px solid #e3e5e8; background: #fff; }
   .kd-back:hover { border-color: #16324f; color: #16324f; }
+  /* Topbar: vendor sebagai judul, item pekerjaan sebagai subtitle. */
+  #pageTitle { min-width: 0; }
+  .kd-title-stack { display: flex; flex-direction: column; min-width: 0; }
+  .kd-title-main { display: block; font-weight: 700; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .kd-title-sub { display: block; font-size: 0.68rem; font-weight: 500; line-height: 1.05; color: #667080; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .kd-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
   .kd-card { background: #fff; border: 1px solid #e3e5e8; border-radius: 16px; box-shadow: 0 1px 3px rgba(51, 51, 51,.05); overflow: hidden; }
   .kd-card__body { padding: 16px 18px 18px; }
@@ -186,7 +198,6 @@
         <div class="kd-def__sec">Pekerjaan &amp; Jadwal</div>
         <div class="kd-s4"><dt>Tipe Pekerjaan</dt><dd>{{ contract.tipe_pekerjaan or '—' }}</dd></div>
         <div class="kd-s4"><dt>Item Pekerjaan</dt><dd title="{{ contract.item_pekerjaan or '' }}">{{ contract.item_pekerjaan or '—' }}</dd></div>
-        <div class="kd-s4"><dt>Durasi Termin</dt><dd>{% if contract.durasi_termin %}{{ '%g'|format(contract.durasi_termin) }} hari{% else %}—{% endif %}</dd></div>
         <div class="kd-s4"><dt>Tgl Kontrak Mulai</dt><dd>{{ contract.tgl_kontrak|tgl }}</dd></div>
         <div class="kd-s4"><dt>Tgl Kontrak Selesai</dt><dd>{{ contract.tgl_selesai|tgl }}</dd></div>
 
@@ -271,11 +282,6 @@
                      value="{{ contract.item_pekerjaan if contract else '' }}" placeholder="Water Injection Pump" />
             </div>
             <div class="kd-s4">
-              <label class="kd-label" for="durasi_termin">Durasi Termin (Hari)</label>
-              <input class="kd-input kd-money" id="durasi_termin" name="durasi_termin" type="number" min="0" step="1"
-                     value="{{ contract.durasi_termin|int if contract and contract.durasi_termin else '' }}" placeholder="0" />
-            </div>
-            <div class="kd-s4">
               <label class="kd-label" for="tgl_kontrak">Tgl Kontrak Mulai</label>
               <input class="kd-input" id="tgl_kontrak" name="tgl_kontrak" type="date"
                      value="{{ contract.tgl_kontrak if contract else '' }}" />
@@ -352,9 +358,6 @@
         {% if contract.ppn_rate %}
         <span class="ds-badge ds-badge-gray">PPN {{ '%g'|format(contract.ppn_rate) }}%</span>
         {% endif %}
-        {% if contract.durasi_termin %}
-        <span class="ds-badge ds-badge-gray">Durasi {{ '%g'|format(contract.durasi_termin) }} hari</span>
-        {% endif %}
         {% if total_persen and (total_persen < 99.5 or total_persen > 100.5) %}
         <span style="color:#7a6000;font-weight:600"><i class="bi bi-exclamation-triangle"></i>
           Termin (%) mentah = {{ '%g'|format(total_persen) }}% — dipakai
@@ -366,12 +369,13 @@
         {% endif %}
       </p>
       <div class="kd-scroll">
-        <table class="kd-table" style="min-width:760px">
+        <table class="kd-table" style="min-width:840px">
           <thead>
             <tr>
               <th>#</th>
               <th>Termin</th>
               <th class="num">Termin (%)</th>
+              <th class="num">Tempo Termin (Hari)</th>
               {% if not persen_ok %}<th class="num">Normalisasi (%)</th>{% endif %}
               <th class="num">Total Termin (Rp)</th>
               <th class="num">PPN per Termin (Rp)</th>
@@ -385,6 +389,7 @@
               <td class="cell-dim">{{ t.urutan_no }}</td>
               <td>{{ t.label or 'Termin ' ~ t.urutan_no }}</td>
               <td class="cell-money">{% if t.persen %}{{ '%g'|format(t.persen) }}%{% else %}-{% endif %}</td>
+              <td class="cell-money">{% if t.durasi_termin %}{{ '%g'|format(t.durasi_termin) }}{% else %}—{% endif %}</td>
               {% if not persen_ok %}<td class="cell-money">{{ '%.2f'|format(t.normalisasi) }}%</td>{% endif %}
               <td class="cell-money">{{ t.nilai|money }}</td>
               <td class="cell-money">{{ t.ppn|money }}</td>
@@ -426,6 +431,7 @@
               <td></td>
               <td>Total</td>
               <td class="cell-money">{% if total_persen %}{{ '%g'|format(total_persen) }}%{% else %}-{% endif %}</td>
+              <td></td>
               {% if not persen_ok %}<td class="cell-money">{{ '%.2f'|format(total_norm) }}%</td>{% endif %}
               <td class="cell-money">{{ total_termin_nilai|money }}</td>
               <td class="cell-money">{{ total_ppn|money }}</td>

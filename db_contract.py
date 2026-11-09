@@ -145,6 +145,16 @@ def init_contract_tables():
             conn.execute('ALTER TABLE vendor_contract_termin ADD COLUMN ppn_nilai REAL DEFAULT 0')
         if 'tgl_termin' not in tcols:
             conn.execute("ALTER TABLE vendor_contract_termin ADD COLUMN tgl_termin TEXT DEFAULT ''")
+        if 'durasi_termin' not in tcols:
+            conn.execute('ALTER TABLE vendor_contract_termin ADD COLUMN durasi_termin REAL DEFAULT 0')
+            # Backfill sekali: data lama hanya punya durasi di level kontrak.
+            conn.execute('''
+                UPDATE vendor_contract_termin
+                   SET durasi_termin = COALESCE((
+                       SELECT v.durasi_termin FROM vendor_contracts v
+                        WHERE v.id = vendor_contract_termin.contract_id), 0)
+                 WHERE durasi_termin IS NULL OR durasi_termin = 0
+            ''')
         conn.commit()
 
 
@@ -510,9 +520,9 @@ def replace_termins(contract_id, termins):
     """Ganti seluruh termin kontrak (delete-then-insert, sesuai filosofi
     import 'replace, bukan akumulasi').
 
-    termins: list dict {label, persen, nilai[, ppn_nilai]} — urutan list =
-    urutan termin. Nilai kontrak di-recalc = SUM(nilai termin) bila ada
-    minimal satu termin dengan nilai > 0; persen di-recalc = nilai/total
+    termins: list dict {label, persen, nilai[, ppn_nilai, durasi_termin]} —
+    urutan list = urutan termin. Nilai kontrak di-recalc = SUM(nilai termin)
+    bila ada minimal satu termin dengan nilai > 0; persen di-recalc = nilai/total
     bila kosong.
     """
     with _conn() as conn:
@@ -521,14 +531,16 @@ def replace_termins(contract_id, termins):
         for i, t in enumerate(termins or [], start=1):
             conn.execute('''
                 INSERT INTO vendor_contract_termin
-                    (contract_id, urutan, label, persen, nilai, ppn_nilai, tgl_termin)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                    (contract_id, urutan, label, persen, nilai, ppn_nilai,
+                     tgl_termin, durasi_termin)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ''', (contract_id, i,
                   (t.get('label') or '').strip(),
                   safe_float(t.get('persen')),
                   safe_float(t.get('nilai')),
                   safe_float(t.get('ppn_nilai')),
-                  (t.get('tgl_termin') or '').strip()))
+                  (t.get('tgl_termin') or '').strip(),
+                  safe_float(t.get('durasi_termin'))))
         total = conn.execute(
             'SELECT SUM(nilai) FROM vendor_contract_termin WHERE contract_id = ?',
             (contract_id,)).fetchone()[0] or 0.0
@@ -616,6 +628,8 @@ def enrich_termins(termins, contract=None):
         else:
             d['ppn_persen'] = round(d['normalisasi'] * rate, 4)
         d['total_bayar'] = nilai + d['ppn'] if include else nilai
+        d['durasi_termin'] = (safe_float(d.get('durasi_termin'))
+                              or safe_float((contract or {}).get('durasi_termin')))
         d['urutan_no'] = i
         d['kumulatif'] = kumulatif + nilai
         kumulatif += nilai
@@ -1025,12 +1039,14 @@ def import_contracts(rows, project_id=None, replace=True, also_unbound=True):
             for i, t in enumerate(termins, start=1):
                 conn.execute('''
                     INSERT INTO vendor_contract_termin
-                        (contract_id, urutan, label, persen, nilai, ppn_nilai, tgl_termin)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                        (contract_id, urutan, label, persen, nilai, ppn_nilai,
+                         tgl_termin, durasi_termin)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (cid, i, (t.get('label') or '').strip(),
                       safe_float(t.get('persen')), safe_float(t.get('nilai')),
                       safe_float(t.get('ppn_nilai')),
-                      (t.get('tgl_termin') or '').strip()))
+                      (t.get('tgl_termin') or '').strip(),
+                      safe_float(t.get('durasi_termin'))))
             total_termin += len(termins)
 
             # Isi nilai_kontrak bila kosong (jangan timpa nilai Excel).
