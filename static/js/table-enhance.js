@@ -441,7 +441,9 @@
     }
 
     function render() {
-      var rows = passingRows(body);
+      // Rows hidden by an external filter (e.g. "Hanya Invoice Vendor Prioritas" sets
+      // tr.hidden) must not count as visible, or the info line lies.
+      var rows = passingRows(body).filter(function (tr) { return !tr.hidden; });
       var total = rows.length;
       var pages = pageSize ? Math.max(1, Math.ceil(total / pageSize)) : 1;
       if (page > pages) page = pages;

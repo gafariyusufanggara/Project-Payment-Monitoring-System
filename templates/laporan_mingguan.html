@@ -43,8 +43,14 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
         ['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'][r.month]
         }} {{ r.year }}
       </option>
-      {% endif %} {% endfor %}
+        {% endif %} {% endfor %}
       </select>
+    </div>
+    <div class="lp-rail-group">
+      <label class="lp-rail-check" for="vendorPrioritasSel">
+        <input type="checkbox" id="vendorPrioritasSel" class="lp-rail-cb">
+        <span>Hanya Invoice Vendor Prioritas</span>
+      </label>
     </div>
     <div class="lp-rail-group lp-rail-group--end">
       <span class="lp-rail-period" id="weekLabel">{% for r in report_rows %}{% if r.key == current_week %}{{ r.label_long }}{% endif %}{% endfor %}</span>
@@ -82,12 +88,12 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
     >
       <div class="lp-hero-main">
         <span class="kpi-lbl ds-kpi__label"><i class="bi bi-wallet2"></i> Sisa Hutang DPP · {{ r.label }}</span>
-        <span class="kpi-num ds-kpi__value">{{ k.sisa_dpp|money }}</span>
+        <span class="kpi-num ds-kpi__value" data-jt="hero-sisa">{{ k.sisa_dpp|money }}</span>
       </div>
       <div class="lp-hero-side">
-        <span class="lp-hero-tot"><strong>{{ k.sd_hutang|money }}</strong> hutang</span>
+        <span class="lp-hero-tot"><strong data-jt="hero-hutang">{{ k.sd_hutang|money }}</strong> hutang</span>
         <span class="lp-hero-sep" aria-hidden="true">−</span>
-        <span class="lp-hero-tot"><strong>{{ k.sd_bayar|money }}</strong> bayar</span>
+        <span class="lp-hero-tot"><strong data-jt="hero-bayar">{{ k.sd_bayar|money }}</strong> bayar</span>
       </div>
     </div>
 
@@ -102,7 +108,7 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
                 <i class="bi bi-arrow-up-circle"></i>
               </div>
             </div>
-            <div class="kpi-num ds-kpi__value">{{ k.lalu_hutang|money }}</div>
+            <div class="kpi-num ds-kpi__value" data-jt="kpi-lalu-h">{{ k.lalu_hutang|money }}</div>
           </div>
           <div class="lp-kpi-cell ds-kpi ds-kpi--err h lp-cell--now">
             <div class="kpi-top">
@@ -111,7 +117,7 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
                 <i class="bi bi-calendar-check"></i>
               </div>
             </div>
-            <div class="kpi-num ds-kpi__value">{{ k.saat_ini_hutang|money }}</div>
+            <div class="kpi-num ds-kpi__value" data-jt="kpi-si-h">{{ k.saat_ini_hutang|money }}</div>
           </div>
           <div class="lp-kpi-cell ds-kpi ds-kpi--err h lp-cell--dim">
             <div class="kpi-top">
@@ -120,7 +126,7 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
                 <i class="bi bi-clock-history"></i>
               </div>
             </div>
-            <div class="kpi-num ds-kpi__value">{{ k.sd_hutang|money }}</div>
+            <div class="kpi-num ds-kpi__value" data-jt="kpi-sd-h">{{ k.sd_hutang|money }}</div>
           </div>
         </div>
       </section>
@@ -134,7 +140,7 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
                 <i class="bi bi-arrow-down-circle"></i>
               </div>
             </div>
-            <div class="kpi-num ds-kpi__value">{{ k.lalu_bayar|money }}</div>
+            <div class="kpi-num ds-kpi__value" data-jt="kpi-lalu-b">{{ k.lalu_bayar|money }}</div>
           </div>
           <div class="lp-kpi-cell ds-kpi ds-kpi--ok p lp-cell--now">
             <div class="kpi-top">
@@ -143,7 +149,7 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
                 <i class="bi bi-check-circle"></i>
               </div>
             </div>
-            <div class="kpi-num ds-kpi__value">{{ k.saat_ini_bayar|money }}</div>
+            <div class="kpi-num ds-kpi__value" data-jt="kpi-si-b">{{ k.saat_ini_bayar|money }}</div>
           </div>
           <div class="lp-kpi-cell ds-kpi ds-kpi--ok p lp-cell--dim">
             <div class="kpi-top">
@@ -164,8 +170,8 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
         <h6>
           <i class="bi bi-file-earmark-bar-graph"></i>
           Ringkasan Levelansir — Minggu {{ r.label }}
-          <span class="tag">{{ r.total_count }} Invoice</span>
-          <span class="tag teal">{{ r.total_pay_count }} Pembayaran</span>
+          <span class="tag" data-jt="tag-cnt">{{ r.total_count }} Invoice</span>
+          <span class="tag teal" data-jt="tag-pay">{{ r.total_pay_count }} Pembayaran</span>
         </h6>
         <div class="d-flex align-items-center gap-3">
           <span class="lp-level-count"
@@ -200,6 +206,7 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
             <tr
               data-rekan="{{ s.rekanan | e }}"
               data-month="{{ r.key }}"
+              data-vendor-prioritas="{{ s.prioritas }}"
               onclick="showDetail('{{ r.key }}', '{{ s.rekanan | e }}', this)"
             >
               <td class="c-no">{{ loop.index }}</td>
@@ -238,13 +245,13 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
               {% set t.sdpp = t.sdpp + s.sisa_dpp %} {% endfor %}
               <td class="c-no"></td>
               <td>TOTAL</td>
-              <td class="c-h">{{ t.l|money }}</td>
-              <td class="c-h">{{ t.si|money }}</td>
-              <td class="c-h">{{ t.sd|money }}</td>
-              <td class="c-p">{{ t.bl|money }}</td>
-              <td class="c-p">{{ t.bsi|money }}</td>
-              <td class="c-p">{{ t.bsd|money }}</td>
-              <td class="{{ 'c-sisa-pos' if t.sdpp > 0 else 'c-sisa-zero' }}">
+              <td class="c-h" data-jt="ft-lalu-h">{{ t.l|money }}</td>
+              <td class="c-h" data-jt="ft-si-h">{{ t.si|money }}</td>
+              <td class="c-h" data-jt="ft-sd-h">{{ t.sd|money }}</td>
+              <td class="c-p" data-jt="ft-lalu-b">{{ t.bl|money }}</td>
+              <td class="c-p" data-jt="ft-si-b">{{ t.bsi|money }}</td>
+              <td class="c-p" data-jt="ft-sd-b">{{ t.bsd|money }}</td>
+              <td class="{{ 'c-sisa-pos' if t.sdpp > 0 else 'c-sisa-zero' }}" data-jt="ft-sisa">
                 {{ t.sdpp|money }}
               </td>
             </tr>
@@ -363,6 +370,7 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
       const lbl = document.getElementById('weekLabel');
       if (lbl) { const wk = REKANAN_DATA.find(w => w.key === key); lbl.textContent = wk ? (wk.label_long || wk.label || key) : key; }
       afterVisibleChange();
+      if (isVendorPrioritasOnly()) { const s = document.getElementById('section-' + key); if (s) recomputeSection(s, true); }
   }
   function exportExcel(btn) {
       btn = btn || document.getElementById('exportBtn');
@@ -371,12 +379,16 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
       const key = activeBtn ? activeBtn.getAttribute('data-key') : '';
       const params = new URLSearchParams();
       if (key) params.set('week', key);
+      const cb = document.getElementById('vendorPrioritasSel');
+      if (cb && cb.checked) params.set('prioritas', '1');
       const qs = params.toString();
       window.location.href = '/laporan-mingguan/export' + (qs ? '?' + qs : '');
   }
   function bindMingguanEvents(){
     const mSel = document.getElementById('monthSel');
     if(mSel && !mSel.dataset.bound){ mSel.dataset.bound='1'; mSel.addEventListener('change', onPeriodChange); }
+    const cb = document.getElementById('vendorPrioritasSel');
+    if (cb && !cb.dataset.bound) { cb.dataset.bound = '1'; cb.addEventListener('change', filterVendorPrioritas); }
     document.querySelectorAll('.month-section tbody tr[data-rekan]').forEach(tr=>{ tr.tabIndex=0; tr.setAttribute('role','button'); tr.setAttribute('aria-label','Lihat detail '+tr.dataset.rekan); tr.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); tr.click(); }}); });
   }
   (function initPeriod() {
@@ -439,7 +451,7 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
               const paymentIsCurrent = payWK === monthKey;
               if (invoiceIsCurrent) currentInvoiceTotal += Number(inv.harga_excl ?? 0) || 0;
               if (paymentIsCurrent) currentPaymentTotal += Number(inv.bayar_dpp ?? 0) || 0;
-              return '<tr class="' + (invoiceIsCurrent ? 'hl-row-inv' : (paymentIsCurrent ? 'hl-row-pay' : '')) + '" data-search="' + esc([inv.invoice, inv.po, inv.deskripsi].join(' ').toLowerCase()) + '">' +
+              return '<tr class="' + (invoiceIsCurrent ? 'hl-row-inv' : (paymentIsCurrent ? 'hl-row-pay' : '')) + '" data-search="' + esc([inv.invoice, inv.po, inv.deskripsi].join(' ').toLowerCase()) + '" data-prioritas="' + (inv.prioritas || '0') + '">' +
                 '<td class="l ' + (invoiceIsCurrent ? 'hl-date-invoice' : '') + '">' + esc(fmtDate(inv.tgl_berkas)) + '</td>' +
                 '<td class="l">' + esc(fmtDate(inv.tgl_inv)) + '</td>' +
                 CellExpand.td(inv.invoice, 'l iv', 40) +
@@ -469,18 +481,11 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
       }
       document.getElementById('currentInvoiceTotal').textContent = 'Rp ' + fmt(currentInvoiceTotal);
       document.getElementById('currentPaymentTotal').textContent = 'Rp ' + fmt(currentPaymentTotal);
-      const filterInvoices = () => {
-          const query = search.value.trim().toLocaleLowerCase('id-ID');
-          let visible = 0;
-          body.querySelectorAll('tr[data-search]').forEach(row => {
-              row.hidden = query && !row.dataset.search.includes(query);
-              if (!row.hidden) visible++;
-          });
-          const mmEl = document.querySelector('#modalLabel .mm-cnt');
-          if (mmEl) mmEl.textContent = query ? (visible + ' dari ' + allInvoices.length + ' invoice') : (allInvoices.length + ' invoice');
-      };
-      search.oninput = filterInvoices;
-      filterInvoices();
+      _modalSearchEl = search;
+      _modalBody = body;
+      _modalAllInv = allInvoices;
+      search.oninput = applyModalPrioritasFilter;
+      applyModalPrioritasFilter();
       const modalEl = document.getElementById('laporanModal');
       const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
       modal.show();
@@ -488,6 +493,76 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
           modalEl.removeEventListener('hidden.bs.modal', _onHide);
           if (_activeRow) { _activeRow.classList.remove('selected'); _activeRow = null; }
       });
+  }
+
+  // ─── filter prioritas (rekap halaman + modal) ───
+  let _modalSearchEl = null;
+  let _modalBody = null;
+  let _modalAllInv = [];
+  function vendorPrioritasEl() { return document.getElementById('vendorPrioritasSel'); }
+  function isVendorPrioritasOnly() { const el = vendorPrioritasEl(); return el && el.checked; }
+
+  function fmtT(v) { return Math.round(Number(v || 0)).toLocaleString('id-ID'); }
+
+  function recomputeSection(section, only) {
+    let sh = 0, sb = 0, lh = 0, sih = 0, sdH = 0, lb = 0, sib = 0, sdB = 0, cnt = 0, pay = 0;
+    const weekKey = section.id.replace('section-', '');
+    const wk = REKANAN_DATA.find(w => w.key === weekKey);
+    section.querySelectorAll('table.lp-tbl tbody tr[data-rekan]').forEach(tr => {
+      const rekan = tr.dataset.rekan;
+      const s = wk && wk.rekanan_list.find(x => x.rekanan === rekan);
+      if (!s) { tr.hidden = true; return; }
+      const show = !only || s.prioritas === '1';
+      tr.hidden = !show;
+      if (!show) return;
+      sh += Number(s.sd_hutang || 0); sb += Number(s.sd_bayar || 0);
+      lh += Number(s.lalu_hutang || 0); sih += Number(s.saat_ini_hutang || 0); sdH += Number(s.sd_hutang || 0);
+      lb += Number(s.lalu_bayar || 0); sib += Number(s.saat_ini_bayar || 0); sdB += Number(s.sd_bayar || 0);
+      cnt += Number(s.count || 0); pay += Number(s.pay_count || 0);
+    });
+    const sisa = Math.max(0, sh - sb);
+    const set = (sel, v) => { const el = section.querySelector(sel); if (el) el.textContent = fmtT(v); };
+    set('[data-jt="hero-sisa"]', sisa);
+    set('[data-jt="hero-hutang"]', sh);
+    set('[data-jt="hero-bayar"]', sb);
+    set('[data-jt="kpi-lalu-h"]', lh);
+    set('[data-jt="kpi-si-h"]', sih);
+    set('[data-jt="kpi-sd-h"]', sdH);
+    set('[data-jt="kpi-lalu-b"]', lb);
+    set('[data-jt="kpi-si-b"]', sib);
+    set('[data-jt="kpi-sd-b"]', sdB);
+    set('[data-jt="ft-lalu-h"]', lh);
+    set('[data-jt="ft-si-h"]', sih);
+    set('[data-jt="ft-sd-h"]', sdH);
+    set('[data-jt="ft-lalu-b"]', lb);
+    set('[data-jt="ft-si-b"]', sib);
+    set('[data-jt="ft-sd-b"]', sdB);
+    set('[data-jt="ft-sisa"]', sisa);
+    const tc = section.querySelector('[data-jt="tag-cnt"]'); if (tc) tc.textContent = cnt + ' Invoice';
+    const tp = section.querySelector('[data-jt="tag-pay"]'); if (tp) tp.textContent = pay + ' Pembayaran';
+  }
+
+  function filterVendorPrioritas() {
+    const only = isVendorPrioritasOnly();
+    document.querySelectorAll('.month-section:not([hidden])').forEach(section => recomputeSection(section, only));
+    if (window.TableEnhance) { window.TableEnhance.refresh(); window.TableEnhance.resetPage(); }
+    applyModalPrioritasFilter();
+  }
+
+  function applyModalPrioritasFilter() {
+    if (!_modalSearchEl || !_modalBody) return;
+    const query = _modalSearchEl.value.trim().toLocaleLowerCase('id-ID');
+    const only = isVendorPrioritasOnly();
+    let visible = 0;
+    _modalBody.querySelectorAll('tr[data-search]').forEach(row => {
+      const prioOk = !only || row.dataset.prioritas === '1';
+      row.hidden = !(prioOk && (!query || row.dataset.search.includes(query)));
+      if (!row.hidden) visible++;
+    });
+    const mmEl = document.querySelector('#modalLabel .mm-cnt');
+    if (mmEl) mmEl.textContent = (query || only)
+      ? visible + ' dari ' + _modalAllInv.length + ' invoice'
+      : _modalAllInv.length + ' invoice';
   }
 
   function esc(s) { return String(s || '-').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
@@ -499,6 +574,7 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
   window.exportExcel = exportExcel;
   window.selectMonth = selectMonth;
   window.showDetail = showDetail;
+  window.filterVendorPrioritas = filterVendorPrioritas;
 })();
 </script>
 {% endblock %}

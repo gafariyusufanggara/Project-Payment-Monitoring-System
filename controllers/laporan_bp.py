@@ -44,6 +44,7 @@ def laporan():
     cutoff_str = request.args.get('cutoff', '').strip()
     cutoff_date = _parse_cutoff(cutoff_str)
     report_rows, data_count = build_laporan_data(project_id=pid, cutoff_date=cutoff_date)
+    _mark_prioritas(report_rows)
     months = [r['key'] for r in report_rows]
     active_month = request.args.get('month', '').strip()
     if not active_month or active_month not in months:
@@ -88,6 +89,7 @@ def laporan_mingguan():
     cutoff_str = request.args.get('cutoff', '').strip()
     cutoff_date = _parse_cutoff(cutoff_str)
     report_rows, data_count = build_mingguan_data(project_id=pid, cutoff_date=cutoff_date)
+    _mark_prioritas(report_rows)
     weeks = [r['key'] for r in report_rows]
     # Deep link: ?week=YYYY-Www preselects that week (used by cutoff reload).
     week_key = request.args.get('week', '').strip()
@@ -113,13 +115,44 @@ def _parse_cutoff(raw):
         return None
 
 
+def _mark_prioritas(report_rows):
+    """Tandai invoice + rekanan "vendor prioritas" (NO PO ada di daftar Kontrak).
+
+    Vendor prioritas = NO PO / KONTRAK invoice yang terdaftar di daftar Kontrak
+    (page Progress Inv. Kontrak / tabel vendor_contracts). Kunci pencocokan
+    sama dengan daftar kontrak: trim + upper.
+
+    Tiap invoice mendapat `prioritas` '1'/'0'; tiap rekanan mendapat '1' bila
+    minimal satu invoice-nya cocok. Baris rekanan / invoice lain tidak diubah.
+    """
+    import db_contract
+    registered = db_contract.get_registered_kontrak_keys()
+
+    def _matches(po):
+        return bool(po) and db_contract._norm_kontrak(po) in registered
+
+    for r in report_rows:
+        for s in r.get('rekanan_list', []):
+            any_match = False
+            for inv in s.get('invoices', []):
+                flag = _matches(inv.get('po'))
+                inv['prioritas'] = '1' if flag else '0'
+                if flag:
+                    any_match = True
+            s['prioritas'] = '1' if any_match else '0'
+
+
+
+
 @bp.route('/laporan-bulanan/export')
 def laporan_export():
     from services.project_context import get_read_filter
+    import db_contract
     month_key = request.args.get('month') or None
     cutoff_date = _parse_cutoff(request.args.get('cutoff'))
+    keys = db_contract.get_registered_kontrak_keys() if request.args.get('prioritas') == '1' else None
     buf = build_excel_export(month_key=month_key, project_id=get_read_filter(),
-                             cutoff_date=cutoff_date)
+                             cutoff_date=cutoff_date, prioritas_po_keys=keys)
     month_label = _parse_month_label(month_key)
     return send_file(
         buf,
@@ -132,10 +165,12 @@ def laporan_export():
 @bp.route('/laporan-mingguan/export')
 def laporan_mingguan_export():
     from services.project_context import get_read_filter
+    import db_contract
     week_key = request.args.get('week') or None
     cutoff_date = _parse_cutoff(request.args.get('cutoff'))
+    keys = db_contract.get_registered_kontrak_keys() if request.args.get('prioritas') == '1' else None
     buf = build_weekly_excel_export(week_key=week_key, project_id=get_read_filter(),
-                                    cutoff_date=cutoff_date)
+                                    cutoff_date=cutoff_date, prioritas_po_keys=keys)
     label = week_key_label(week_key) if week_key else week_key_label(current_week_key())
     return send_file(
         buf,
@@ -162,9 +197,11 @@ def laporan_jatuh_tempo_export():
 @bp.route('/laporan-jatuh-tempo')
 def laporan_jatuh_tempo():
     from services.project_context import get_read_filter
+    import db_contract
     now_key = date.today().strftime('%Y-%m')
     report_rows, data_count = build_jatuh_tempo_data(
         project_id=get_read_filter(), now_key=now_key)
+    _mark_prioritas(report_rows)
     months = [r['key'] for r in report_rows]
     current_month = now_key if now_key in months else (months[-1] if months else '')
     return render_template('laporan_jatuh_tempo.html',
@@ -180,6 +217,7 @@ def laporan_ppn():
     cutoff_str = request.args.get('cutoff', '').strip()
     cutoff_date = _parse_cutoff(cutoff_str)
     report_rows, data_count = build_ppn_data(project_id=get_read_filter(), cutoff_date=cutoff_date)
+    _mark_prioritas(report_rows)
     now_key = date.today().strftime('%Y-%m')
     months = [r['key'] for r in report_rows]
     # Deep link: ?month=YYYY-MM preselects that period (used by cutoff reload),
@@ -200,10 +238,12 @@ def laporan_ppn():
 def laporan_ppn_export():
     from services.laporan_ppn import build_ppn_excel_export
     from services.project_context import get_read_filter
+    import db_contract
     month_key = request.args.get('month') or None
     cutoff_date = _parse_cutoff(request.args.get('cutoff'))
+    keys = db_contract.get_registered_kontrak_keys() if request.args.get('prioritas') == '1' else None
     buf = build_ppn_excel_export(month_key=month_key, project_id=get_read_filter(),
-                                 cutoff_date=cutoff_date)
+                                 cutoff_date=cutoff_date, prioritas_po_keys=keys)
     month_label = _parse_month_label(month_key)
     return send_file(
         buf,
@@ -220,6 +260,7 @@ def laporan_ppn_mingguan():
     cutoff_date = _parse_cutoff(cutoff_str)
     report_rows, data_count = build_ppn_mingguan_data(project_id=get_read_filter(),
                                                       cutoff_date=cutoff_date)
+    _mark_prioritas(report_rows)
     weeks = [r['key'] for r in report_rows]
     # Deep link: ?week=YYYY-Www preselects that week.
     week_key = request.args.get('week', '').strip()
@@ -238,10 +279,12 @@ def laporan_ppn_mingguan():
 def laporan_ppn_mingguan_export():
     from services.laporan_ppn import build_ppn_mingguan_excel_export
     from services.project_context import get_read_filter
+    import db_contract
     week_key = request.args.get('week') or None
     cutoff_date = _parse_cutoff(request.args.get('cutoff'))
+    keys = db_contract.get_registered_kontrak_keys() if request.args.get('prioritas') == '1' else None
     buf = build_ppn_mingguan_excel_export(week_key=week_key, project_id=get_read_filter(),
-                                          cutoff_date=cutoff_date)
+                                          cutoff_date=cutoff_date, prioritas_po_keys=keys)
     label = week_key_label(week_key) if week_key else week_key_label(current_week_key())
     return send_file(
         buf,

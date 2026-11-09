@@ -33,6 +33,12 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
       <label class="lp-rail-label lp-rail-label--plain" for="cutoffDate"><i class="bi bi-calendar-check"></i> Cut Off</label>
       <input type="date" id="cutoffDate" class="lp-sel lp-sel--date" onchange="applyCutoff()" aria-label="Tanggal cut off" value="{{ cutoff if cutoff else '' }}">
     </div>
+    <div class="lp-rail-group">
+      <label class="lp-rail-check" for="vendorPrioritasSel">
+        <input type="checkbox" id="vendorPrioritasSel" class="lp-rail-cb">
+        <span>Hanya Invoice Vendor Prioritas</span>
+      </label>
+    </div>
     <div class="lp-rail-group lp-rail-group--end">
       <span class="lp-rail-period" id="cutoffMonthLabel">{% for r in report_rows %}{% if r.key == current_month %}{{ r.label }}{% endif %}{% endfor %}</span>
       <button class="lp-btn lp-btn--primary" id="exportBtn" onclick="exportExcel(this)" title="Unduh laporan periode aktif ke Excel"><i class="bi bi-download"></i> Unduh Laporan</button>
@@ -224,7 +230,8 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
       if (!skipCutoff) {
           const d = document.getElementById('cutoffDate');
           if (d && d.value) applyCutoff();
-      }
+          else if (isVendorPrioritasOnly()) { const s = document.getElementById('section-' + key); if (s) recomputeSection(s, true); }
+      } else if (isVendorPrioritasOnly()) { const s = document.getElementById('section-' + key); if (s) recomputeSection(s, true); }
   }
 
   // ─── cutoff date (fetch-based, no page refresh) ───
@@ -254,6 +261,10 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
                const secs = document.querySelectorAll('.month-section');
                const fallbackKey = secs.length > 0 ? secs[secs.length - 1].id.replace('section-', '') : '';
                restorePeriod(period || monthKey || fallbackKey);
+               if (isVendorPrioritasOnly()) {
+                   const s = document.getElementById('section-' + (period || monthKey || fallbackKey));
+                   if (s) recomputeSection(s, true);
+               }
            })
            .catch(() => {
                const alert = document.createElement('div');
@@ -348,7 +359,7 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
                const paymentIsCurrent = payYM === monthKey;
                if (invoiceIsCurrent) currentInvoiceTotal += Number(inv.harga_excl ?? 0) || 0;
                if (paymentIsCurrent) currentPaymentTotal += Number(inv.bayar_dpp ?? 0) || 0;
-                return `<tr class="${invoiceIsCurrent ? 'hl-row-inv' : (paymentIsCurrent ? 'hl-row-pay' : '')}" data-search="${esc([inv.invoice, inv.po, inv.deskripsi].join(' ').toLowerCase())}">
+                 return `<tr class="${invoiceIsCurrent ? 'hl-row-inv' : (paymentIsCurrent ? 'hl-row-pay' : '')}" data-search="${esc([inv.invoice, inv.po, inv.deskripsi].join(' ').toLowerCase())}" data-prioritas="${inv.prioritas || '0'}">
                  <td class="l ${invoiceIsCurrent ? 'hl-date-invoice' : ''}">${esc(fmtDate(inv.tgl_berkas))}</td>
 
                 <td class="l">${esc(fmtDate(inv.tgl_inv))}</td>
@@ -380,20 +391,14 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
        }
        document.getElementById('currentInvoiceTotal').textContent = `Rp ${fmt(currentInvoiceTotal)}`;
        document.getElementById('currentPaymentTotal').textContent = `Rp ${fmt(currentPaymentTotal)}`;
-       const filterInvoices = () => {
-           const query = search.value.trim().toLocaleLowerCase('id-ID');
-           let visible = 0;
-           body.querySelectorAll('tr[data-search]').forEach(row => {
-               row.hidden = query && !row.dataset.search.includes(query);
-               if (!row.hidden) visible++;
-           });
-           const mmEl = document.querySelector('#modalLabel .mm-cnt');
-          if (mmEl) mmEl.textContent = query ? `${visible} dari ${allInvoices.length} invoice` : `${allInvoices.length} invoice`;
-       };
-       search.oninput = filterInvoices;
-       filterInvoices();
+       const mmEl = document.querySelector('#modalLabel .mm-cnt');
+      _modalSearchEl = search;
+      _modalBody = body;
+      _modalAllInv = allInvoices;
+      search.oninput = applyModalPrioritasFilter;
+      applyModalPrioritasFilter();
 
-       const modalEl = document.getElementById('laporanModal');
+      const modalEl = document.getElementById('laporanModal');
       const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
       modal.show();
       modalEl.addEventListener('hidden.bs.modal', function _onHide() {
@@ -402,16 +407,90 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
       });
   }
 
+  let _modalSearchEl = null;
+  let _modalBody = null;
+  let _modalAllInv = [];
+
+  // ─── filter prioritas (rekap halaman + modal) ───
+  function vendorPrioritasEl() { return document.getElementById('vendorPrioritasSel'); }
+  function isVendorPrioritasOnly() { const el = vendorPrioritasEl(); return el && el.checked; }
+
+  function fmtT(v) { return Math.round(Number(v || 0)).toLocaleString('id-ID'); }
+
+  function recomputeSection(section, only) {
+    let sh = 0, sb = 0, lh = 0, sih = 0, sdH = 0, lb = 0, sib = 0, sdB = 0, cnt = 0, pay = 0;
+    const monthKey = section.dataset.nowKey || section.id.replace('section-', '');
+    const month = REKANAN_DATA.find(m => m.key === monthKey);
+    section.querySelectorAll('table.lp-tbl tbody tr[data-rekan]').forEach(tr => {
+      const rekan = tr.dataset.rekan;
+      const s = month && month.rekanan_list.find(x => x.rekanan === rekan);
+      if (!s) { tr.hidden = true; return; }
+      const show = !only || s.prioritas === '1';
+      tr.hidden = !show;
+      if (!show) return;
+      sh += Number(s.sd_hutang || 0); sb += Number(s.sd_bayar || 0);
+      lh += Number(s.lalu_hutang || 0); sih += Number(s.saat_ini_hutang || 0); sdH += Number(s.sd_hutang || 0);
+      lb += Number(s.lalu_bayar || 0); sib += Number(s.saat_ini_bayar || 0); sdB += Number(s.sd_bayar || 0);
+      cnt += Number(s.count || 0); pay += Number(s.pay_count || 0);
+    });
+    const sisa = Math.max(0, sh - sb);
+    const set = (sel, v) => { const el = section.querySelector(sel); if (el) el.textContent = fmtT(v); };
+    set('[data-jt="hero-sisa"]', sisa);
+    set('[data-jt="hero-hutang"]', sh);
+    set('[data-jt="hero-bayar"]', sb);
+    set('[data-jt="kpi-lalu-h"]', lh);
+    set('[data-jt="kpi-si-h"]', sih);
+    set('[data-jt="kpi-sd-h"]', sdH);
+    set('[data-jt="kpi-lalu-b"]', lb);
+    set('[data-jt="kpi-si-b"]', sib);
+    set('[data-jt="kpi-sd-b"]', sdB);
+    set('[data-jt="ft-lalu-h"]', lh);
+    set('[data-jt="ft-si-h"]', sih);
+    set('[data-jt="ft-sd-h"]', sdH);
+    set('[data-jt="ft-lalu-b"]', lb);
+    set('[data-jt="ft-si-b"]', sib);
+    set('[data-jt="ft-sd-b"]', sdB);
+    set('[data-jt="ft-sisa"]', sisa);
+    const tc = section.querySelector('[data-jt="tag-cnt"]'); if (tc) tc.textContent = cnt + ' Invoice';
+    const tp = section.querySelector('[data-jt="tag-pay"]'); if (tp) tp.textContent = pay + ' Pembayaran';
+  }
+
+  function filterVendorPrioritas() {
+    const only = isVendorPrioritasOnly();
+    document.querySelectorAll('.month-section:not([hidden])').forEach(section => recomputeSection(section, only));
+    if (window.TableEnhance) { window.TableEnhance.refresh(); window.TableEnhance.resetPage(); }
+    applyModalPrioritasFilter();
+  }
+
+  function applyModalPrioritasFilter() {
+    if (!_modalSearchEl || !_modalBody) return;
+    const query = _modalSearchEl.value.trim().toLocaleLowerCase('id-ID');
+    const only = isVendorPrioritasOnly();
+    let visible = 0;
+    _modalBody.querySelectorAll('tr[data-search]').forEach(row => {
+      const prioOk = !only || row.dataset.prioritas === '1';
+      row.hidden = !(prioOk && (!query || row.dataset.search.includes(query)));
+      if (!row.hidden) visible++;
+    });
+    const mmEl = document.querySelector('#modalLabel .mm-cnt');
+    if (mmEl) mmEl.textContent = (query || only)
+      ? `${visible} dari ${_modalAllInv.length} invoice`
+      : `${_modalAllInv.length} invoice`;
+  }
+
   // ─── expose fungsi ke window (dipakai attribut inline onclick/onchange) ───
   window.applyCutoff = applyCutoff;
   window.clearCutoff = clearCutoff;
   window.exportExcel = exportExcel;
   window.showDetail = showDetail;
+  window.filterVendorPrioritas = filterVendorPrioritas;
 
   // --- init ---
   function initLaporanBulanan() {
       readPayload();
       bindMonthSel();
+      const cb = vendorPrioritasEl();
+      if (cb && !cb.dataset.bound) { cb.dataset.bound = '1'; cb.addEventListener('change', filterVendorPrioritas); }
   }
   // Re-init pada full load & setiap HTMX swap.
   if (window.onPageReady) onPageReady(initLaporanBulanan);

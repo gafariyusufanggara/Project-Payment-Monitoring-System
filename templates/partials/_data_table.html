@@ -204,9 +204,14 @@
       <span>Sembunyikan Dokumen Revisi</span>
     </label>
 
+    <label class="te-toolbar-check" id="prioritasToggleWrap">
+      <input type="checkbox" id="filterPrioritas" />
+      <span>Hanya Invoice Vendor Prioritas</span>
+    </label>
+
     <div class="table-scroll">
       <table class="table dt-table" id="dataTable" data-enhance
-        data-te-toolbar-after="#revisiToggleWrap"
+        data-te-toolbar-after="#revisiToggleWrap, #prioritasToggleWrap"
         data-te-default-hidden="NO. INV CICILAN|TGL INVOICE|TGL TERIMA BERKAS|NO. SERI FAKTUR|STATUS DPP|STATUS PPN|TOTAL (INCLD)">
         <thead>
           <tr>
@@ -300,6 +305,7 @@
             data-row-idx="{{ row._row }}"
             data-excluded="{{ '1' if row._row in excluded_rows else '0' }}"
             data-revisi="{{ '1' if (row['TGL TERIMA'] or '')|string|trim == '' else '0' }}"
+            data-prioritas="{{ '1' if row._row in prioritas_rows else '0' }}"
           >
             <td class="col-sticky-left" data-type="num" data-v="{{ loop.index }}">
               <span class="row-num">{{ loop.index }}</span>

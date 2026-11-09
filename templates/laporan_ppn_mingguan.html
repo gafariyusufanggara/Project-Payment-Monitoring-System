@@ -46,6 +46,12 @@
       {% endif %}{% endfor %}
       </select>
     </div>
+    <div class="lp-rail-group">
+      <label class="lp-rail-check" for="vendorPrioritasSel">
+        <input type="checkbox" id="vendorPrioritasSel" class="lp-rail-cb">
+        <span>Hanya Invoice Vendor Prioritas</span>
+      </label>
+    </div>
     <div class="lp-rail-group lp-rail-group--end">
       <span class="lp-rail-period" id="weekLabel">{% for r in report_rows %}{% if r.key == current_week %}{{ r.label_long }}{% endif %}{% endfor %}</span>
       <button class="lp-btn lp-btn--primary" id="exportBtn" onclick="exportExcel(this)" title="Unduh laporan minggu aktif ke Excel"><i class="bi bi-download"></i> Unduh Laporan</button>
@@ -66,12 +72,12 @@
     <div class="lp-sisa-card lp-hero ds-kpi {% if k.sisa_ppn|has_sisa %}pos ds-kpi--err{% else %}zero ds-kpi--ok{% endif %}">
       <div class="lp-hero-main">
         <span class="kpi-lbl ds-kpi__label"><i class="bi bi-wallet2"></i> Sisa PPN · {{ r.label }}</span>
-        <span class="kpi-num ds-kpi__value">{{ k.sisa_ppn|money }}</span>
+        <span class="kpi-num ds-kpi__value" data-jt="hero-sisa">{{ k.sisa_ppn|money }}</span>
       </div>
       <div class="lp-hero-side">
-        <span class="lp-hero-tot"><strong>{{ k.sd_ppn|money }}</strong> PPN</span>
+        <span class="lp-hero-tot"><strong data-jt="hero-hutang">{{ k.sd_ppn|money }}</strong> PPN</span>
         <span class="lp-hero-sep" aria-hidden="true">−</span>
-        <span class="lp-hero-tot"><strong>{{ k.sd_bayar_ppn|money }}</strong> bayar</span>
+        <span class="lp-hero-tot"><strong data-jt="hero-bayar">{{ k.sd_bayar_ppn|money }}</strong> bayar</span>
       </div>
     </div>
 
@@ -81,15 +87,15 @@
         <div class="lp-kpi-row">
           <div class="lp-kpi-cell ds-kpi ds-kpi--err h lp-cell--dim">
             <div class="kpi-top"><span class="kpi-lbl ds-kpi__label">Lalu</span><div class="kpi-icon-wrap" aria-hidden="true"><i class="bi bi-arrow-up-circle"></i></div></div>
-            <div class="kpi-num ds-kpi__value">{{ k.lalu_ppn|money }}</div>
+            <div class="kpi-num ds-kpi__value" data-jt="kpi-lalu-h">{{ k.lalu_ppn|money }}</div>
           </div>
           <div class="lp-kpi-cell ds-kpi ds-kpi--err h lp-cell--now">
             <div class="kpi-top"><span class="kpi-lbl ds-kpi__label">Saat Ini</span><div class="kpi-icon-wrap" aria-hidden="true"><i class="bi bi-calendar-check"></i></div></div>
-            <div class="kpi-num ds-kpi__value">{{ k.saat_ini_ppn|money }}</div>
+            <div class="kpi-num ds-kpi__value" data-jt="kpi-si-h">{{ k.saat_ini_ppn|money }}</div>
           </div>
           <div class="lp-kpi-cell ds-kpi ds-kpi--err h lp-cell--dim">
             <div class="kpi-top"><span class="kpi-lbl ds-kpi__label">S/D Saat Ini</span><div class="kpi-icon-wrap" aria-hidden="true"><i class="bi bi-clock-history"></i></div></div>
-            <div class="kpi-num ds-kpi__value">{{ k.sd_ppn|money }}</div>
+            <div class="kpi-num ds-kpi__value" data-jt="kpi-sd-h">{{ k.sd_ppn|money }}</div>
           </div>
         </div>
       </section>
@@ -98,15 +104,15 @@
         <div class="lp-kpi-row">
           <div class="lp-kpi-cell ds-kpi ds-kpi--ok p lp-cell--dim">
             <div class="kpi-top"><span class="kpi-lbl ds-kpi__label">Lalu</span><div class="kpi-icon-wrap" aria-hidden="true"><i class="bi bi-arrow-down-circle"></i></div></div>
-            <div class="kpi-num ds-kpi__value">{{ k.lalu_bayar_ppn|money }}</div>
+            <div class="kpi-num ds-kpi__value" data-jt="kpi-lalu-b">{{ k.lalu_bayar_ppn|money }}</div>
           </div>
           <div class="lp-kpi-cell ds-kpi ds-kpi--ok p lp-cell--now">
             <div class="kpi-top"><span class="kpi-lbl ds-kpi__label">Saat Ini</span><div class="kpi-icon-wrap" aria-hidden="true"><i class="bi bi-check-circle"></i></div></div>
-            <div class="kpi-num ds-kpi__value">{{ k.saat_ini_bayar_ppn|money }}</div>
+            <div class="kpi-num ds-kpi__value" data-jt="kpi-si-b">{{ k.saat_ini_bayar_ppn|money }}</div>
           </div>
           <div class="lp-kpi-cell ds-kpi ds-kpi--ok p lp-cell--dim">
             <div class="kpi-top"><span class="kpi-lbl ds-kpi__label">S/D Saat Ini</span><div class="kpi-icon-wrap" aria-hidden="true"><i class="bi bi-check-all"></i></div></div>
-            <div class="kpi-num ds-kpi__value">{{ k.sd_bayar_ppn|money }}</div>
+            <div class="kpi-num ds-kpi__value" data-jt="kpi-sd-b">{{ k.sd_bayar_ppn|money }}</div>
           </div>
         </div>
       </section>
@@ -117,8 +123,8 @@
         <h4 class="lp-tbl-title">
           <i class="bi bi-file-earmark-bar-graph"></i>
           Ringkasan Levelansir — Minggu {{ r.label }}
-          <span class="tag">{{ r.total_count }} PPN</span>
-          <span class="tag teal">{{ r.total_ppn_pay_count }} Pembayaran</span>
+          <span class="tag" data-jt="tag-cnt">{{ r.total_count }} PPN</span>
+          <span class="tag teal" data-jt="tag-pay">{{ r.total_ppn_pay_count }} Pembayaran</span>
         </h4>
 
       </div>
@@ -143,7 +149,7 @@
           </thead>
           <tbody>
             {% for s in r.rekanan_list %}
-            <tr data-rekan="{{ s.rekanan | e }}" data-month="{{ r.key }}" onclick="showDetail('{{ r.key }}', '{{ s.rekanan | e }}', this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showDetail('{{ r.key }}','{{ s.rekanan | e }}',this)}" tabindex="0" role="button" aria-label="Detail {{ s.rekanan | e }}">
+            <tr data-rekan="{{ s.rekanan | e }}" data-month="{{ r.key }}" data-vendor-prioritas="{{ s.prioritas }}" onclick="showDetail('{{ r.key }}', '{{ s.rekanan | e }}', this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showDetail('{{ r.key }}','{{ s.rekanan | e }}',this)}" tabindex="0" role="button" aria-label="Detail {{ s.rekanan | e }}">
               <td class="c-no">{{ loop.index }}</td>
               <td>
                 {{ s.rekanan }}
@@ -166,13 +172,13 @@
               {% for s in r.rekanan_list %}{% set t.lppn = t.lppn + s.lalu_ppn %}{% set t.sippn = t.sippn + s.saat_ini_ppn %}{% set t.sdppn = t.sdppn + s.sd_ppn %}{% set t.blppn = t.blppn + s.lalu_bayar_ppn %}{% set t.bsippn = t.bsippn + s.saat_ini_bayar_ppn %}{% set t.bsdppn = t.bsdppn + s.sd_bayar_ppn %}{% set t.sppn = t.sppn + s.sisa_ppn %}{% endfor %}
               <td class="c-no"></td>
               <td>TOTAL</td>
-              <td class="c-h">{{ t.lppn|money }}</td>
-              <td class="c-h">{{ t.sippn|money }}</td>
-              <td class="c-h">{{ t.sdppn|money }}</td>
-              <td class="c-p">{{ t.blppn|money }}</td>
-              <td class="c-p">{{ t.bsippn|money }}</td>
-              <td class="c-p">{{ t.bsdppn|money }}</td>
-              <td class="{{ 'c-sisa-pos' if t.sppn > 0 else 'c-sisa-zero' }}">{{ t.sppn|money }}</td>
+              <td class="c-h" data-jt="ft-lalu-h">{{ t.lppn|money }}</td>
+              <td class="c-h" data-jt="ft-si-h">{{ t.sippn|money }}</td>
+              <td class="c-h" data-jt="ft-sd-h">{{ t.sdppn|money }}</td>
+              <td class="c-p" data-jt="ft-lalu-b">{{ t.blppn|money }}</td>
+              <td class="c-p" data-jt="ft-si-b">{{ t.bsippn|money }}</td>
+              <td class="c-p" data-jt="ft-sd-b">{{ t.bsdppn|money }}</td>
+              <td class="{{ 'c-sisa-pos' if t.sppn > 0 else 'c-sisa-zero' }}" data-jt="ft-sisa">{{ t.sppn|money }}</td>
             </tr>
           </tfoot>
         </table>
@@ -249,6 +255,7 @@ function selectMonth(key){
   const lbl=document.getElementById('weekLabel'); if(lbl){ const wk=REKANAN_DATA.find(w=>w.key===key); lbl.textContent=wk?(wk.label_long||wk.label||key):key; }
   if(window.TableEnhance) window.TableEnhance.refresh();
   const vis=document.querySelector('.month-section:not([hidden])'); if(vis) vis.querySelector('table.lp-tbl')?.focus?.({preventScroll:true});
+  if(isVendorPrioritasOnly()){ const s=document.getElementById('section-'+key); if(s) recomputeSection(s, true); }
 }
 function onPeriodChange(){
   const sel=document.getElementById('monthSel'); const y=sel.options[sel.selectedIndex]?.dataset.year; const m=sel.value;
@@ -260,10 +267,12 @@ function onPeriodChange(){
 function bindMingguanEvents(){
   const mSel=document.getElementById('monthSel');
   if(mSel&&!mSel.dataset.bound){ mSel.dataset.bound='1'; mSel.addEventListener('change', onPeriodChange); }
+  const cb=document.getElementById('vendorPrioritasSel');
+  if(cb&&!cb.dataset.bound){ cb.dataset.bound='1'; cb.addEventListener('change', filterVendorPrioritas); }
   document.querySelectorAll('.month-section tbody tr[data-rekan]').forEach(tr=>{ tr.tabIndex=0; tr.setAttribute('role','button'); tr.setAttribute('aria-label','Lihat detail '+tr.dataset.rekan); tr.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); tr.click(); }}); });
 }
 (function initPeriod(){ bindMingguanEvents(); const btns=document.querySelectorAll('#weekBar .lp-rail-btn'); if(!btns.length) return; const a=document.querySelector('#weekBar .lp-rail-btn.active'); const anchor=a||btns[btns.length-1]; const mSel=document.getElementById('monthSel'); if(mSel){ for(const opt of mSel.options){ if(opt.dataset.year===anchor.dataset.year&&String(opt.value)===String(anchor.dataset.month)){ opt.selected=true; break; } } } onPeriodChange(); })();
-function exportExcel(btn){ btn=btn||document.getElementById('exportBtn'); if(btn){ btn.disabled=true; setTimeout(()=>btn.disabled=false,1500); } const a=document.querySelector('#weekBar .lp-rail-btn.active'); const k=a?a.getAttribute('data-key'):''; const params=new URLSearchParams(); if(k) params.set('week', k); const qs=params.toString(); window.location.href='/laporan-ppn-mingguan/export'+(qs?'?'+qs:''); }
+function exportExcel(btn){ btn=btn||document.getElementById('exportBtn'); if(btn){ btn.disabled=true; setTimeout(()=>btn.disabled=false,1500); } const a=document.querySelector('#weekBar .lp-rail-btn.active'); const k=a?a.getAttribute('data-key'):''; const params=new URLSearchParams(); if(k) params.set('week', k); const cb=document.getElementById('vendorPrioritasSel'); if(cb&&cb.checked) params.set('prioritas','1'); const qs=params.toString(); window.location.href='/laporan-ppn-mingguan/export'+(qs?'?'+qs:''); }
 let _activeRow=null;
 function showDetail(monthKey,rekanan,rowEl){
   if(_activeRow) _activeRow.classList.remove('selected');
@@ -286,17 +295,86 @@ function showDetail(monthKey,rekanan,rowEl){
       const invoiceIsCurrent=invWK===monthKey; const paymentIsCurrent=payWK===monthKey;
       if(invoiceIsCurrent) currentInvoiceTotal+=Number(inv.ppn??0)||0;
       if(paymentIsCurrent) currentPaymentTotal+=Number(inv.bayar_ppn??0)||0;
-      return '<tr class="'+(invoiceIsCurrent?'hl-row-inv':(paymentIsCurrent?'hl-row-pay':''))+'" data-search="'+esc([inv.invoice,inv.po,inv.deskripsi].join(' ').toLowerCase())+'"><td class="l '+(invoiceIsCurrent?'hl-date-invoice':'')+'">'+esc(fmtDate(inv.tgl_berkas))+'</td>'+CellExpand.td(inv.invoice,'l iv',40)+CellExpand.td(inv.po,'l',25)+'<td class="l">'+esc(fmtDate(inv.jth_tempo))+'</td>'+CellExpand.td(inv.deskripsi,'l',40)+'<td class="m-h">'+fmt(inv.harga_excl)+'</td><td class="m-h">'+fmt(inv.ppn)+'</td><td class="l '+(paymentIsCurrent?'hl-date-payment':'')+'">'+esc(fmtDate(inv.tgl_bayar_ppn))+'</td><td class="m-p">'+fmt(inv.bayar_ppn)+'</td><td class="m-s '+cls+'">'+fmt(sisa)+'</td></tr>';
+      return '<tr class="'+(invoiceIsCurrent?'hl-row-inv':(paymentIsCurrent?'hl-row-pay':''))+'" data-search="'+esc([inv.invoice,inv.po,inv.deskripsi].join(' ').toLowerCase())+'" data-prioritas="'+(inv.prioritas||'0')+'"><td class="l '+(invoiceIsCurrent?'hl-date-invoice':'')+'">'+esc(fmtDate(inv.tgl_berkas))+'</td>'+CellExpand.td(inv.invoice,'l iv',40)+CellExpand.td(inv.po,'l',25)+'<td class="l">'+esc(fmtDate(inv.jth_tempo))+'</td>'+CellExpand.td(inv.deskripsi,'l',40)+'<td class="m-h">'+fmt(inv.harga_excl)+'</td><td class="m-h">'+fmt(inv.ppn)+'</td><td class="l '+(paymentIsCurrent?'hl-date-payment':'')+'">'+esc(fmtDate(inv.tgl_bayar_ppn))+'</td><td class="m-p">'+fmt(inv.bayar_ppn)+'</td><td class="m-s '+cls+'">'+fmt(sisa)+'</td></tr>';
     }).join('');
     if(tfoot){ tfoot.hidden=false; document.getElementById('ftDpp').textContent=fmt(tDpp); document.getElementById('ftPpn').textContent=fmt(tPpn); document.getElementById('ftBayar').textContent=fmt(tB); const ftS=document.getElementById('ftSisa'); ftS.textContent=fmt(tS); ftS.className=tS>0?'t-s-pos':'t-s-zero'; }
   }
   document.getElementById('currentInvoiceTotal').textContent='Rp '+fmt(currentInvoiceTotal);
   document.getElementById('currentPaymentTotal').textContent='Rp '+fmt(currentPaymentTotal);
-  const filterInvoices=()=>{ const query=search.value.trim().toLocaleLowerCase('id-ID'); let visible=0; body.querySelectorAll('tr[data-search]').forEach(row=>{ row.hidden=query&&!row.dataset.search.includes(query); if(!row.hidden) visible++; }); const mmEl=document.querySelector('#modalLabel .mm-cnt'); if(mmEl) mmEl.textContent=query?(visible+' dari '+allInvoices.length+' invoice'):(allInvoices.length+' invoice'); };
-  search.oninput=filterInvoices; filterInvoices();
+  _modalSearchEl=search; _modalBody=body; _modalAllInv=allInvoices;
+  search.oninput=applyModalPrioritasFilter; applyModalPrioritasFilter();
   const modalEl=document.getElementById('ppnModal'); const modal=bootstrap.Modal.getOrCreateInstance(modalEl); modal.show();
   modalEl.addEventListener('hidden.bs.modal', function _onHide(){ modalEl.removeEventListener('hidden.bs.modal', _onHide); if(_activeRow){ _activeRow.classList.remove('selected'); _activeRow=null; } });
 }
+
+  // ─── filter prioritas (rekap halaman + modal) ───
+  let _modalSearchEl = null;
+  let _modalBody = null;
+  let _modalAllInv = [];
+  function vendorPrioritasEl(){ return document.getElementById('vendorPrioritasSel'); }
+  function isVendorPrioritasOnly(){ const el=vendorPrioritasEl(); return el&&el.checked; }
+
+  function fmtT(v){ return Math.round(Number(v||0)).toLocaleString('id-ID'); }
+
+  function recomputeSection(section, only){
+    let sh=0,sb=0,lP=0,siP=0,sdP=0,lB=0,siB=0,sdB=0,cnt=0,pay=0;
+    const weekKey=section.id.replace('section-','');
+    const wk=REKANAN_DATA.find(w=>w.key===weekKey);
+    section.querySelectorAll('table.lp-tbl tbody tr[data-rekan]').forEach(tr=>{
+      const rekan=tr.dataset.rekan;
+      const s=wk&&wk.rekanan_list.find(x=>x.rekanan===rekan);
+      if(!s){ tr.hidden=true; return; }
+      const show=!only||s.prioritas==='1';
+      tr.hidden=!show;
+      if(!show) return;
+      sh+=Number(s.sd_ppn||0); sb+=Number(s.sd_bayar_ppn||0);
+      lP+=Number(s.lalu_ppn||0); siP+=Number(s.saat_ini_ppn||0); sdP+=Number(s.sd_ppn||0);
+      lB+=Number(s.lalu_bayar_ppn||0); siB+=Number(s.saat_ini_bayar_ppn||0); sdB+=Number(s.sd_bayar_ppn||0);
+      cnt+=Number(s.count||0); pay+=Number(s.ppn_pay_count||0);
+    });
+    const sisa=Math.max(0,sh-sb);
+    const set=(sel,v)=>{ const el=section.querySelector(sel); if(el) el.textContent=fmtT(v); };
+    set('[data-jt="hero-sisa"]',sisa);
+    set('[data-jt="hero-hutang"]',sh);
+    set('[data-jt="hero-bayar"]',sb);
+    set('[data-jt="kpi-lalu-h"]',lP);
+    set('[data-jt="kpi-si-h"]',siP);
+    set('[data-jt="kpi-sd-h"]',sdP);
+    set('[data-jt="kpi-lalu-b"]',lB);
+    set('[data-jt="kpi-si-b"]',siB);
+    set('[data-jt="kpi-sd-b"]',sdB);
+    set('[data-jt="ft-lalu-h"]',lP);
+    set('[data-jt="ft-si-h"]',siP);
+    set('[data-jt="ft-sd-h"]',sdP);
+    set('[data-jt="ft-lalu-b"]',lB);
+    set('[data-jt="ft-si-b"]',siB);
+    set('[data-jt="ft-sd-b"]',sdB);
+    set('[data-jt="ft-sisa"]',sisa);
+    const tc=section.querySelector('[data-jt="tag-cnt"]'); if(tc) tc.textContent=cnt+' PPN';
+    const tp=section.querySelector('[data-jt="tag-pay"]'); if(tp) tp.textContent=pay+' Pembayaran';
+  }
+
+  function filterVendorPrioritas(){
+    const only=isVendorPrioritasOnly();
+    document.querySelectorAll('.month-section:not([hidden])').forEach(section=>recomputeSection(section,only));
+    if(window.TableEnhance){ window.TableEnhance.refresh(); window.TableEnhance.resetPage(); }
+    applyModalPrioritasFilter();
+  }
+
+  function applyModalPrioritasFilter(){
+    if(!_modalSearchEl||!_modalBody) return;
+    const query=_modalSearchEl.value.trim().toLocaleLowerCase('id-ID');
+    const only=isVendorPrioritasOnly();
+    let visible=0;
+    _modalBody.querySelectorAll('tr[data-search]').forEach(row=>{
+      const prioOk=!only||row.dataset.prioritas==='1';
+      row.hidden=!(prioOk&&(!query||row.dataset.search.includes(query)));
+      if(!row.hidden) visible++;
+    });
+    const mmEl=document.querySelector('#modalLabel .mm-cnt');
+    if(mmEl) mmEl.textContent=(query||only)?visible+' dari '+_modalAllInv.length+' invoice':_modalAllInv.length+' invoice';
+  }
+
 function esc(s){ return String(s||'-').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 function fmt(v){ return Math.round(Number(v||0)).toLocaleString('id-ID'); }
 function _isoWeek(d){ const t=new Date(d.getFullYear(),d.getMonth(),d.getDate()); let w=t.getDay(); w=w===0?7:w; t.setDate(t.getDate()+4-w); const y0=new Date(t.getFullYear(),0,1); return [t.getFullYear(), Math.ceil(((t-y0)/86400000+1)/7)]; }
@@ -306,6 +384,7 @@ function weekKeyOf(s){ if(!s||s==='-'||String(s).length<10) return null; const p
 window.exportExcel = exportExcel;
 window.selectMonth = selectMonth;
 window.showDetail = showDetail;
+window.filterVendorPrioritas = filterVendorPrioritas;
 })();
 </script>
 {% endblock %}

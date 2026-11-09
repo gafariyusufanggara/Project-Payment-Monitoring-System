@@ -44,7 +44,18 @@ def _resolve_pay_period(pay_date_str, tgl_berkas_str, rekan_keyfn, cutoff_date=N
     return rekan_keyfn(pay_dt)
 
 
-def _build_cum(rekan_keyfn, filter_fn=None, project_id=None, cutoff_date=None):
+def _po_in_keys(row, keys):
+    """True when the row's NO PO / KONTRAK is in the normalised key set.
+
+    Normalisation must match db_contract._norm_kontrak (trim + upper), since
+    the keys come from vendor_contracts.no_kontrak.
+    """
+    po = str(row.get('NO PO / KONTRAK') or '').strip().upper()
+    return bool(po) and po in keys
+
+
+def _build_cum(rekan_keyfn, filter_fn=None, project_id=None, cutoff_date=None,
+               prioritas_po_keys=None):
     """Shared Pass 1 + 2: group by a period key, then compute cumulative
     per-rekanan balances across sorted periods.
 
@@ -57,6 +68,9 @@ def _build_cum(rekan_keyfn, filter_fn=None, project_id=None, cutoff_date=None):
         cutoff_date: optional date/datetime; when set, only rows with
                      TGL TERIMA <= cutoff_date and TGL BAYAR DPP <= cutoff_date
                      are included.
+        prioritas_po_keys: optional set of normalised NO PO / KONTRAK keys;
+                     when set, only rows whose PO is in the set are counted
+                     (filter "Hanya Invoice Vendor Prioritas").
     Returns: (rekan_cum dict, all_periods sorted list, sorted_rekan list, data)
     """
     data = db.read_data(project_id=project_id)
@@ -64,6 +78,8 @@ def _build_cum(rekan_keyfn, filter_fn=None, project_id=None, cutoff_date=None):
     data = [r for r in data if not is_excluded_row(r)]
     if filter_fn:
         data = [r for r in data if filter_fn(r)]
+    if prioritas_po_keys is not None:
+        data = [r for r in data if _po_in_keys(r, prioritas_po_keys)]
 
     # Pass 1: group hutang by TGL BERKAS, bayar by TGL BAYAR
     hutang_rm = defaultdict(lambda: defaultdict(lambda: {'hutang': 0, 'harga_excl': 0, 'retensi': 0, 'pot_pph': 0, 'ppn': 0, 'invoices': []}))
@@ -214,7 +230,7 @@ def _build_cum(rekan_keyfn, filter_fn=None, project_id=None, cutoff_date=None):
     return rekan_cum, all_periods, sorted_rekan, data
 
 
-def build_laporan_data(project_id=None, cutoff_date=None):
+def build_laporan_data(project_id=None, cutoff_date=None, prioritas_po_keys=None):
     """Compute the full laporan dataset (monthly periods). Returns (report_rows, data_count).
 
     project_id: optional project filter forwarded to db.read_data.
@@ -227,7 +243,9 @@ def build_laporan_data(project_id=None, cutoff_date=None):
     def month_keyfn(dt):
         return dt.strftime('%Y-%m')
 
-    rekan_cum, all_months, sorted_rekan, data = _build_cum(month_keyfn, project_id=project_id, cutoff_date=cutoff_date)
+    rekan_cum, all_months, sorted_rekan, data = _build_cum(
+        month_keyfn, project_id=project_id, cutoff_date=cutoff_date,
+        prioritas_po_keys=prioritas_po_keys)
 
     # Ensure current month is included so empty months still show carried-forward balances
     now_key = datetime.now().strftime('%Y-%m')
@@ -433,7 +451,7 @@ def current_month_key(now=None):
     return (now or datetime.now()).strftime('%Y-%m')
 
 
-def build_mingguan_data(project_id=None, cutoff_date=None):
+def build_mingguan_data(project_id=None, cutoff_date=None, prioritas_po_keys=None):
     """Compute the weekly laporan dataset (period = Sunday..Saturday week).
 
     Same formulas as the monthly report, but grouped by week instead of month.
@@ -444,7 +462,9 @@ def build_mingguan_data(project_id=None, cutoff_date=None):
     def week_keyfn(dt):
         return _week_key(dt)
 
-    rekan_cum, all_weeks, sorted_rekan, data = _build_cum(week_keyfn, project_id=project_id, cutoff_date=cutoff_date)
+    rekan_cum, all_weeks, sorted_rekan, data = _build_cum(
+        week_keyfn, project_id=project_id, cutoff_date=cutoff_date,
+        prioritas_po_keys=prioritas_po_keys)
 
     # Ensure current week is included so empty weeks still show vendor data
     today    = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
@@ -737,7 +757,7 @@ def _write_excel_date(ws, row, col, value, fmt):
 
 
 def _render_lbp(wb, ws, mdata, now_key, period_of, title_suffix='', project_id=None,
-                cutoff_date=None):
+                cutoff_date=None, prioritas_po_keys=None):
     """Shared LBP sheet renderer for monthly & weekly exports.
 
     Renders the selected period as a wide hierarchical table: one summary row
@@ -764,6 +784,8 @@ def _render_lbp(wb, ws, mdata, now_key, period_of, title_suffix='', project_id=N
     hist = defaultdict(list)
     for row in _dedup_debt_rows(db.read_data(project_id=project_id)):
         if is_excluded_row(row):
+            continue
+        if prioritas_po_keys is not None and not _po_in_keys(row, prioritas_po_keys):
             continue
         # Cut Off: skip invoices received after the cutoff date, exactly like
         # _build_cum does, so detail rows can't reintroduce data the summary hid.
@@ -1091,7 +1113,8 @@ def _render_lbp(wb, ws, mdata, now_key, period_of, title_suffix='', project_id=N
 
 
 
-def build_excel_export(month_key=None, project_id=None, cutoff_date=None):
+def build_excel_export(month_key=None, project_id=None, cutoff_date=None,
+                       prioritas_po_keys=None):
     """Build the monthly LBP (Rekap Prestasi Utang & Pembayaran Utang) Excel report.
 
     Renders the selected month (default: current month) via the shared
@@ -1101,7 +1124,8 @@ def build_excel_export(month_key=None, project_id=None, cutoff_date=None):
     """
     import xlsxwriter
 
-    report_rows, _ = build_laporan_data(project_id=project_id, cutoff_date=cutoff_date)
+    report_rows, _ = build_laporan_data(project_id=project_id, cutoff_date=cutoff_date,
+                                        prioritas_po_keys=prioritas_po_keys)
     now_key = month_key or datetime.now().strftime('%Y-%m')
     mdata = next((r for r in report_rows if r['key'] == now_key), None)
     if mdata is None and report_rows:
@@ -1112,13 +1136,15 @@ def build_excel_export(month_key=None, project_id=None, cutoff_date=None):
     buf = io.BytesIO()
     wb = xlsxwriter.Workbook(buf, {'in_memory': True, 'strings_to_numbers': False})
     ws = wb.add_worksheet('LBP')
-    _render_lbp(wb, ws, mdata, now_key, _month_of, project_id=project_id, cutoff_date=cutoff_date)
+    _render_lbp(wb, ws, mdata, now_key, _month_of, project_id=project_id, cutoff_date=cutoff_date,
+                prioritas_po_keys=prioritas_po_keys)
     wb.close()
     buf.seek(0)
     return buf
 
 
-def build_weekly_excel_export(week_key=None, project_id=None, cutoff_date=None):
+def build_weekly_excel_export(week_key=None, project_id=None, cutoff_date=None,
+                              prioritas_po_keys=None):
     """Build the weekly LBP (Rekap Prestasi Utang & Pembayaran Utang) Excel report.
 
     Same layout as the monthly export, but the period is a Sunday..Saturday week
@@ -1129,7 +1155,8 @@ def build_weekly_excel_export(week_key=None, project_id=None, cutoff_date=None):
     """
     import xlsxwriter
 
-    report_rows, _ = build_mingguan_data(project_id=project_id, cutoff_date=cutoff_date)
+    report_rows, _ = build_mingguan_data(project_id=project_id, cutoff_date=cutoff_date,
+                                         prioritas_po_keys=prioritas_po_keys)
     now_key = week_key
     if now_key is None and report_rows:
         now_key = report_rows[-1]['key']   # default: latest week
@@ -1143,7 +1170,8 @@ def build_weekly_excel_export(week_key=None, project_id=None, cutoff_date=None):
     wb = xlsxwriter.Workbook(buf, {'in_memory': True, 'strings_to_numbers': False})
     ws = wb.add_worksheet('LBP')
     _render_lbp(wb, ws, mdata, now_key, _week_of, title_suffix=' (Mingguan)',
-                project_id=project_id, cutoff_date=cutoff_date)
+                project_id=project_id, cutoff_date=cutoff_date,
+                prioritas_po_keys=prioritas_po_keys)
     wb.close()
     buf.seek(0)
     return buf

@@ -28,6 +28,12 @@ if s.rekanan not in all_rekanan %} {% set _ = all_rekanan.append(s.rekanan) %}
         {% endfor %}
       </select>
     </div>
+    <div class="lp-rail-group">
+      <label class="lp-rail-check" for="vendorPrioritasSel">
+        <input type="checkbox" id="vendorPrioritasSel" class="lp-rail-cb">
+        <span>Hanya Invoice Vendor Prioritas</span>
+      </label>
+    </div>
     <div class="lp-rail-group lp-rail-group--end">
       <span class="lp-rail-period" id="jtPeriodLabel">{% for r in report_rows %}{% if r.key == current_month %}{{ r.label }}{% endif %}{% endfor %}</span>
       <button class="lp-btn lp-btn--primary" id="exportBtn" onclick="exportExcel(this)" title="Unduh laporan bulan jatuh tempo aktif ke Excel"><i class="bi bi-download"></i> Unduh Laporan</button>
@@ -39,9 +45,9 @@ if s.rekanan not in all_rekanan %} {% set _ = all_rekanan.append(s.rekanan) %}
   {% set ov = namespace(val=0, cnt=0, months=[]) %}
   {% for r in report_rows %}{% if r.overdue_sisa|has_sisa and r.key < _now %}{% set ov.val = ov.val + r.overdue_sisa %}{% set ov.cnt = ov.cnt + r.overdue_count %}{% set _ = ov.months.append(r) %}{% endif %}{% endfor %}
   {% if ov.cnt > 0 %}
-  <div class="lp-jt-alert" role="note" title="Invoice belum lunas dengan JTH sudah lewat pada periode SEBELUM bulan berjalan">
+  <div class="lp-jt-alert" role="note" id="jtTunggakan" title="Invoice belum lunas dengan JTH sudah lewat pada periode SEBELUM bulan berjalan">
     <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
-    <span class="lp-jt-alert__msg">Tunggakan periode lalu: <strong>{{ ov.val|money }}</strong> &middot; {{ ov.cnt }} invoice</span>
+    <span class="lp-jt-alert__msg">Tunggakan periode lalu: <strong data-jt="ov-val">{{ ov.val|money }}</strong> &middot; <span data-jt="ov-cnt">{{ ov.cnt }} invoice</span></span>
     {% for m in ov.months %}
     <button type="button" class="lp-jt-chip" onclick="selectMonth('{{ m.key }}')" title="{{ m.overdue_count }} invoice telat &middot; lompat ke {{ m.label }}">{{ m.label }} &middot; {{ m.overdue_count }}</button>
     {% endfor %}
@@ -63,39 +69,38 @@ if s.rekanan not in all_rekanan %} {% set _ = all_rekanan.append(s.rekanan) %}
   <div
     class="month-section"
     id="section-{{ r.key }}"
+    data-now-key="{{ now_key|default('') }}"
     {% if r.key != current_month %}hidden{% endif %}
   >
-    <div class="lp-sisa-card lp-hero ds-kpi {% if ns.sdpp|has_sisa %}pos ds-kpi--err{% else %}zero ds-kpi--ok{% endif %}">
+    <div class="lp-sisa-card lp-hero ds-kpi {% if ns.sdpp|has_sisa %}pos ds-kpi--err{% else %}zero ds-kpi--ok{% endif %}" data-jt-hero>
       <div class="lp-hero-main">
         <span class="kpi-lbl ds-kpi__label"><i class="bi bi-wallet2"></i> DPP Jatuh Tempo · {{ r.label }}</span>
-        <span class="kpi-num ds-kpi__value">{{ ns.sdpp|money }}</span>
+        <span class="kpi-num ds-kpi__value" data-jt="hero-sisa">{{ ns.sdpp|money }}</span>
       </div>
       <div class="lp-hero-side">
-        <span class="lp-hero-tot"><strong>{{ ns.tdpp|money }}</strong> hutang</span>
+        <span class="lp-hero-tot"><strong data-jt="hero-hutang">{{ ns.tdpp|money }}</strong> hutang</span>
         <span class="lp-hero-sep" aria-hidden="true">−</span>
-        <span class="lp-hero-tot"><strong>{{ ns.bdpp|money }}</strong> bayar</span>
+        <span class="lp-hero-tot"><strong data-jt="hero-bayar">{{ ns.bdpp|money }}</strong> bayar</span>
       </div>
       {#- Akumulasi s/d periode terpilih = SISA HUTANG DPP semua bulan ≤ r.key -#}
       <div class="lp-hero-cum{% if r.sisa_dpp_cum|has_sisa %} pos{% endif %}" title="SISA HUTANG DPP akumulasi: seluruh invoice dengan JTH {{ r.label }} atau sebelumnya yang belum dibayar">
         <span class="lp-hero-cum__lbl"><i class="bi bi-layers" aria-hidden="true"></i> Akumulasi s/d {{ r.label }}</span>
-        <strong>{{ r.sisa_dpp_cum|money }}</strong>
+        <strong data-jt="hero-cum">{{ r.sisa_dpp_cum|money }}</strong>
       </div>
     </div>
 
-    {% if ns.sdpp|has_sisa %}
-    <div class="lp-aging" role="list" aria-label="Umur hutang (aging) {{ r.label }}">
+    <div class="lp-aging{% if not (ns.sdpp|has_sisa) %} is-collapsed{% endif %}" role="list" aria-label="Umur hutang (aging) {{ r.label }}" data-jt-aging-strip{% if not (ns.sdpp|has_sisa) %} hidden{% endif %}>
       {% set ag = [('due_today', 'Jatuh Tempo Hari Ini', 'warn'),
                    ('d1_30', 'Jatuh Tempo 1–30 Hari', 'pos'), ('d31_60', 'Jatuh Tempo 31–60 Hari', 'pos'),
                    ('d61_90', 'Jatuh Tempo 61–90 Hari', 'pos'), ('d90plus', 'Jatuh Tempo &gt; 90 Hari', 'crit')] %}
       {% for k, lbl, tone in ag %}
-      <div class="lp-aging__item lp-aging__item--{{ tone }}{% if r.aging_count[k] == 0 %} is-zero{% endif %}" role="listitem">
+      <div class="lp-aging__item lp-aging__item--{{ tone }}{% if r.aging_count[k] == 0 %} is-zero{% endif %}" role="listitem" data-jt-aging="{{ k }}">
         <span class="lp-aging__lbl">{{ lbl|safe }}</span>
-        <span class="lp-aging__val">{{ r.aging[k]|money }}</span>
-        <span class="lp-aging__cnt">{{ r.aging_count[k] }} inv</span>
+        <span class="lp-aging__val" data-jt="aging-val">{{ r.aging[k]|money }}</span>
+        <span class="lp-aging__cnt" data-jt="aging-cnt">{{ r.aging_count[k] }} inv</span>
       </div>
       {% endfor %}
     </div>
-    {% endif %}
 
     <div class="lp-kpi-row lp-kpi-row--4">
       <div class="lp-kpi-cell ds-kpi ds-kpi--err h">
@@ -103,14 +108,14 @@ if s.rekanan not in all_rekanan %} {% set _ = all_rekanan.append(s.rekanan) %}
           <span class="kpi-lbl ds-kpi__label">Total Hutang DPP</span>
           <div class="kpi-icon-wrap" aria-hidden="true"><i class="bi bi-arrow-up-circle"></i></div>
         </div>
-        <div class="kpi-num ds-kpi__value">{{ ns.tdpp|money }}</div>
+        <div class="kpi-num ds-kpi__value" data-jt="kpi-hutang">{{ ns.tdpp|money }}</div>
       </div>
       <div class="lp-kpi-cell ds-kpi ds-kpi--ok p">
         <div class="kpi-top">
           <span class="kpi-lbl ds-kpi__label">Total Bayar DPP</span>
           <div class="kpi-icon-wrap" aria-hidden="true"><i class="bi bi-check-circle"></i></div>
         </div>
-        <div class="kpi-num ds-kpi__value">{{ ns.bdpp|money }}</div>
+        <div class="kpi-num ds-kpi__value" data-jt="kpi-bayar">{{ ns.bdpp|money }}</div>
       </div>
       <div class="lp-kpi-cell ds-kpi ds-kpi--ok h">
         <div class="kpi-top">
@@ -118,8 +123,8 @@ if s.rekanan not in all_rekanan %} {% set _ = all_rekanan.append(s.rekanan) %}
           <div class="kpi-icon-wrap" aria-hidden="true"><i class="bi bi-hourglass-split"></i></div>
         </div>
         <div class="kpi-val">
-          <div class="kpi-num ds-kpi__value">{{ r.aging['belum_jt']|money }}</div>
-          <div class="kpi-sub">{{ r.aging_count['belum_jt'] }} inv</div>
+          <div class="kpi-num ds-kpi__value" data-jt="kpi-belum">{{ r.aging['belum_jt']|money }}</div>
+          <div class="kpi-sub" data-jt="kpi-belum-cnt">{{ r.aging_count['belum_jt'] }} inv</div>
         </div>
       </div>
       <div class="lp-kpi-cell ds-kpi ds-kpi--warn">
@@ -128,8 +133,8 @@ if s.rekanan not in all_rekanan %} {% set _ = all_rekanan.append(s.rekanan) %}
           <div class="kpi-icon-wrap" aria-hidden="true"><i class="bi bi-receipt"></i></div>
         </div>
         <div class="kpi-val">
-          <div class="kpi-num ds-kpi__value">{{ r.overdue_sisa|money }}</div>
-          <div class="kpi-sub">{{ r.overdue_count }} inv</div>
+          <div class="kpi-num ds-kpi__value" data-jt="kpi-overdue">{{ r.overdue_sisa|money }}</div>
+          <div class="kpi-sub" data-jt="kpi-overdue-cnt">{{ r.overdue_count }} inv</div>
         </div>
       </div>
     </div>
@@ -139,8 +144,8 @@ if s.rekanan not in all_rekanan %} {% set _ = all_rekanan.append(s.rekanan) %}
         <h4 class="lp-tbl-title">
           <i class="bi bi-calendar-x"></i>
           Ringkasan Levelansir
-          <span class="tag">{{ r.rekanan_list|length }} rekanan</span>
-          <span class="tag teal">{{ ns.cnt }} Invoice JT</span>
+          <span class="tag" data-jt="hdr-rekanan">{{ r.rekanan_list|length }} rekanan</span>
+          <span class="tag teal" data-jt="hdr-inv">{{ ns.cnt }} Invoice JT</span>
         </h4>
 
       </div>
@@ -163,6 +168,7 @@ if s.rekanan not in all_rekanan %} {% set _ = all_rekanan.append(s.rekanan) %}
             <tr
               data-rekan="{{ s.rekanan | e }}"
               data-month="{{ r.key }}"
+              data-vendor-prioritas="{{ s.prioritas }}"
               onclick="showDetail('{{ r.key }}', '{{ s.rekanan | e }}', this)"
               onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showDetail('{{ r.key }}','{{ s.rekanan | e }}',this)}"
               tabindex="0" role="button" aria-label="Detail {{ s.rekanan | e }}"
@@ -189,11 +195,11 @@ if s.rekanan not in all_rekanan %} {% set _ = all_rekanan.append(s.rekanan) %}
             <tr>
               <td class="c-no"></td>
               <td>TOTAL</td>
-              <td class="c-count">{{ t.count }}</td>
+              <td class="c-count" data-jt="ft-count">{{ t.count }}</td>
               <td class="c-jt"></td>
-              <td class="c-h">{{ t.total_dpp|money }}</td>
-              <td class="c-p">{{ t.bayar_dpp|money }}</td>
-              <td class="{{ 'c-sisa-pos' if t.sisa_dpp|has_sisa else 'c-sisa-zero' }}">{{ t.sisa_dpp|money }}</td>
+              <td class="c-h" data-jt="ft-hutang">{{ t.total_dpp|money }}</td>
+              <td class="c-p" data-jt="ft-bayar">{{ t.bayar_dpp|money }}</td>
+              <td class="{{ 'c-sisa-pos' if t.sisa_dpp|has_sisa else 'c-sisa-zero' }}" data-jt="ft-sisa">{{ t.sisa_dpp|money }}</td>
               <td></td>
             </tr>
           </tfoot>
@@ -284,13 +290,163 @@ function selectMonth(key) {
   document.querySelectorAll('.month-section').forEach(el => { el.hidden = (el.id !== 'section-' + key); });
   const lbl = document.getElementById('jtPeriodLabel');
   if (lbl) lbl.textContent = monthLabel(key);
+  filterVendorPrioritas();
+}
+function vendorPrioritasEl() { return document.getElementById('vendorPrioritasSel'); }
+function isVendorPrioritasOnly() { const el = vendorPrioritasEl(); return el && el.checked; }
+function filterVendorPrioritas() {
+  const only = isVendorPrioritasOnly();
+  document.querySelectorAll('.month-section table.lp-tbl tbody tr[data-vendor-prioritas]').forEach(tr => {
+    tr.hidden = only && tr.dataset.vendorPrioritas !== '1';
+  });
+  if (window.TableEnhance) { window.TableEnhance.resetPage(); window.TableEnhance.refresh(); }
+  applyJtNumbers(only);
+  refreshJtChart();
+  applyModalPrioritasFilter();
+}
+
+// Hitung ulang SEMUA angka page Jatuh Tempo dari invoice yang tampil.
+// Saat filter prioritas OFF, pulihkan angka server apa adanya (identik 100%).
+// Saat ON, turunkan dari invoice ber-flag prioritas saja, memakai aturan yang
+// sama dengan services/laporan.py: aging per bucket invoic belum lunas,
+// overdue = hari_lebih > 0, cum = akumulasi sisa per bulan berurutan.
+function applyJtNumbers(only) {
+  const fmt = v => Math.round(Number(v) || 0).toLocaleString('id-ID');
+  const SISA_EPS = 1;
+  const hasSisa = v => (Number(v) || 0) > SISA_EPS;
+  const setText = (sec, sel, txt) => { const el = sec.querySelector(sel); if (el) el.textContent = txt; };
+  const setTag = (sec, sel, n, word) => { const el = sec.querySelector(sel); if (el) el.textContent = n + ' ' + word; };
+
+  const DATA = JT_DATA || [];
+  const byKey = {};
+  DATA.forEach(r => { byKey[r.key] = r; });
+
+  // Cum dihitung berurutan lintas bulan (DATA sudah urut dari server).
+  let cumAcc = 0;
+  const tunggakan = { val: 0, cnt: 0 };
+
+  DATA.forEach(r => {
+    const sec = document.getElementById('section-' + r.key);
+    if (!sec) return;
+    const visibleRek = (r.rekanan_list || []).filter(s => !only || s.prioritas === '1');
+    const invoices = visibleRek.flatMap(s => s.invoices || []);
+    const invSel = only ? invoices.filter(i => i.prioritas === '1') : invoices;
+
+    let tdpp = 0, bdpp = 0, sdpp = 0, cntInv = 0;
+    const aging = { belum_jt: 0, due_today: 0, d1_30: 0, d31_60: 0, d61_90: 0, d90plus: 0 };
+    const agingCnt = { belum_jt: 0, due_today: 0, d1_30: 0, d31_60: 0, d61_90: 0, d90plus: 0 };
+    let overdueSisa = 0, overdueCnt = 0;
+
+    invSel.forEach(inv => {
+      const harga = Number(inv.harga_excl) || 0;
+      const bayar = Number(inv.bayar_dpp) || 0;
+      const sisa = Math.max(0, harga - bayar);
+      tdpp += harga;
+      bdpp += bayar;
+      sdpp += sisa;
+    });
+
+    visibleRek.forEach(s => { cntInv += Number(s.count) || 0; });
+
+    invSel.forEach(inv => {
+      const sisa = Math.max(0, (Number(inv.harga_excl) || 0) - (Number(inv.bayar_dpp) || 0));
+      if (!hasSisa(sisa)) return;
+      const h = Number(inv.hari_lebih) || 0;
+      const b = inv.aging_bucket || 'belum_jt';
+      if (b in aging) { aging[b] += sisa; agingCnt[b] += 1; }
+      if (h > 0) { overdueSisa += sisa; overdueCnt += 1; }
+    });
+
+    cumAcc += sdpp;
+
+    // Hero
+    setText(sec, '[data-jt="hero-sisa"]', fmt(sdpp));
+    setText(sec, '[data-jt="hero-hutang"]', fmt(tdpp));
+    setText(sec, '[data-jt="hero-bayar"]', fmt(bdpp));
+    setText(sec, '[data-jt="hero-cum"]', fmt(cumAcc));
+    const hero = sec.querySelector('[data-jt-hero]');
+    if (hero) {
+      hero.classList.toggle('pos', hasSisa(sdpp));
+      hero.classList.toggle('err', hasSisa(sdpp));
+      hero.classList.toggle('zero', !hasSisa(sdpp));
+      hero.classList.toggle('ok', !hasSisa(sdpp));
+    }
+    const cumEl = sec.querySelector('.lp-hero-cum');
+    if (cumEl) cumEl.classList.toggle('pos', hasSisa(cumAcc));
+
+    // Aging strip: sembunyikan bila tidak ada sisa
+    const strip = sec.querySelector('[data-jt-aging-strip]');
+    if (strip) {
+      strip.hidden = !hasSisa(sdpp);
+      strip.classList.toggle('is-collapsed', !hasSisa(sdpp));
+    }
+    ['due_today', 'd1_30', 'd31_60', 'd61_90', 'd90plus'].forEach(k => {
+      const item = sec.querySelector('[data-jt-aging="' + k + '"]');
+      if (!item) return;
+      const v = item.querySelector('[data-jt="aging-val"]');
+      const c = item.querySelector('[data-jt="aging-cnt"]');
+      if (v) v.textContent = fmt(aging[k]);
+      if (c) c.textContent = agingCnt[k] + ' inv';
+      item.classList.toggle('is-zero', agingCnt[k] === 0);
+    });
+
+    // KPI row
+    setText(sec, '[data-jt="kpi-hutang"]', fmt(tdpp));
+    setText(sec, '[data-jt="kpi-bayar"]', fmt(bdpp));
+    setText(sec, '[data-jt="kpi-belum"]', fmt(aging.belum_jt));
+    setText(sec, '[data-jt="kpi-belum-cnt"]', agingCnt.belum_jt + ' inv');
+    setText(sec, '[data-jt="kpi-overdue"]', fmt(overdueSisa));
+    setText(sec, '[data-jt="kpi-overdue-cnt"]', overdueCnt + ' inv');
+
+    // Header tabel
+    setTag(sec, '[data-jt="hdr-rekanan"]', visibleRek.length, 'rekanan');
+    setTag(sec, '[data-jt="hdr-inv"]', cntInv, 'Invoice JT');
+
+    // Footer TOTAL
+    setText(sec, '[data-jt="ft-count"]', cntInv);
+    setText(sec, '[data-jt="ft-hutang"]', fmt(tdpp));
+    setText(sec, '[data-jt="ft-bayar"]', fmt(bdpp));
+    setText(sec, '[data-jt="ft-sisa"]', fmt(sdpp));
+    const ftSisa = sec.querySelector('[data-jt="ft-sisa"]');
+    if (ftSisa) { ftSisa.classList.toggle('c-sisa-pos', hasSisa(sdpp)); ftSisa.classList.toggle('c-sisa-zero', !hasSisa(sdpp)); }
+
+    // Tunggakan lintas periode (bulan sebelum bulan berjalan)
+    const nk = sec.dataset.nowKey || '';
+    if (nk && r.key < nk && hasSisa(overdueSisa)) {
+      tunggakan.val += overdueSisa;
+      tunggakan.cnt += overdueCnt;
+    }
+  });
+
+  // Strip tunggakan: update/hide
+  const al = document.getElementById('jtTunggakan');
+  if (al) {
+    al.style.display = tunggakan.cnt > 0 ? '' : 'none';
+    const v = al.querySelector('[data-jt="ov-val"]');
+    const c = al.querySelector('[data-jt="ov-cnt"]');
+    if (v) v.textContent = fmt(tunggakan.val);
+    if (c) c.textContent = tunggakan.cnt + ' invoice';
+  }
+}
+// Terapkan filter prioritas pada tabel invoice di modal detail (jika terbuka).
+// Dikomposisikan dengan pencarian lewat `_modalRefilter` (dipasang showDetail).
+function applyModalPrioritasFilter() {
+  const body = document.getElementById('modalInvoices');
+  if (!body || !document.getElementById('jtModal')?.classList.contains('show')) return;
+  if (typeof window._modalRefilter === 'function') window._modalRefilter();
 }
 function bindMonthSel() {
   const sel = monthSel();
   if (!sel || sel.dataset.bound) return;
   sel.dataset.bound = '1';
   sel.addEventListener('change', function () { selectMonth(this.value); });
+  const cb = vendorPrioritasEl();
+  if (cb && !cb.dataset.bound) {
+    cb.dataset.bound = '1';
+    cb.addEventListener('change', filterVendorPrioritas);
+  }
   if (sel.value) selectMonth(sel.value);
+  filterVendorPrioritas();
 }
 
 function exportExcel(btn) {
@@ -325,11 +481,20 @@ function initJtChart() {
     return parts[1] || '';
   }
 
+  const only = isVendorPrioritasOnly();
   const labels = DATA.map(r => fmtLabel(r.key));
   const years  = DATA.map(r => fmtYear(r.key));
-  const hutang = DATA.map(r => r.rekanan_list.reduce((s, v) => s + (v.total_dpp || 0), 0));
-  const bayar  = DATA.map(r => r.rekanan_list.reduce((s, v) => s + (v.bayar_dpp || 0), 0));
-  const sisa   = DATA.map(r => r.rekanan_list.reduce((s, v) => s + (v.sisa_dpp || 0), 0));
+  // Chart mengikuti filter: saat prioritas ON, hanya invoice ber-flag prioritas.
+  const pickInv = r => {
+    const reks = only ? (r.rekanan_list || []).filter(s => s.prioritas === '1') : (r.rekanan_list || []);
+    let invs = reks.flatMap(s => s.invoices || []);
+    if (only) invs = invs.filter(i => i.prioritas === '1');
+    return invs;
+  };
+  const sumOf = (r, f) => pickInv(r).reduce((acc, inv) => acc + (Number(f(inv)) || 0), 0);
+  const hutang = DATA.map(r => sumOf(r, i => i.harga_excl));
+  const bayar  = DATA.map(r => sumOf(r, i => i.bayar_dpp));
+  const sisa   = DATA.map(r => sumOf(r, i => Math.max(0, (Number(i.harga_excl) || 0) - (Number(i.bayar_dpp) || 0))));
 
   // Nilai tertinggi untuk scale auto
   const maxVal = Math.max(...hutang, ...bayar, ...sisa, 1);
@@ -508,6 +673,10 @@ function initJtChart() {
     }]
   });
 }
+function refreshJtChart() {
+  if (typeof Chart !== 'undefined') { initJtChart(); return; }
+  if (typeof ensureChartJs === 'function') ensureChartJs(function (ok) { if (ok) initJtChart(); });
+}
 function initJtChartOnReady() {
     requestAnimationFrame(function () {
         if (typeof Chart !== 'undefined') { initJtChart(); return; }
@@ -559,7 +728,7 @@ function showDetail(monthKey, rekanan, rowEl) {
       const paymentIsCurrent = payYM === monthKey;
       if (invoiceIsCurrent) currentInvoiceTotal += Number(inv.harga_excl ?? 0) || 0;
       if (paymentIsCurrent) currentPaymentTotal += Number(inv.bayar_dpp ?? 0) || 0;
-      return `<tr class="${invoiceIsCurrent ? 'hl-row-inv' : (paymentIsCurrent ? 'hl-row-pay' : '')}" data-search="${esc([inv.invoice, inv.po, inv.deskripsi].join(' ').toLowerCase())}">
+      return `<tr class="${invoiceIsCurrent ? 'hl-row-inv' : (paymentIsCurrent ? 'hl-row-pay' : '')}" data-search="${esc([inv.invoice, inv.po, inv.deskripsi].join(' ').toLowerCase())}" data-prioritas="${inv.prioritas || '0'}">
         <td class="l ${invoiceIsCurrent ? 'hl-date-invoice' : ''}">${esc(fmtDate(inv.tgl_berkas))}</td>
         ${CellExpand.td(inv.invoice, 'l iv', 40)}
         ${CellExpand.td(inv.po, 'l', 25)}
@@ -591,15 +760,18 @@ function showDetail(monthKey, rekanan, rowEl) {
   document.getElementById('currentPaymentTotal').textContent = 'Rp ' + fmt(currentPaymentTotal);
   const filterInvoices = () => {
     const query = search.value.trim().toLocaleLowerCase('id-ID');
+    const onlyPrioritas = isVendorPrioritasOnly();
     let visible = 0;
     body.querySelectorAll('tr[data-search]').forEach(row => {
-      row.hidden = query && !row.dataset.search.includes(query);
+      const prioOk = !onlyPrioritas || row.dataset.prioritas === '1';
+      row.hidden = (query && !row.dataset.search.includes(query)) || !prioOk;
       if (!row.hidden) visible++;
     });
     const mmEl = document.querySelector('#modalLabel .mm-cnt');
-    if (mmEl) mmEl.textContent = query ? (visible + ' dari ' + invoices.length + ' invoice') : (invoices.length + ' invoice');
+    if (mmEl) mmEl.textContent = (query || onlyPrioritas) ? (visible + ' dari ' + invoices.length + ' invoice') : (invoices.length + ' invoice');
   };
   search.oninput = filterInvoices;
+  window._modalRefilter = filterInvoices;
   filterInvoices();
 
   const modalEl = document.getElementById('jtModal');
@@ -607,6 +779,7 @@ function showDetail(monthKey, rekanan, rowEl) {
   modal.show();
   modalEl.addEventListener('hidden.bs.modal', function _onHide() {
     modalEl.removeEventListener('hidden.bs.modal', _onHide);
+    window._modalRefilter = null;
     if (_activeRow) { _activeRow.classList.remove('selected'); _activeRow = null; }
   });
 }

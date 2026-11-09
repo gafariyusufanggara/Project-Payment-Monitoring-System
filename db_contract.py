@@ -40,6 +40,19 @@ def _norm_kontrak(val):
     return (str(val or '')).strip().upper()
 
 
+def get_registered_kontrak_keys():
+    """Himpunan kunci NO KONTRAK terdaftar (trim + upper), tanpa agregasi.
+
+    Dipakai filter "Hanya Invoice Vendor Prioritas" di Rekap DPP / PPN /
+    Jatuh Tempo. Lebih murah dari get_contracts() yang menghitung progres
+    tiap kontrak tetapi tidak dibutuhkan untuk pencocokan saja.
+    """
+    with _conn() as conn:
+        rows = conn.execute('SELECT no_kontrak FROM vendor_contracts').fetchall()
+    return {_norm_kontrak(r[0]) for r in rows if r[0]}
+
+
+
 def _no_kontrak_sort_key(no):
     """Kunci urut ALAMIAH (natural sort) untuk No. PO / No. Kontrak.
 
@@ -119,9 +132,10 @@ def init_contract_tables():
                          ('durasi_termin', 'REAL DEFAULT 0'),
                          ('tipe_kontrak', "TEXT DEFAULT ''"),
                          ('metode_penetapan', "TEXT DEFAULT ''"),
-                         ('ppn_rate', 'REAL DEFAULT 0'),
-                         ('total_dpp', 'REAL DEFAULT 0'),
-                         ('total_ppn', 'REAL DEFAULT 0')):
+                 ('ppn_rate', 'REAL DEFAULT 0'),
+                 ('total_dpp', 'REAL DEFAULT 0'),
+                 ('total_ppn', 'REAL DEFAULT 0'),
+                 ('prioritas', 'INTEGER DEFAULT 0')):
             if col not in existing:
                 conn.execute(f'ALTER TABLE vendor_contracts ADD COLUMN {col} {ddl}')
         # PPN per termin: diambil dari kolom 'PPN per Termin' Excel bila ada;
@@ -1192,16 +1206,20 @@ def _sim_kontrak(a, b):
 
 
 def _norm_vendor(name):
-    """Normalisasi nama vendor (konsisten dgn verification._normalize_rekanan)."""
+    """Normalisasi nama vendor (konsisten dgn verification._normalize_rekanan).
+
+    Handles "PT. ABC" == "PT ABC" (dot after prefix anywhere via word boundary),
+    collapses whitespace, strips trailing punctuation. Cocokkan vendor invoice
+    dengan vendor kontrak yang ditandai prioritas tanpa terlewat karena variasi
+    penulisan titik.
+    """
     if not name:
         return ''
     s = str(name).lower().strip()
-    s = ' '.join(s.split())
-    for pref in ('pt.', 'cv.', 'ud.', 'pd.'):
-        if s.startswith(pref):
-            s = s.replace(pref, pref[:-1] + ' ', 1)
-    s = ' '.join(s.split())
-    return s.strip(' .,-;:')
+    s = re.sub(r'\s+', ' ', s)
+    s = re.sub(r'\b(pt|cv|ud|pd)\.\s*', r'\1 ', s)
+    s = s.strip(' .,-;:')
+    return s
 
 
 def _recalc_percent_all():

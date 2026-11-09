@@ -9,6 +9,7 @@ import re
 
 import db
 import db_audit
+import db_contract
 from constants import (
     COLUMNS, FORM_FIELDS, DATE_FIELDS, NUMERIC_FIELDS,
     CATEGORIES, STATUS_DPP, STATUS_PPN, KODE_BIAYA, MONTH_NAMES,
@@ -48,6 +49,19 @@ def data_hutang():
     pid = get_read_filter()
     ctx = build_dashboard_context(pid, for_table=True)
     rows = ctx['data']
+    # Kontrak terdaftar (menu Kontrak / Rekap PO / Progress Inv. Kontrak) —
+    # sumber hukum untuk filter "Hanya Invoice Vendor Prioritas". Kunci pencocokan
+    # sama dengan daftar kontrak: trim + upper pada NO PO / KONTRAK.
+    contracts = db_contract.get_contracts(pid)
+    prioritas_keys = {
+        db_contract._norm_kontrak(c.get('no_kontrak'))
+        for c in contracts
+        if c.get('no_kontrak')
+    }
+    prioritas_rows = {
+        r['_row'] for r in rows
+        if db_contract._norm_kontrak(r.get('NO PO / KONTRAK')) in prioritas_keys
+    }
     # Categories actually present in the DB (so new values appear in the filter).
     db_cats = sorted({r.get('KATEGORI', '') for r in rows if r.get('KATEGORI')})
     # Union with configured categories so known ones still show even if currently unused.
@@ -81,6 +95,7 @@ def data_hutang():
         kode_biaya_list=KODE_BIAYA,
         has_retensi=has_retensi,
         jt_month_options=jt_month_options,
+        prioritas_rows=prioritas_rows,
     )
     return render_template('index.html', **ctx)
 

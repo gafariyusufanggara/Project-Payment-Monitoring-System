@@ -307,6 +307,9 @@ function filterTable() {
     const sisaPpnMax = document.getElementById('sisaPpnMax')?.value ?? '';
     // Checkbox "Sembunyikan Dokumen Revisi" (di toolbar, sebelah tombol Kolom).
     const hideRevisi = document.getElementById('filterRevisi')?.checked || false;
+    // Checkbox "Hanya Invoice Vendor Prioritas": tampilkan hanya baris yang NO PO /
+    // Kontrak-nya terdaftar di daftar Kontrak (rekap_no_po / list_contracts).
+    const onlyPrioritas = document.getElementById('filterPrioritas')?.checked || false;
 
     // Epsilon to absorb float noise on money fields.
     const EPS = 0.5;
@@ -334,6 +337,7 @@ function filterTable() {
         // "Sembunyikan Dokumen Revisi": revisi = TGL TERIMA (Tgl Berkas Lengkap)
         // kosong — penanda yang sama dengan badge sidebar & halaman Status Dokumen.
         const revisiMatch = !hideRevisi || tr.dataset.revisi !== '1';
+        const prioritasMatch = !onlyPrioritas || tr.dataset.prioritas === '1';
 
         // Status bayar derived from sisa DPP + PPN.
         let bayarMatch = true;
@@ -354,7 +358,7 @@ function filterTable() {
 
         const match = searchMatch && dppMatch && ppnMatch && catMatch && kbMatch
             && blMatch && byMatch && bpMatch && sisaMatch && sisaPpnMatch
-            && bayarMatch && jtMonthMatch && revisiMatch;
+            && bayarMatch && jtMonthMatch && revisiMatch && prioritasMatch;
         // Publish filter result; table-enhance.js paginates only passing rows.
         tr.dataset.filterPass = match ? '1' : '0';
         if (match) visible++;
@@ -411,6 +415,10 @@ function updateFilterChips() {
         }
         chips.push({ type: 'select', key: def.id, label: def.group, value });
     });
+
+    if (document.getElementById('filterPrioritas')?.checked) {
+        chips.push({ type: 'checkbox', key: 'prioritas', label: 'Prioritas', value: 'Hanya Invoice Vendor Prioritas' });
+    }
 
     const ranges = [
         { key: 'berkas', from: 'berkasFrom', to: 'berkasTo', label: 'Tgl. Berkas' },
@@ -492,6 +500,7 @@ function countActiveFilters() {
         const el = document.getElementById(id);
         if (el && el.value !== '' && el.value != null) n++;
     });
+    if (document.getElementById('filterPrioritas')?.checked) n++;
     return n;
 }
 
@@ -524,6 +533,7 @@ function clearFilter(key) {
     else if (key === 'bayarPpn') { ['bayarPpnFrom', 'bayarPpnTo'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; }); }
     else if (key === 'sisa') { ['sisaMin', 'sisaMax'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; }); }
     else if (key === 'sisaPpn') { ['sisaPpnMin', 'sisaPpnMax'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; }); }
+    else if (key === 'prioritas') { const el = document.getElementById('filterPrioritas'); if (el) el.checked = false; }
     else { const el = document.getElementById(key); if (el) el.value = ''; }
     syncSearchClear();
     filterTable();
@@ -549,6 +559,9 @@ FILTER_DEFS.forEach(def => {
 
 // Toolbar checkbox "Sembunyikan Dokumen Revisi" (sebelah tombol Kolom).
 document.getElementById('filterRevisi')?.addEventListener('change', filterTable);
+
+// Toolbar checkbox "Hanya Invoice Vendor Prioritas".
+document.getElementById('filterPrioritas')?.addEventListener('change', filterTable);
 
 // "/" focuses the search box from anywhere on the page.
 document.addEventListener('keydown', e => {
@@ -576,6 +589,9 @@ document.getElementById('filterReset')?.addEventListener('click', function () {
     // Reset kembalikan checkbox revisi ke OFF (default: semua baris tampil).
     const rv = document.getElementById('filterRevisi');
     if (rv) rv.checked = false;
+    // Reset checkbox prioritas ke OFF (default: semua baris tampil).
+    const pp = document.getElementById('filterPrioritas');
+    if (pp) pp.checked = false;
     updateRangeLabels();
     filterTable();
 });

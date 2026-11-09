@@ -8,10 +8,11 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 
 import db
-from services.laporan import _build_cum, _week_range_label, _write_excel_date
+from services.laporan import (_build_cum, _po_in_keys, _week_range_label,
+                              _write_excel_date)
 
 
-def build_ppn_data(project_id=None, cutoff_date=None):
+def build_ppn_data(project_id=None, cutoff_date=None, prioritas_po_keys=None):
     """Compute the monthly PPN laporan dataset.
 
     Grouping uses TGL BERKAS (same as DPP bulanan) so months align.
@@ -35,7 +36,8 @@ def build_ppn_data(project_id=None, cutoff_date=None):
         st = (row.get('STATUS TERHADAP PPN') or '').strip()
         return st != 'Tidak ada PPN' and st != ''
     rekan_cum, all_months, sorted_rekan, data = _build_cum(
-        month_keyfn, filter_fn=_has_ppn, project_id=project_id, cutoff_date=cutoff_date)
+        month_keyfn, filter_fn=_has_ppn, project_id=project_id,
+        cutoff_date=cutoff_date, prioritas_po_keys=prioritas_po_keys)
 
     # Ensure current month is included so the period dropdown always offers the
     # running month even when no PPN transaction exists yet (matches DPP bulanan).
@@ -128,7 +130,7 @@ def build_ppn_data(project_id=None, cutoff_date=None):
     return report_rows, len(data)
 
 
-def build_ppn_mingguan_data(project_id=None, cutoff_date=None):
+def build_ppn_mingguan_data(project_id=None, cutoff_date=None, prioritas_po_keys=None):
     """Compute the WEEKLY PPN laporan dataset (period = Sunday..Saturday week).
 
     Same content as build_ppn_data (PPN fields only), but grouped by week
@@ -151,7 +153,8 @@ def build_ppn_mingguan_data(project_id=None, cutoff_date=None):
         return _week_key(dt)
 
     rekan_cum, all_weeks, sorted_rekan, data = _build_cum(
-        week_keyfn, filter_fn=_has_ppn, project_id=project_id, cutoff_date=cutoff_date)
+        week_keyfn, filter_fn=_has_ppn, project_id=project_id,
+        cutoff_date=cutoff_date, prioritas_po_keys=prioritas_po_keys)
 
     # Ensure current week is included so empty weeks still show vendor data
     today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
@@ -332,7 +335,7 @@ PPN_VENDOR_SUBTOTAL_COLS = (15, 16, 17, 18, 19, 20, 21)
 
 
 def _render_ppn(wb, ws, mdata, now_key, period_of, title_suffix='', project_id=None,
-                cutoff_date=None):
+                cutoff_date=None, prioritas_po_keys=None):
     """Render PPN export sheet in DPP-style hierarchical layout.
 
     Same geometry as DPP export (_render_lbp): starts at col C, title on
@@ -369,6 +372,8 @@ def _render_ppn(wb, ws, mdata, now_key, period_of, title_suffix='', project_id=N
                     continue
             except (ValueError, TypeError):
                 pass
+        if prioritas_po_keys is not None and not _po_in_keys(row, prioritas_po_keys):
+            continue
         rekan = (row.get('NAMA LEVELANSIR / REKANAN') or 'Unknown').strip() or 'Unknown'
         hist[rekan].append(row)
 
@@ -611,7 +616,8 @@ def _render_ppn(wb, ws, mdata, now_key, period_of, title_suffix='', project_id=N
     row += 1
 
 
-def build_ppn_excel_export(month_key=None, project_id=None, cutoff_date=None):
+def build_ppn_excel_export(month_key=None, project_id=None, cutoff_date=None,
+                           prioritas_po_keys=None):
     """Build Excel export for Laporan PPN Bulanan — DPP-aligned hierarchical layout.
 
     Same 21-column structure as DPP export (21 cols from C..W):
@@ -631,7 +637,8 @@ def build_ppn_excel_export(month_key=None, project_id=None, cutoff_date=None):
                  included (matches the web view's Cut Off).
     Returns io.BytesIO positioned at 0.
     """
-    report_rows, _ = build_ppn_data(project_id=project_id, cutoff_date=cutoff_date)
+    report_rows, _ = build_ppn_data(project_id=project_id, cutoff_date=cutoff_date,
+                                    prioritas_po_keys=prioritas_po_keys)
 
     now_key = month_key
     if now_key is None and report_rows:
@@ -646,7 +653,7 @@ def build_ppn_excel_export(month_key=None, project_id=None, cutoff_date=None):
     wb = xlsxwriter.Workbook(buf, {'in_memory': True, 'strings_to_numbers': False})
     ws = wb.add_worksheet('PPN')
     _render_ppn(wb, ws, mdata, now_key, _month_key, project_id=project_id,
-                cutoff_date=cutoff_date)
+                cutoff_date=cutoff_date, prioritas_po_keys=prioritas_po_keys)
     wb.close()
     buf.seek(0)
     return buf
@@ -674,7 +681,8 @@ def _week_key_of(val):
         return None
 
 
-def build_ppn_mingguan_excel_export(week_key=None, project_id=None, cutoff_date=None):
+def build_ppn_mingguan_excel_export(week_key=None, project_id=None, cutoff_date=None,
+                                    prioritas_po_keys=None):
     """Build Excel export for Laporan PPN Mingguan.
 
     Identical DPP-aligned layout to the monthly PPN export; only the period
@@ -685,7 +693,8 @@ def build_ppn_mingguan_excel_export(week_key=None, project_id=None, cutoff_date=
                  included (matches the web view's Cut Off).
     Returns io.BytesIO positioned at 0.
     """
-    report_rows, _ = build_ppn_mingguan_data(project_id=project_id, cutoff_date=cutoff_date)
+    report_rows, _ = build_ppn_mingguan_data(project_id=project_id, cutoff_date=cutoff_date,
+                                             prioritas_po_keys=prioritas_po_keys)
 
     now_key = week_key
     if now_key is None and report_rows:
@@ -700,7 +709,8 @@ def build_ppn_mingguan_excel_export(week_key=None, project_id=None, cutoff_date=
     wb = xlsxwriter.Workbook(buf, {'in_memory': True, 'strings_to_numbers': False})
     ws = wb.add_worksheet('PPN Mingguan')
     _render_ppn(wb, ws, mdata, now_key, _week_key_of, title_suffix=' (Mingguan)',
-                project_id=project_id, cutoff_date=cutoff_date)
+                project_id=project_id, cutoff_date=cutoff_date,
+                prioritas_po_keys=prioritas_po_keys)
     wb.close()
     buf.seek(0)
     return buf
