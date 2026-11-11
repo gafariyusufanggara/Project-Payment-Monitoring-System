@@ -115,7 +115,8 @@ assert rows and round(rows[-1]['sisa_dpp_cum']) == round(sum(
 assert 'lp-kpi-row--5' not in _tpl, "tidak boleh ada KPI kartu ke-5 (akumulasi di dalam kartu SISA HUTANG DPP)"
 assert 'ds-kpi--cum' not in _tpl, "KPI akumulasi terpisah seharusnya tidak ada"
 assert 'lp-hero-cum' in _tpl, "blok akumulasi di kartu hero SISA HUTANG DPP tidak ada"
-assert 'Akumulasi s/d {{ r.label }}' in _tpl, "label akumulasi tidak ada"
+assert 'Akumulasi Tunggakan s/d {{ r.label }}' in _tpl, "label akumulasi tidak ada"
+assert 'yang belum dibayar' in _tpl, "sufiks akumulasi tidak ada"
 assert 'Sisa DPP Kumulatif' not in _tpl, "dataset kumulatif di chart seharusnya tidak ada"
 print(f"[4b] akumulasi s/d {rows[-1]['key']}: {rows[-1]['sisa_dpp_cum']} · "
       f"{rows[-1]['count_cum']} invoice (di dalam kartu SISA HUTANG DPP) OK")

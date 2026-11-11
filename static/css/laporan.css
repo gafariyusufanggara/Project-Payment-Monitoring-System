@@ -101,7 +101,17 @@
   scrollbar-width: none;
 }
 .lp-rail::-webkit-scrollbar { display: none; }
-.lp-rail--select { overflow: visible; gap: 10px; }
+.lp-rail--select {
+  overflow: visible;
+  gap: 10px;
+  position: sticky;
+  top: -24px;
+  z-index: 30;
+  background: rgba(255, 255, 255, 0.88);
+  -webkit-backdrop-filter: blur(12px) saturate(1.5);
+  backdrop-filter: blur(12px) saturate(1.5);
+  box-shadow: 0 8px 24px rgba(15, 42, 67, 0.12);
+}
 .lp-rail--single { flex-wrap: nowrap; }
 
 .lp-rail-label {
@@ -753,6 +763,7 @@
 .lp-jt .lp-hero-cum__lbl .bi { color: #16324f; font-size: 0.8rem; }
 .lp-jt .lp-hero-cum strong { font-variant-numeric: tabular-nums; color: #16324f; font-size: 0.84rem; }
 .lp-jt .lp-hero-cum.pos strong { color: var(--danger, #e74c3c); }
+.lp-jt .lp-hero-cum__note { font-size: 0.7rem; color: #8a97a3; }
 
 /* Strip tunggakan lintas periode (di atas monthSel) */
 .lp-jt-alert { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 14px; margin: 0 0 12px; background: #fef2f2; border: 1px solid #f8cfc9; border-left: 3px solid var(--danger, #e74c3c); border-radius: 8px; font-family: "Inter", system-ui, sans-serif; color: #8b1a10; }
