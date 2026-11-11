@@ -11,6 +11,14 @@
 # Copies the skills too (~5 MB) so every hardcoded sloplint path in the SOP works.
 # -Force replaces the template-owned folders and preserves STACK.md, plans/,
 # node_modules and anything else you added under .opencode/.
+#
+# Ownership split (deliberate, no duplication):
+#   - Per project (this copy): SOPs, agents, commands, skills, instructions, plugins.
+#   - Per machine (bootstrap-windows.ps1, global ~/.config/opencode): MCP servers
+#     (playwright, chrome-devtools, optional tavily), package plugins
+#     (context-mode, opencode-power-pack), and the SHELL env var.
+#   MCP + package plugins are NOT copied into the project on purpose: one definition
+#   per machine keeps the context small and avoids maintaining the same data twice.
 
 param(
   [Parameter(Mandatory = $true)]
@@ -73,6 +81,9 @@ Write-Host "  AGENTS.md"
 Write-Host ""
 Write-Host "Done. Destination: $Destination"
 
+# The project copy carries the SOP only. MCP servers and package plugins are
+# intentionally global (once per machine) so the same definition is not kept in
+# two places. Report what the global layer is missing, not what the project lacks.
 $missing = @()
 if (-not (Get-Command rtk -ErrorAction SilentlyContinue)) { $missing += 'rtk' }
 if (-not (Get-Command graphify -ErrorAction SilentlyContinue)) { $missing += 'graphify' }
@@ -93,9 +104,14 @@ if (-not [Environment]::GetEnvironmentVariable('SHELL','User')) { $missing += 'S
 
 if ($missing.Count -gt 0) {
   Write-Host ""
-  Write-Host "Global layer incomplete: $($missing -join ', ')" -ForegroundColor Yellow
-  Write-Host "The project works, but the SOP degrades. Fix once per machine:" -ForegroundColor Yellow
+  Write-Host "Machine layer (global) missing: $($missing -join ', ')" -ForegroundColor Yellow
+  Write-Host "The SOP files are copied and the project opens, but these per-machine" -ForegroundColor Yellow
+  Write-Host "pieces (MCP servers, package plugins, SHELL) live in ~/.config/opencode," -ForegroundColor Yellow
+  Write-Host "not in the project. Fix once per machine:" -ForegroundColor Yellow
   Write-Host "  powershell -NoProfile -ExecutionPolicy Bypass -File `"$PSScriptRoot\bootstrap-windows.ps1`""
+} else {
+  Write-Host ""
+  Write-Host "Machine layer (global) present: MCP + package plugins + SHELL. Good." -ForegroundColor Green
 }
 
 Write-Host ""

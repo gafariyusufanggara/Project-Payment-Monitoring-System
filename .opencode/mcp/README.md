@@ -27,8 +27,8 @@ There is deliberately no documentation MCP. Two sources cover the need:
 | `ctx_fetch_and_index` + `ctx_search` | How a third-party API works today |
 | `tavily` (remote MCP) | Finding the official docs URL when it is unknown |
 
-See `.opencode/sops/CONTEXT.md` § 3b for the procedure and the rule that an unverified
-library API call must not be written.
+See `.opencode/sops/CONTEXT.md` → **External library documentation** for the
+procedure and the rule that an unverified library API call must not be written.
 
 ## Explicitly not used
 

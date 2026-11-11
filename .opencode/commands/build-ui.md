@@ -19,8 +19,9 @@ say so.
 
 ## Flow pinning
 
-0. Pre-flight: read the project (`.opencode/sops/STACKS.md` detection). Note any locked
-   `DESIGN.md` at the root — it overrides Hallmark themes.
+0. Pre-flight: detect the stack (`.opencode/sops/STACKS.md` phase 0b) and load one
+   `.opencode/sops/stacks/*.md`. Note any locked `DESIGN.md` at the root — it
+   overrides Hallmark themes.
 1. Ask once: material, audience, use, tone. Never invent material.
 2. Shape the page, then name it.
 3. Deal a theme (`node .opencode/skills/hallmark/scripts/theme.mjs deal`), or design
@@ -37,6 +38,9 @@ node .opencode/skills/hallmark/scripts/sloplint.mjs <output> --render
 Fix every FAIL. Fix or waive every REFLEX with real evidence in the CSS stamp.
 
 ## Verification beyond sloplint
+
+**Ask the user before the browser pass.** If declined, record `WAIVED G5/G6` and
+state "UI not visually verified".
 
 - Screenshots at 320 / 768 / 1280 / 1440 via `playwright` MCP.
 - `chrome-devtools` MCP against the production/preview server: console, network,

@@ -255,7 +255,7 @@ function selectMonth(key){
   const lbl=document.getElementById('weekLabel'); if(lbl){ const wk=REKANAN_DATA.find(w=>w.key===key); lbl.textContent=wk?(wk.label_long||wk.label||key):key; }
   if(window.TableEnhance) window.TableEnhance.refresh();
   const vis=document.querySelector('.month-section:not([hidden])'); if(vis) vis.querySelector('table.lp-tbl')?.focus?.({preventScroll:true});
-  if(isVendorPrioritasOnly()){ const s=document.getElementById('section-'+key); if(s) recomputeSection(s, true); }
+  applyPrioritasRows();
 }
 function onPeriodChange(){
   const sel=document.getElementById('monthSel'); const y=sel.options[sel.selectedIndex]?.dataset.year; const m=sel.value;
@@ -271,7 +271,7 @@ function bindMingguanEvents(){
   if(cb&&!cb.dataset.bound){ cb.dataset.bound='1'; cb.addEventListener('change', filterVendorPrioritas); }
   document.querySelectorAll('.month-section tbody tr[data-rekan]').forEach(tr=>{ tr.tabIndex=0; tr.setAttribute('role','button'); tr.setAttribute('aria-label','Lihat detail '+tr.dataset.rekan); tr.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); tr.click(); }}); });
 }
-(function initPeriod(){ bindMingguanEvents(); const btns=document.querySelectorAll('#weekBar .lp-rail-btn'); if(!btns.length) return; const a=document.querySelector('#weekBar .lp-rail-btn.active'); const anchor=a||btns[btns.length-1]; const mSel=document.getElementById('monthSel'); if(mSel){ for(const opt of mSel.options){ if(opt.dataset.year===anchor.dataset.year&&String(opt.value)===String(anchor.dataset.month)){ opt.selected=true; break; } } } onPeriodChange(); })();
+(function initPeriod(){ bindMingguanEvents(); const cbP=document.getElementById('vendorPrioritasSel'); if(cbP&&new URLSearchParams(window.location.search).get('prioritas')==='1') cbP.checked=true; const btns=document.querySelectorAll('#weekBar .lp-rail-btn'); if(!btns.length) return; const a=document.querySelector('#weekBar .lp-rail-btn.active'); const anchor=a||btns[btns.length-1]; const mSel=document.getElementById('monthSel'); if(mSel){ for(const opt of mSel.options){ if(opt.dataset.year===anchor.dataset.year&&String(opt.value)===String(anchor.dataset.month)){ opt.selected=true; break; } } } onPeriodChange(); })();
 function exportExcel(btn){ btn=btn||document.getElementById('exportBtn'); if(btn){ btn.disabled=true; setTimeout(()=>btn.disabled=false,1500); } const a=document.querySelector('#weekBar .lp-rail-btn.active'); const k=a?a.getAttribute('data-key'):''; const params=new URLSearchParams(); if(k) params.set('week', k); const cb=document.getElementById('vendorPrioritasSel'); if(cb&&cb.checked) params.set('prioritas','1'); const qs=params.toString(); window.location.href='/laporan-ppn-mingguan/export'+(qs?'?'+qs:''); }
 let _activeRow=null;
 function showDetail(monthKey,rekanan,rowEl){
@@ -314,51 +314,30 @@ function showDetail(monthKey,rekanan,rowEl){
   function vendorPrioritasEl(){ return document.getElementById('vendorPrioritasSel'); }
   function isVendorPrioritasOnly(){ const el=vendorPrioritasEl(); return el&&el.checked; }
 
-  function fmtT(v){ return Math.round(Number(v||0)).toLocaleString('id-ID'); }
+  function prioritasVendorSet(){
+    const set=new Set();
+    REKANAN_DATA.forEach(m=>(m.rekanan_list||[]).forEach(s=>{ if(s.prioritas==='1') set.add(s.rekanan); }));
+    return set;
+  }
 
-  function recomputeSection(section, only){
-    let sh=0,sb=0,lP=0,siP=0,sdP=0,lB=0,siB=0,sdB=0,cnt=0,pay=0;
-    const weekKey=section.id.replace('section-','');
-    const wk=REKANAN_DATA.find(w=>w.key===weekKey);
-    section.querySelectorAll('table.lp-tbl tbody tr[data-rekan]').forEach(tr=>{
-      const rekan=tr.dataset.rekan;
-      const s=wk&&wk.rekanan_list.find(x=>x.rekanan===rekan);
-      if(!s){ tr.hidden=true; return; }
-      const show=!only||s.prioritas==='1';
-      tr.hidden=!show;
-      if(!show) return;
-      sh+=Number(s.sd_ppn||0); sb+=Number(s.sd_bayar_ppn||0);
-      lP+=Number(s.lalu_ppn||0); siP+=Number(s.saat_ini_ppn||0); sdP+=Number(s.sd_ppn||0);
-      lB+=Number(s.lalu_bayar_ppn||0); siB+=Number(s.saat_ini_bayar_ppn||0); sdB+=Number(s.sd_bayar_ppn||0);
-      cnt+=Number(s.count||0); pay+=Number(s.ppn_pay_count||0);
+  function applyPrioritasRows(){
+    const only=isVendorPrioritasOnly();
+    const prio=only?prioritasVendorSet():null;
+    document.querySelectorAll('.month-section').forEach(section=>{
+      section.querySelectorAll('table.lp-tbl tbody tr[data-rekan]').forEach(tr=>{
+        tr.hidden=!!prio&&!prio.has(tr.dataset.rekan);
+      });
     });
-    const sisa=Math.max(0,sh-sb);
-    const set=(sel,v)=>{ const el=section.querySelector(sel); if(el) el.textContent=fmtT(v); };
-    set('[data-jt="hero-sisa"]',sisa);
-    set('[data-jt="hero-hutang"]',sh);
-    set('[data-jt="hero-bayar"]',sb);
-    set('[data-jt="kpi-lalu-h"]',lP);
-    set('[data-jt="kpi-si-h"]',siP);
-    set('[data-jt="kpi-sd-h"]',sdP);
-    set('[data-jt="kpi-lalu-b"]',lB);
-    set('[data-jt="kpi-si-b"]',siB);
-    set('[data-jt="kpi-sd-b"]',sdB);
-    set('[data-jt="ft-lalu-h"]',lP);
-    set('[data-jt="ft-si-h"]',siP);
-    set('[data-jt="ft-sd-h"]',sdP);
-    set('[data-jt="ft-lalu-b"]',lB);
-    set('[data-jt="ft-si-b"]',siB);
-    set('[data-jt="ft-sd-b"]',sdB);
-    set('[data-jt="ft-sisa"]',sisa);
-    const tc=section.querySelector('[data-jt="tag-cnt"]'); if(tc) tc.textContent=cnt+' PPN';
-    const tp=section.querySelector('[data-jt="tag-pay"]'); if(tp) tp.textContent=pay+' Pembayaran';
+    if(window.TableEnhance){ window.TableEnhance.refresh(); window.TableEnhance.resetPage(); }
   }
 
   function filterVendorPrioritas(){
-    const only=isVendorPrioritasOnly();
-    document.querySelectorAll('.month-section:not([hidden])').forEach(section=>recomputeSection(section,only));
-    if(window.TableEnhance){ window.TableEnhance.refresh(); window.TableEnhance.resetPage(); }
-    applyModalPrioritasFilter();
+    const a=document.querySelector('#weekBar .lp-rail-btn.active'); const k=a?a.getAttribute('data-key'):'';
+    const params=new URLSearchParams(window.location.search);
+    if(k) params.set('week', k); else params.delete('week');
+    if(isVendorPrioritasOnly()) params.set('prioritas','1'); else params.delete('prioritas');
+    const qs=params.toString();
+    window.location.href='/laporan-ppn-mingguan'+(qs?'?'+qs:'');
   }
 
   function applyModalPrioritasFilter(){

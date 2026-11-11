@@ -1,4 +1,4 @@
-﻿# Coding Agent Setup — SOP + Skills for Web/App Development
+# Coding Agent Setup � SOP + Skills for Web/App Development
 
 A portable `.opencode/` folder plus one `AGENTS.md`. Copy both into a project and
 the agent knows how to build web apps without producing AI slop.
@@ -11,10 +11,10 @@ Project root after copying:
 
 ```
 my-app/
-├── docs/          your documents
-├── src/ ...
-├── AGENTS.md      <- the only setup file at the root
-└── .opencode/     <- everything else
++-- docs/          your documents
++-- src/ ...
++-- AGENTS.md      <- the only setup file at the root
++-- .opencode/     <- everything else
 ```
 
 ---
@@ -24,14 +24,16 @@ my-app/
 | Path | What it is |
 |---|---|
 | `AGENTS.md` (project root) | Routing table and hard rules. opencode reads it automatically. |
-| `.opencode/sops/` | Five procedures: web dev phases, design law, quality gate, context routing, per-stack matrix |
-| `.opencode/agents/` | `web-dev`, `ui-designer`, `reviewer`, `planner` subagents |
+| `.opencode/sops/` | Five procedures + `stacks/` (one file per stack) + `context/TROUBLESHOOTING.md` |
+| `.opencode/agents/` | `develop`, `ui-designer`, `reviewer`, `planner` subagents |
 | `.opencode/commands/` | `/stack`, `/new-feature`, `/ship`, `/build-ui`, `/ui-audit`, `/i-have-adhd` |
 | `.opencode/skills/hallmark` | Anti-slop design skill with a deterministic linter (`sloplint.mjs`) |
 | `.opencode/skills/refactoring-ui` | 151-rule design rulebook distilled from *Refactoring UI* |
 | `.opencode/skills/design-taste` | Ban catalogue, motion, interaction states, OKLCH colour |
 | `.opencode/skills/i-have-adhd` | Output shaping for a reader with ADHD |
-| `.opencode/instructions/ADHD.md` | The same ruleset for use as an always-on instruction |
+| `.opencode/instructions/ADHD.md` | Full ADHD ruleset (also the `i-have-adhd` skill) |
+| `.opencode/instructions/ALWAYS-ON.md` | Compact always-on rules: ADHD output, graphify after edit, context-mode |
+| `.opencode/plugins/graphify-auto-update.js` | Runs `graphify update .` after edits (debounced, flushed on idle) |
 | `.opencode/mcp/` | Why these MCP servers, the config snippet, install steps |
 | `.opencode/scripts/` | `bootstrap-windows.ps1`, `check-setup.ps1`, `check-template.ps1`, `copy-to-project.ps1`, `install-skills.ps1`, `lib-jsonc.ps1` |
 
@@ -42,9 +44,9 @@ output rather than opinions.
 
 | Tool | Choice | Reason |
 |---|---|---|
-| Anti-slop design | **Hallmark** (46k★, MIT) | Only one that ships a deterministic linter (`sloplint.mjs`, 16 floor gates + tiered reflex gates) and renders in a real browser at 8 widths. OpenCode-aware. |
-| Design rulebook | **refactoring-ui** (358★) | 151 traceable rules, Step-0 stack detection, maps directly onto Tailwind scales. Diagnostic, not a generator. |
-| Design craft | **design-taste** (90★) | Merges impeccable + emilkowalski + taste-skill. The sharpest concrete ban catalogue. |
+| Anti-slop design | **Hallmark** (46k?, MIT) | Only one that ships a deterministic linter (`sloplint.mjs`, 16 floor gates + tiered reflex gates) and renders in a real browser at 8 widths. OpenCode-aware. |
+| Design rulebook | **refactoring-ui** (358?) | 151 traceable rules, Step-0 stack detection, maps directly onto Tailwind scales. Diagnostic, not a generator. |
+| Design craft | **design-taste** (90?) | Merges impeccable + emilkowalski + taste-skill. The sharpest concrete ban catalogue. |
 | Output style | **i-have-adhd** | Answer-first output. |
 | Browser verify | **Playwright MCP** (Microsoft) | Screenshots and interaction without a human. |
 | Perf/a11y verify | **Chrome DevTools MCP** (Google) | LCP, CLS, console, a11y tree. |
@@ -58,23 +60,34 @@ account), `wghobson/agents` (heavy duplicate of power-pack), `mcp-chrome`
 
 ## What runs where
 
-The template travels per project. The global layer lives once per machine and
-must exist before the SOP can run at full strength.
+Two layers, split so each piece of data lives in exactly one place � no
+definition is kept twice, which keeps the context small.
+
+- **Per project** � the SOP itself: `sops/`, `agents/`, `commands/`, `skills/`,
+  `instructions/`, `plugins/graphify-auto-update.js`, and `AGENTS.md`. Carried by
+  `copy-to-project.ps1`.
+- **Per machine (global, `~/.config/opencode`)** � the MCP servers, the package
+  plugins, and the `SHELL` env var. Installed once by `bootstrap-windows.ps1`.
+
+MCP servers and package plugins are deliberately **not** copied into the project:
+one machine-wide definition serves every project. To add an MCP server, edit the
+global config, not the template.
 
 **Pick the agent, the SOP does not pick itself.** opencode's default agent is
-`build`, not `web-dev`. In every new session either type `@web-dev` or press Tab
-and select one of `web-dev` / `ui-designer` / `reviewer` / `planner`. Commands
-`/stack`, `/new-feature`, `/ship` already route to `web-dev` or `ui-designer`;
+`build`, not `develop`. In every new session either type `@develop` or press Tab
+and select one of `develop` / `ui-designer` / `reviewer` / `planner`. Commands
+`/stack`, `/new-feature`, `/ship` already route to `develop` or `ui-designer`;
 an un-routed session is just `build` with the SOP in context, nothing more.
 
 | Layer | Lives in | Carried by `copy-to-project.ps1`? | Installed by |
 |---|---|---|---|
 | SOPs, agents, commands, skills, instructions | `.opencode/` | yes | copy |
 | `AGENTS.md` | project root | yes | copy |
+| Local plugin `graphify-auto-update.js` | `.opencode/plugins/` | yes | copy |
 | Node, Git, Chrome, uv | machine | no | `bootstrap-windows.ps1` |
 | `opencode`, `rtk`, `graphify` | machine | no | `bootstrap-windows.ps1` |
-| Plugins: `context-mode`, `opencode-power-pack` | `~/.config/opencode/` | no | `bootstrap-windows.ps1` |
-| MCP: `playwright`, `chrome-devtools`, optional `tavily` | `~/.config/opencode/` | no | `bootstrap-windows.ps1` |
+| Plugins: `context-mode`, `opencode-power-pack` | `~/.config/opencode/` | **no (global by design)** | `bootstrap-windows.ps1` |
+| MCP: `playwright`, `chrome-devtools`, optional `tavily` | `~/.config/opencode/` | **no (global by design)** | `bootstrap-windows.ps1` |
 | `SHELL` env var (context-mode) | user environment | no | `bootstrap-windows.ps1` |
 | Global skills (copy of the vendored skills) | `~/.config/opencode/skills/` | no | `install-skills.ps1` |
 
@@ -90,18 +103,18 @@ local agent or `/command`, say it once, keep working.
 
 ---
 
-# FRESH WINDOWS — install from scratch
+# FRESH WINDOWS � install from scratch
 
 Everything below is PowerShell 5.1, top to bottom. Expect 20-40 minutes on a
 clean machine, mostly downloads.
 
-## Fast path — one script
+## Fast path � one script
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .opencode\scripts\bootstrap-windows.ps1
 ```
 
-It runs Steps 1–6 and the global skill install: base tools, opencode, rtk,
+It runs Steps 1�6 and the global skill install: base tools, opencode, rtk,
 graphify, plugin + MCP config merge, the `SHELL` variable, Playwright chromium,
 skills, then `check-setup.ps1`. Safe to re-run; every config file gets a
 timestamped backup first.
@@ -117,7 +130,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .opencode\scripts\check-setu
 
 The manual steps below stay the reference for what the script does.
 
-## Step 1 — Base tools
+## Step 1 � Base tools
 
 ```powershell
 # Node LTS (includes npm)
@@ -138,14 +151,14 @@ npm --version     # >= 9
 git --version
 ```
 
-## Step 2 — opencode
+## Step 2 � opencode
 
 ```powershell
 npm i -g opencode-ai
 opencode --version
 ```
 
-## Step 3 — rtk (token-saving shell filter)
+## Step 3 � rtk (token-saving shell filter)
 
 Install the release binary, then confirm it is on PATH:
 
@@ -159,7 +172,7 @@ If `rtk` is not found, place `rtk.exe` in a folder on PATH (for example
 rtk is optional: every SOP command works without it, you just lose 60-90% of the
 context savings.
 
-## Step 4 — graphify (codebase knowledge graph)
+## Step 4 � graphify (codebase knowledge graph)
 
 ```powershell
 # needs uv or pipx; uv is recommended
@@ -180,7 +193,7 @@ In a project, build a graph once:
 graphify .
 ```
 
-## Step 5 — opencode plugins
+## Step 5 � opencode plugins
 
 Edit `C:\Users\<you>\.config\opencode\opencode.json` (create it if missing):
 
@@ -208,7 +221,7 @@ package in that folder.
 Restart opencode. Blocked constructs (`curl`, `wget`, inline HTTP) and the
 context-mode tools should now be active.
 
-### Step 5b — Point context-mode at a real shell (Windows, required)
+### Step 5b � Point context-mode at a real shell (Windows, required)
 
 On Windows, context-mode picks `pwsh` first. The `pwsh.exe` that ships as a
 Microsoft Store alias is a 0-byte stub, so every `ctx_batch_execute` call fails
@@ -229,7 +242,7 @@ afterwards. `check-setup.ps1` verifies this.
 Alternative: `winget install --id Microsoft.PowerShell` installs a real
 `pwsh.exe` under `C:\Program Files\PowerShell\7` and the variable is not needed.
 
-## Step 6 — MCP servers
+## Step 6 � MCP servers
 
 Follow `.opencode/mcp/INSTALL.md`. Summary:
 
@@ -243,9 +256,9 @@ The block declares `playwright` and `chrome-devtools`.
 
 **Security note:** a Tavily remote MCP (used by some provider configs) stores its
 API key in plaintext in `opencode.jsonc`. Move it to an environment variable
-(`"Bearer {env:TAVILY_API_KEY}"`) — this repo leaves that decision to you.
+(`"Bearer {env:TAVILY_API_KEY}"`) � this repo leaves that decision to you.
 
-## Step 7 — Install this SOP folder
+## Step 7 � Install this SOP folder
 
 Copy this whole `SETUP OPENCODE` folder somewhere permanent, for example
 `C:\Users\Administrator\Desktop\SETUP OPENCODE`. Then verify:
@@ -264,7 +277,7 @@ frontmatter, and a real copy into a temp folder.
 powershell -NoProfile -File "C:\Users\Administrator\Desktop\SETUP OPENCODE\.opencode\scripts\check-template.ps1"
 ```
 
-## Step 8 — Make the skills global (optional but recommended)
+## Step 8 � Make the skills global (optional but recommended)
 
 ```powershell
 powershell -NoProfile -File "C:\Users\Administrator\Desktop\SETUP OPENCODE\.opencode\scripts\install-skills.ps1"
@@ -280,24 +293,30 @@ To list what is vendored:
 powershell -NoProfile -File "C:\Users\Administrator\Desktop\SETUP OPENCODE\.opencode\scripts\install-skills.ps1" -List
 ```
 
-## Step 9 — Make ADHD output always-on (optional)
+## Step 9 � Make ADHD, graphify, and context-mode always-on
 
-Open `~/.config/opencode/opencode.json` and add an instructions entry:
-
-```json
-"instructions": ["~/.config/opencode/instructions/ADHD.md"]
-```
-
-First copy the file:
+Copy the compact instruction file and the auto-update plugin:
 
 ```powershell
 New-Item -ItemType Directory "$env:USERPROFILE\.config\opencode\instructions" -Force
-Copy-Item "C:\Users\Administrator\Desktop\SETUP OPENCODE\.opencode\instructions\ADHD.md" "$env:USERPROFILE\.config\opencode\instructions\ADHD.md"
+New-Item -ItemType Directory "$env:USERPROFILE\.config\opencode\plugins" -Force
+Copy-Item ".opencode\instructions\ALWAYS-ON.md" "$env:USERPROFILE\.config\opencode\instructions\ALWAYS-ON.md"
+Copy-Item ".opencode\plugins\graphify-auto-update.js" "$env:USERPROFILE\.config\opencode\plugins\graphify-auto-update.js"
 ```
 
-Say "stop adhd mode" in session to disable it, as the file itself documents.
+Add to `~/.config/opencode/opencode.json`:
 
-## Step 10 — First real project
+```json
+"instructions": ["instructions/ALWAYS-ON.md"],
+"compaction": { "auto": true, "prune": true }
+```
+
+Restart opencode. The instruction file shapes every response, the plugin runs
+`graphify update .` after each edit/write, and `compaction.prune` drops stale
+tool output to save tokens. Say "stop adhd mode" in session to disable the
+output style, as the file itself documents.
+
+## Step 10 � First real project
 
 ```powershell
 mkdir C:\dev\my-app
@@ -328,25 +347,25 @@ Expected: stack detected, plan, implementation, `sloplint` clean, screenshots at
 # Project documents: `docs/`
 
 The agent reads `docs/` **before anything else** (Phase 0a). Contents vary per
-project — never assume filenames. Put whatever you have in there; the agent
+project � never assume filenames. Put whatever you have in there; the agent
 lists the folder and reads the files that map to the task.
 
 A layout that works well:
 
 ```
 my-app/
-├── docs/                    your documents (agent reads these first)
-│   ├── PRD.md               requirements, goals, non-goals
-│   ├── STACK.md             framework, versions, package manager
-│   ├── features/            one file per feature + acceptance criteria
-│   └── adr/                 decisions and their rationale
-├── DESIGN.md                locked design system (optional; overrides Hallmark themes)
-├── AGENTS.md                routing table  <- must be at the root
-├── .opencode/               everything agent-related
-│   ├── sops/ agents/ commands/ skills/ instructions/ mcp/ scripts/
-│   ├── README.md            this guide
-│   └── STACK.md             written by /stack
-└── src/
++-- docs/                    your documents (agent reads these first)
+�   +-- PRD.md               requirements, goals, non-goals
+�   +-- STACK.md             framework, versions, package manager
+�   +-- features/            one file per feature + acceptance criteria
+�   +-- adr/                 decisions and their rationale
++-- DESIGN.md                locked design system (optional; overrides Hallmark themes)
++-- AGENTS.md                routing table  <- must be at the root
++-- .opencode/               everything agent-related
+�   +-- sops/ (incl. stacks/, context/) agents/ commands/ skills/ instructions/ mcp/ scripts/
+�   +-- README.md            this guide
+�   +-- STACK.md             written by /stack
++-- src/
 ```
 
 The project root stays clean: **only `AGENTS.md`** from this setup lives at the
@@ -356,10 +375,10 @@ Precedence the agent applies:
 
 | Source | Authority |
 |---|---|
-| `docs/` | Highest — intent and decisions. Beats upstream docs and assumptions. |
-| Existing code | High — real conventions to match. |
-| Official library docs | Medium — how the API works at that version. |
-| Model memory | Lowest — must be verified before use. |
+| `docs/` | Highest � intent and decisions. Beats upstream docs and assumptions. |
+| Existing code | High � real conventions to match. |
+| Official library docs | Medium � how the API works at that version. |
+| Model memory | Lowest � must be verified before use. |
 
 Rules that follow from this:
 
@@ -378,8 +397,8 @@ ctx_search(queries: [...], source: "docs-<lib>")
 ```
 
 If the URL is unknown it searches with `tavily` first. An unverified third-party
-API call must not be written — if docs cannot be fetched, the agent says so and
-stops. Full procedure: `.opencode/sops/CONTEXT.md` § 3b.
+API call must not be written � if docs cannot be fetched, the agent says so and
+stops. Full procedure: `.opencode/sops/CONTEXT.md` ? **External library documentation**.
 
 ---
 
@@ -392,7 +411,7 @@ stops. Full procedure: `.opencode/sops/CONTEXT.md` § 3b.
 | Take a feature to done | `/ship` |
 | New page / landing / redesign | `/build-ui` |
 | Something looks off but you cannot name it | `/ui-audit` |
-| Shorter output | `/i-have-adhd` |
+| Output is ADHD by default | `/i-have-adhd` reloads the full ruleset |
 | One-file fix | Just ask; quality gate still applies |
 
 ## Install into a project
@@ -431,8 +450,8 @@ graphify-out/
 
 1. **`docs/` first, detect second.** Read the project documents, then detect the
    stack. Never assume either.
-2. **Three design layers.** Hallmark floor (16 non-waivable items) → refactoring-ui
-   (151 rules) → design-taste (concrete bans). Lower number wins on conflict.
+2. **Three design layers.** Hallmark floor (16 non-waivable items) ? refactoring-ui
+   (151 rules) ? design-taste (concrete bans). Lower number wins on conflict.
 3. **Evidence or it did not happen.** `sloplint` exit code, screenshot paths,
    LCP/CLS numbers, a11y count. "Looks good" is not accepted.
 4. **Small diffs, one concern.** Polish is a gate, not a ticket.
@@ -455,7 +474,7 @@ Full text: `.opencode/sops/DESIGN.md`, `.opencode/sops/QUALITY_GATE.md`.
 | `rtk find` prints `0 for '*'` | Wrong cwd or empty folder. Retry with an absolute path; `0` is not proof a file is missing |
 | `rtk ls` fails: `Binary 'ls' not found` | `rtk ls` is not available on Windows. Use `rtk find <path> -maxdepth 1` |
 | `rtk find .` floods with `node_modules` | Scope the path: `rtk find src -name *.md`, or add `-maxdepth 2` |
-| Agent does not follow the SOP | opencode's default agent is `build`, not `web-dev`. Type `@web-dev` or press Tab and select |
+| Agent does not follow the SOP | opencode's default agent is `build`, not `develop`. Type `@develop` or press Tab and select |
 | `rtk find -name '*.md'` finds nothing | Remove the quotes: `-name *.md` |
 | `rtk json pyproject.toml` says `is not a JSON file` | Use `rtk read pyproject.toml` |
 | MCP tools missing in opencode | Run `npx -y @playwright/mcp@latest --help`; check opencode log |

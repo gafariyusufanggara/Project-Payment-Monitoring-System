@@ -1,6 +1,6 @@
 ---
 description: "Detect the project stack, write .opencode/STACK.md, and report which MCP servers and skills apply. Use at the start of a session, when the stack is unclear, or after switching projects."
-agent: web-dev
+agent: develop
 subtask: false
 ---
 
@@ -27,9 +27,9 @@ A failing label is information, not an error: `rtk json package.json` fails when
 the file is absent, and `rtk find` prints `0 for <pattern>` when nothing
 matches. Never re-run a failing label with different flags to "fix" it.
 
-2. Fill the `.opencode/STACK.md` template from `.opencode/sops/STACKS.md`. Create the
-   folder if needed. Overwrite an existing file only when the user asks for a
-   re-detect.
+2. Fill `.opencode/STACK.md` from `.opencode/sops/stacks/_template.md`. Create
+   the folder if needed. Overwrite an existing file only when the user asks for a
+   re-detect. Report which `.opencode/sops/stacks/*.md` file applies.
 
 3. Report:
 

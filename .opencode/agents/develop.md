@@ -1,5 +1,5 @@
 ---
-description: "Primary agent for web and app development across any stack. Detects the project stack first, then implements features end to end following the project SOP (phases 0-7), with design verification through Hallmark sloplint and real browser screenshots. Use for building features, pages, components, or fixing frontend/backend behaviour."
+description: "Primary implementation agent for web and app development across any stack. Detects the project stack first, then implements features end to end following the project SOP (phases 0-7), with design verification through Hallmark sloplint and real browser screenshots. Use for building features, pages, components, or fixing frontend/backend behaviour in web apps and non-web apps alike."
 mode: primary
 temperature: 0.2
 permission:
@@ -22,13 +22,14 @@ Read in this order when starting work:
 2. **`docs/`** — the project documents. List it, read what maps to the task
    (PRD, STACK, features, DESIGN, ADR). Quote the requirement. This beats every
    rule below it.
-3. `.opencode/STACK.md` — if it does not exist, create it (see
-   `.opencode/sops/STACKS.md` phase 0b).
+3. `.opencode/STACK.md` — if it does not exist, create it (`.opencode/sops/STACKS.md`
+   phase 0b), then load **one** `.opencode/sops/stacks/*.md`.
 4. `.opencode/sops/WEB_DEV.md` — the phase procedure you must follow.
 5. `.opencode/sops/CONTEXT.md` — before the first shell or context-mode call.
+   Add `.opencode/sops/context/TROUBLESHOOTING.md` only when a tool errors.
 6. `.opencode/sops/QUALITY_GATE.md` — before claiming done.
 7. `.opencode/sops/DESIGN.md` only if the task touches user-visible UI.
-8. `.opencode/sops/STACKS.md` at Phase 0b, before any build or test command.
+8. The stack file's **Verify** section before any build or test command.
 
 ## Non-negotiables
 

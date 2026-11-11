@@ -43,7 +43,10 @@ def laporan():
     pid = get_read_filter()
     cutoff_str = request.args.get('cutoff', '').strip()
     cutoff_date = _parse_cutoff(cutoff_str)
-    report_rows, data_count = build_laporan_data(project_id=pid, cutoff_date=cutoff_date)
+    import db_contract
+    keys = db_contract.get_registered_kontrak_keys() if request.args.get('prioritas') == '1' else None
+    report_rows, data_count = build_laporan_data(project_id=pid, cutoff_date=cutoff_date,
+                                                 prioritas_po_keys=keys)
     _mark_prioritas(report_rows)
     months = [r['key'] for r in report_rows]
     active_month = request.args.get('month', '').strip()
@@ -88,7 +91,10 @@ def laporan_mingguan():
     pid = get_read_filter()
     cutoff_str = request.args.get('cutoff', '').strip()
     cutoff_date = _parse_cutoff(cutoff_str)
-    report_rows, data_count = build_mingguan_data(project_id=pid, cutoff_date=cutoff_date)
+    import db_contract
+    keys = db_contract.get_registered_kontrak_keys() if request.args.get('prioritas') == '1' else None
+    report_rows, data_count = build_mingguan_data(project_id=pid, cutoff_date=cutoff_date,
+                                                  prioritas_po_keys=keys)
     _mark_prioritas(report_rows)
     weeks = [r['key'] for r in report_rows]
     # Deep link: ?week=YYYY-Www preselects that week (used by cutoff reload).
@@ -216,7 +222,10 @@ def laporan_ppn():
     from services.project_context import get_read_filter
     cutoff_str = request.args.get('cutoff', '').strip()
     cutoff_date = _parse_cutoff(cutoff_str)
-    report_rows, data_count = build_ppn_data(project_id=get_read_filter(), cutoff_date=cutoff_date)
+    import db_contract
+    keys = db_contract.get_registered_kontrak_keys() if request.args.get('prioritas') == '1' else None
+    report_rows, data_count = build_ppn_data(project_id=get_read_filter(), cutoff_date=cutoff_date,
+                                             prioritas_po_keys=keys)
     _mark_prioritas(report_rows)
     now_key = date.today().strftime('%Y-%m')
     months = [r['key'] for r in report_rows]
@@ -258,8 +267,11 @@ def laporan_ppn_mingguan():
     from services.project_context import get_read_filter
     cutoff_str = request.args.get('cutoff', '').strip()
     cutoff_date = _parse_cutoff(cutoff_str)
+    import db_contract
+    keys = db_contract.get_registered_kontrak_keys() if request.args.get('prioritas') == '1' else None
     report_rows, data_count = build_ppn_mingguan_data(project_id=get_read_filter(),
-                                                      cutoff_date=cutoff_date)
+                                                      cutoff_date=cutoff_date,
+                                                      prioritas_po_keys=keys)
     _mark_prioritas(report_rows)
     weeks = [r['key'] for r in report_rows]
     # Deep link: ?week=YYYY-Www preselects that week.

@@ -20,8 +20,8 @@ Read `.opencode/sops/DESIGN.md` first. It contains the three layers and is non-n
 ## Procedure
 
 1. **Detect the system.** Framework, Tailwind version, existing tokens,
-   component library, dark mode. From `.opencode/sops/STACKS.md` phase 0b. An existing
-   system always wins.
+   component library, dark mode. From `.opencode/sops/STACKS.md` phase 0b plus one
+   `.opencode/sops/stacks/*.md`. An existing system always wins.
 2. **Read the brief.** Product, user, action per screen, real content, real
    assets. If material is missing, ask once with a short numbered list.
    Never invent.

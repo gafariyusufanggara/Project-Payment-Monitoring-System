@@ -16,7 +16,7 @@ Audit only. Do not rewrite unless the user asks for the fix afterwards.
 ### 1. Detect the system
 
 Framework, Tailwind version, tokens, component library, dark mode
-(`.opencode/sops/STACKS.md` phase 0b). State it in one line.
+(`.opencode/sops/STACKS.md` phase 0b + one `stacks/*.md`). State it in one line.
 
 ### 2. Deterministic pass
 
@@ -51,6 +51,10 @@ In causal order, reading `.opencode/skills/refactoring-ui/references/`:
 7. Finishing touches (08)
 
 ### 4. Real rendering
+
+**Ask the user first.** Browser verification takes time. If declined, record
+`WAIVED G5/G6`, report the static findings only, and state "not visually
+verified".
 
 `playwright` MCP: 320 / 768 / 1280 / 1440, screenshot each. Look for horizontal
 scroll, heading overflow, hero not fitting, focus invisible, misaligned grid.

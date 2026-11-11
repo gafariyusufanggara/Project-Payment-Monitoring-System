@@ -27,14 +27,20 @@ $required = @(
   'AGENTS.md',
   '.opencode/sops/WEB_DEV.md','.opencode/sops/DESIGN.md','.opencode/sops/QUALITY_GATE.md',
   '.opencode/sops/CONTEXT.md','.opencode/sops/STACKS.md',
-  '.opencode/agents/web-dev.md','.opencode/agents/ui-designer.md','.opencode/agents/reviewer.md','.opencode/agents/planner.md',
+  '.opencode/sops/context/TROUBLESHOOTING.md',
+  '.opencode/sops/stacks/nextjs.md','.opencode/sops/stacks/vue.md','.opencode/sops/stacks/svelte.md',
+  '.opencode/sops/stacks/astro.md','.opencode/sops/stacks/vite.md','.opencode/sops/stacks/python.md',
+  '.opencode/sops/stacks/go.md','.opencode/sops/stacks/rust.md','.opencode/sops/stacks/_template.md',
+  '.opencode/agents/develop.md','.opencode/agents/ui-designer.md','.opencode/agents/reviewer.md','.opencode/agents/planner.md',
   '.opencode/commands/stack.md','.opencode/commands/new-feature.md','.opencode/commands/build-ui.md',
   '.opencode/commands/ui-audit.md','.opencode/commands/ship.md','.opencode/commands/i-have-adhd.md',
   '.opencode/scripts/bootstrap-windows.ps1','.opencode/scripts/copy-to-project.ps1',
   '.opencode/scripts/install-skills.ps1','.opencode/scripts/lib-jsonc.ps1',
   '.opencode/skills/hallmark/SKILL.md','.opencode/skills/hallmark/scripts/sloplint.mjs',
   '.opencode/skills/refactoring-ui/SKILL.md','.opencode/skills/design-taste/SKILL.md',
-  '.opencode/skills/i-have-adhd/SKILL.md'
+  '.opencode/skills/i-have-adhd/SKILL.md',
+  '.opencode/instructions/ALWAYS-ON.md',
+  '.opencode/plugins/graphify-auto-update.js'
 )
 foreach ($f in $required) {
   $p = Join-Path $root ($f -replace '/','\')
@@ -111,7 +117,7 @@ if ($SkipCopy) {
       $expect = @(
         'AGENTS.md',
         '.opencode/sops/WEB_DEV.md',
-        '.opencode/agents/web-dev.md',
+        '.opencode/agents/develop.md',
         '.opencode/commands/ship.md',
         '.opencode/skills/hallmark/scripts/sloplint.mjs',
         '.opencode/scripts/lib-jsonc.ps1',
@@ -136,7 +142,7 @@ if ($SkipAgents) {
   Warn 'opencode not on PATH; skipped'
 } else {
   $list = & opencode agent list 2>&1 | Out-String
-  foreach ($name in @('web-dev','ui-designer','reviewer','planner')) {
+  foreach ($name in @('develop','ui-designer','reviewer','planner')) {
     if ($list -match "(?m)^$([regex]::Escape($name)) \((primary|subagent)\)\s*$") {
       Ok "agent loaded: $name"
     } else {

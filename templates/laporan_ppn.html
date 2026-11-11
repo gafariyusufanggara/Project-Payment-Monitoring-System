@@ -289,10 +289,10 @@ function setCutoffBounds(){
 function updateCutoffLabel(monthKey){ const lbl=document.getElementById('cutoffMonthLabel'); if(!lbl) return; const base=monthLabel(monthKey||activeMonthKey()); const d=currentCutoffDate(); lbl.textContent=d?(base+' · s/d '+fmtDate(d)):base; }
 function setSelValue(sel,key){ if(!sel||!key) return false; for(let i=0;i<sel.options.length;i++){ if(sel.options[i].value===key){ sel.value=key; return true; } } return false; }
 function monthLabel(key){ const s=monthSel(); if(s){ for(const o of s.options){ if(o.value===key) return o.textContent.trim(); } } return key; }
-function selectMonth(key,skipCutoff){ setSelValue(monthSel(), key); document.querySelectorAll('.month-section').forEach(el=>{ el.hidden=(el.id!=='section-'+key); }); const inp=document.getElementById('cutoffDate'); if(inp&&!skipCutoff) inp.value=''; setCutoffBounds(); updateCutoffLabel(key); if(window.TableEnhance) window.TableEnhance.refresh(); if(isVendorPrioritasOnly()){ const s=document.getElementById('section-'+key); if(s) recomputeSection(s, true); } if(!skipCutoff){ const d=document.getElementById('cutoffDate'); if(d&&d.value) applyCutoff(); } }
+function selectMonth(key,skipCutoff){ setSelValue(monthSel(), key); document.querySelectorAll('.month-section').forEach(el=>{ el.hidden=(el.id!=='section-'+key); }); const inp=document.getElementById('cutoffDate'); if(inp&&!skipCutoff) inp.value=''; setCutoffBounds(); updateCutoffLabel(key); if(window.TableEnhance) window.TableEnhance.refresh(); applyPrioritasRows(); if(!skipCutoff){ const d=document.getElementById('cutoffDate'); if(d&&d.value) applyCutoff(); } }
 function bindMonthSel(){ const sel=monthSel(); if(!sel||sel.dataset.bound) return; sel.dataset.bound='1'; sel.addEventListener('change', function(){ selectMonth(this.value); }); if(sel.value) selectMonth(sel.value, true); }
-function exportExcel(btn){ btn=btn||document.getElementById('exportBtn'); const orig=btn.innerHTML; btn.innerHTML='<span class="spinner-border spinner-border-sm me-1" role="status"></span> Mengunduh...'; btn.disabled=true; const key=activeMonthKey(); const params=new URLSearchParams(); if(key) params.set('month', key); const cutoff=currentCutoffDate(); if(cutoff) params.set('cutoff', cutoff); const qs=params.toString(); window.location.href='/laporan-ppn/export'+(qs?'?'+qs:''); setTimeout(()=>{ btn.innerHTML=orig; btn.disabled=false; },3000); }
-function applyCutoff(){ const key=activeMonthKey(); const params=new URLSearchParams(); const cutoff=currentCutoffDate(); if(cutoff) params.set('cutoff', cutoff); if(key) params.set('month', key); const qs=params.toString(); window.location.href='/laporan-ppn'+(qs?'?'+qs:''); }
+function exportExcel(btn){ btn=btn||document.getElementById('exportBtn'); const orig=btn.innerHTML; btn.innerHTML='<span class="spinner-border spinner-border-sm me-1" role="status"></span> Mengunduh...'; btn.disabled=true; const key=activeMonthKey(); const params=new URLSearchParams(); if(key) params.set('month', key); const cutoff=currentCutoffDate(); if(cutoff) params.set('cutoff', cutoff); if(isVendorPrioritasOnly()) params.set('prioritas','1'); const qs=params.toString(); window.location.href='/laporan-ppn/export'+(qs?'?'+qs:''); setTimeout(()=>{ btn.innerHTML=orig; btn.disabled=false; },3000); }
+function applyCutoff(){ const key=activeMonthKey(); const params=new URLSearchParams(); const cutoff=currentCutoffDate(); if(cutoff) params.set('cutoff', cutoff); if(key) params.set('month', key); if(isVendorPrioritasOnly()) params.set('prioritas','1'); const qs=params.toString(); window.location.href='/laporan-ppn'+(qs?'?'+qs:''); }
 function clearCutoff(){ const inp=document.getElementById('cutoffDate'); if(inp) inp.value=''; applyCutoff(); }
 let _activeRow=null;
 function showDetail(monthKey,rekanan,rowEl){
@@ -339,49 +339,25 @@ let _modalAllInv = [];
 function vendorPrioritasEl() { return document.getElementById('vendorPrioritasSel'); }
 function isVendorPrioritasOnly() { const el = vendorPrioritasEl(); return el && el.checked; }
 
-function recomputeSection(section, only) {
-  let sdP = 0, sdB = 0, lP = 0, siP = 0, lB = 0, siB = 0, cnt = 0, pay = 0;
-  const monthKey = section.dataset.nowKey || section.id.replace('section-', '');
-  const month = REKANAN_DATA.find(m => m.key === monthKey);
-  section.querySelectorAll('table.lp-tbl tbody tr[data-rekan]').forEach(tr => {
-    const rekan = tr.dataset.rekan;
-    const s = month && month.rekanan_list.find(x => x.rekanan === rekan);
-    if (!s) { tr.hidden = true; return; }
-    const show = !only || s.prioritas === '1';
-    tr.hidden = !show;
-    if (!show) return;
-    sdP += Number(s.sd_ppn || 0); sdB += Number(s.sd_bayar_ppn || 0);
-    lP += Number(s.lalu_ppn || 0); siP += Number(s.saat_ini_ppn || 0);
-    lB += Number(s.lalu_bayar_ppn || 0); siB += Number(s.saat_ini_bayar_ppn || 0);
-    cnt += Number(s.count || 0); pay += Number(s.ppn_pay_count || 0);
+function prioritasVendorSet() {
+  const set = new Set();
+  REKANAN_DATA.forEach(m => (m.rekanan_list || []).forEach(s => { if (s.prioritas === '1') set.add(s.rekanan); }));
+  return set;
+}
+
+function applyPrioritasRows() {
+  const only = isVendorPrioritasOnly();
+  const prio = only ? prioritasVendorSet() : null;
+  document.querySelectorAll('.month-section').forEach(section => {
+    section.querySelectorAll('table.lp-tbl tbody tr[data-rekan]').forEach(tr => {
+      tr.hidden = !!prio && !prio.has(tr.dataset.rekan);
+    });
   });
-  const sisa = Math.max(0, sdP - sdB);
-  const set = (sel, v) => { const el = section.querySelector(sel); if (el) el.textContent = fmt(v); };
-  set('[data-jt="hero-sisa"]', sisa);
-  set('[data-jt="hero-hutang"]', sdP);
-  set('[data-jt="hero-bayar"]', sdB);
-  set('[data-jt="kpi-lalu-h"]', lP);
-  set('[data-jt="kpi-si-h"]', siP);
-  set('[data-jt="kpi-sd-h"]', sdP);
-  set('[data-jt="kpi-lalu-b"]', lB);
-  set('[data-jt="kpi-si-b"]', siB);
-  set('[data-jt="kpi-sd-b"]', sdB);
-  set('[data-jt="ft-lalu-h"]', lP);
-  set('[data-jt="ft-si-h"]', siP);
-  set('[data-jt="ft-sd-h"]', sdP);
-  set('[data-jt="ft-lalu-b"]', lB);
-  set('[data-jt="ft-si-b"]', siB);
-  set('[data-jt="ft-sd-b"]', sdB);
-  set('[data-jt="ft-sisa"]', sisa);
-  const tc = section.querySelector('[data-jt="tag-cnt"]'); if (tc) tc.textContent = cnt + ' PPN';
-  const tp = section.querySelector('[data-jt="tag-pay"]'); if (tp) tp.textContent = pay + ' Pembayaran';
+  if (window.TableEnhance) { window.TableEnhance.refresh(); window.TableEnhance.resetPage(); }
 }
 
 function filterVendorPrioritas() {
-  const only = isVendorPrioritasOnly();
-  document.querySelectorAll('.month-section:not([hidden])').forEach(section => recomputeSection(section, only));
-  if (window.TableEnhance) { window.TableEnhance.refresh(); window.TableEnhance.resetPage(); }
-  applyModalPrioritasFilter();
+  applyCutoff();
 }
 
 function applyModalPrioritasFilter() {
@@ -412,6 +388,7 @@ window.filterVendorPrioritas = filterVendorPrioritas;
 if (window.onPageReady) onPageReady(bindMonthSel);
 else document.addEventListener('DOMContentLoaded', bindMonthSel);
   const cb = vendorPrioritasEl();
+  if (cb && new URLSearchParams(window.location.search).get('prioritas') === '1') cb.checked = true;
   if (cb && !cb.dataset.bound) { cb.dataset.bound = '1'; cb.addEventListener('change', filterVendorPrioritas); }
 })();
 </script>

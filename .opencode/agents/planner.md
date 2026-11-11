@@ -24,7 +24,7 @@ You produce specs and tickets. You do not implement.
 
 ## Step 1 — Ground yourself
 
-- `.opencode/STACK.md`. If missing, say so and continue; the `web-dev` agent owns its creation.
+- `.opencode/STACK.md`. If missing, say so and continue; the `develop` agent owns its creation.
 - `graphify query "<area>"` when a graph exists.
 - Read the 3-5 files the change will most likely touch. Name the existing
   pattern the implementation should follow.

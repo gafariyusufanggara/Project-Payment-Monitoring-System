@@ -196,6 +196,7 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
       const params = new URLSearchParams();
       if (key) params.set('month', key);
       if (day) params.set('cutoff', day);
+      if (isVendorPrioritasOnly()) params.set('prioritas', '1');
       const qs = params.toString();
       window.location.href = '/laporan-bulanan/export' + (qs ? '?' + qs : '');
       setTimeout(() => { btn.innerHTML = orig; btn.disabled = false; }, 3000);
@@ -225,13 +226,13 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
       if (inp && !skipCutoff) inp.value = '';
       setCutoffBounds();
       updateCutoffLabel(key);
+      applyPrioritasRows();
       // Cut off terikat pada bulan periode: bila aktif, muat ulang agar
       // tanggal cut off ikut pindah ke bulan periode yang baru.
       if (!skipCutoff) {
           const d = document.getElementById('cutoffDate');
           if (d && d.value) applyCutoff();
-          else if (isVendorPrioritasOnly()) { const s = document.getElementById('section-' + key); if (s) recomputeSection(s, true); }
-      } else if (isVendorPrioritasOnly()) { const s = document.getElementById('section-' + key); if (s) recomputeSection(s, true); }
+      }
   }
 
   // ─── cutoff date (fetch-based, no page refresh) ───
@@ -250,6 +251,9 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
       if (monthKey) {
           params.set('month', monthKey);
       }
+      if (isVendorPrioritasOnly()) {
+          params.set('prioritas', '1');
+      }
        fetch('/laporan-bulanan?' + params.toString())
            .then(r => {
                if (!r.ok) throw new Error('Permintaan laporan gagal.');
@@ -260,12 +264,9 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
                readPayload();
                const secs = document.querySelectorAll('.month-section');
                const fallbackKey = secs.length > 0 ? secs[secs.length - 1].id.replace('section-', '') : '';
-               restorePeriod(period || monthKey || fallbackKey);
-               if (isVendorPrioritasOnly()) {
-                   const s = document.getElementById('section-' + (period || monthKey || fallbackKey));
-                   if (s) recomputeSection(s, true);
-               }
-           })
+                restorePeriod(period || monthKey || fallbackKey);
+                applyPrioritasRows();
+            })
            .catch(() => {
                const alert = document.createElement('div');
                alert.id = 'cutoffError';
@@ -415,51 +416,32 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
   function vendorPrioritasEl() { return document.getElementById('vendorPrioritasSel'); }
   function isVendorPrioritasOnly() { const el = vendorPrioritasEl(); return el && el.checked; }
 
-  function fmtT(v) { return Math.round(Number(v || 0)).toLocaleString('id-ID'); }
+  function prioritasVendorSet() {
+    const set = new Set();
+    REKANAN_DATA.forEach(m => (m.rekanan_list || []).forEach(s => { if (s.prioritas === '1') set.add(s.rekanan); }));
+    return set;
+  }
 
-  function recomputeSection(section, only) {
-    let sh = 0, sb = 0, lh = 0, sih = 0, sdH = 0, lb = 0, sib = 0, sdB = 0, cnt = 0, pay = 0;
-    const monthKey = section.dataset.nowKey || section.id.replace('section-', '');
-    const month = REKANAN_DATA.find(m => m.key === monthKey);
-    section.querySelectorAll('table.lp-tbl tbody tr[data-rekan]').forEach(tr => {
-      const rekan = tr.dataset.rekan;
-      const s = month && month.rekanan_list.find(x => x.rekanan === rekan);
-      if (!s) { tr.hidden = true; return; }
-      const show = !only || s.prioritas === '1';
-      tr.hidden = !show;
-      if (!show) return;
-      sh += Number(s.sd_hutang || 0); sb += Number(s.sd_bayar || 0);
-      lh += Number(s.lalu_hutang || 0); sih += Number(s.saat_ini_hutang || 0); sdH += Number(s.sd_hutang || 0);
-      lb += Number(s.lalu_bayar || 0); sib += Number(s.saat_ini_bayar || 0); sdB += Number(s.sd_bayar || 0);
-      cnt += Number(s.count || 0); pay += Number(s.pay_count || 0);
+  function applyPrioritasRows() {
+    const only = isVendorPrioritasOnly();
+    const prio = only ? prioritasVendorSet() : null;
+    document.querySelectorAll('.month-section').forEach(section => {
+      section.querySelectorAll('table.lp-tbl tbody tr[data-rekan]').forEach(tr => {
+        tr.hidden = !!prio && !prio.has(tr.dataset.rekan);
+      });
     });
-    const sisa = Math.max(0, sh - sb);
-    const set = (sel, v) => { const el = section.querySelector(sel); if (el) el.textContent = fmtT(v); };
-    set('[data-jt="hero-sisa"]', sisa);
-    set('[data-jt="hero-hutang"]', sh);
-    set('[data-jt="hero-bayar"]', sb);
-    set('[data-jt="kpi-lalu-h"]', lh);
-    set('[data-jt="kpi-si-h"]', sih);
-    set('[data-jt="kpi-sd-h"]', sdH);
-    set('[data-jt="kpi-lalu-b"]', lb);
-    set('[data-jt="kpi-si-b"]', sib);
-    set('[data-jt="kpi-sd-b"]', sdB);
-    set('[data-jt="ft-lalu-h"]', lh);
-    set('[data-jt="ft-si-h"]', sih);
-    set('[data-jt="ft-sd-h"]', sdH);
-    set('[data-jt="ft-lalu-b"]', lb);
-    set('[data-jt="ft-si-b"]', sib);
-    set('[data-jt="ft-sd-b"]', sdB);
-    set('[data-jt="ft-sisa"]', sisa);
-    const tc = section.querySelector('[data-jt="tag-cnt"]'); if (tc) tc.textContent = cnt + ' Invoice';
-    const tp = section.querySelector('[data-jt="tag-pay"]'); if (tp) tp.textContent = pay + ' Pembayaran';
+    if (window.TableEnhance) { window.TableEnhance.refresh(); window.TableEnhance.resetPage(); }
   }
 
   function filterVendorPrioritas() {
-    const only = isVendorPrioritasOnly();
-    document.querySelectorAll('.month-section:not([hidden])').forEach(section => recomputeSection(section, only));
-    if (window.TableEnhance) { window.TableEnhance.refresh(); window.TableEnhance.resetPage(); }
-    applyModalPrioritasFilter();
+    const params = new URLSearchParams(window.location.search);
+    const key = activeMonthKey();
+    if (key) params.set('month', key); else params.delete('month');
+    const day = currentCutoffDate();
+    if (day) params.set('cutoff', day); else params.delete('cutoff');
+    if (isVendorPrioritasOnly()) params.set('prioritas', '1'); else params.delete('prioritas');
+    const qs = params.toString();
+    window.location.href = '/laporan-bulanan' + (qs ? '?' + qs : '');
   }
 
   function applyModalPrioritasFilter() {
@@ -490,6 +472,7 @@ report_rows|map(attribute='key')|list %} {% block topbar_badges %}
       readPayload();
       bindMonthSel();
       const cb = vendorPrioritasEl();
+      if (cb && new URLSearchParams(window.location.search).get('prioritas') === '1') cb.checked = true;
       if (cb && !cb.dataset.bound) { cb.dataset.bound = '1'; cb.addEventListener('change', filterVendorPrioritas); }
   }
   // Re-init pada full load & setiap HTMX swap.

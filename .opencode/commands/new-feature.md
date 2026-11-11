@@ -1,6 +1,6 @@
 ---
 description: "Start a non-trivial feature with the structured feature-dev workflow: explore the codebase, clarify, design, implement, review. Use instead of diving straight into code when the feature touches multiple files."
-agent: web-dev
+agent: develop
 subtask: false
 ---
 
@@ -12,7 +12,8 @@ its phases here; this command only pins the project-specific gates.
 1. Read `AGENTS.md`, `.opencode/sops/WEB_DEV.md`.
 2. Read the project documents (`.opencode/sops/WEB_DEV.md` Phase 0a): list `docs/`, read
    what maps to this feature, quote the requirement.
-3. `.opencode/STACK.md` — create if missing (`.opencode/sops/STACKS.md` phase 0b).
+3. `.opencode/STACK.md` — create if missing (`.opencode/sops/STACKS.md` phase 0b),
+   then load one `.opencode/sops/stacks/*.md`.
 4. Exploration phase: `graphify query "<feature area>"` first, then read the
    nearest siblings and tests. Invoke the `code-explorer` subagent for depth.
 5. Clarify: one numbered list of at most 5 questions with defaults.
