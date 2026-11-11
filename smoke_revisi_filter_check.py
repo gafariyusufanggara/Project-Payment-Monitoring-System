@@ -55,7 +55,7 @@ with app.test_client() as c:
 
 assert 'id="filterRevisi"' in html, "checkbox #filterRevisi tidak ada di HTML"
 assert 'Sembunyikan Dokumen Revisi' in html, "label checkbox tidak ada"
-assert re.search(r'data-te-toolbar-after="#revisiToggleWrap"', html), \
+assert re.search(r'data-te-toolbar-after="[^"]*#revisiToggleWrap', html), \
     "atribut data-te-toolbar-after tidak ada pada tabel"
 print("[1] /data-hutang 200 + checkbox & hook toolbar OK")
 

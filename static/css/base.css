@@ -1119,12 +1119,14 @@
         white-space: nowrap;
       }
       .cell-rekanan {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
         font-weight: 600;
         color: var(--text);
-        max-width: 160px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        overflow-wrap: break-word;
+        line-height: 1.3;
       }
 
       /* ========== BADGES ========== */
