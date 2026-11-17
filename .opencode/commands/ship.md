@@ -52,7 +52,7 @@ detail to bury.
 node .opencode/skills/hallmark/scripts/sloplint.mjs <path> --render
 ```
 
-Then `playwright` MCP: resize 320 / 768 / 1280 / 1440 and screenshot each.
+Then the `playwright-cli` CLI: resize 320 / 768 / 1280 / 1440 and screenshot each.
 Then `chrome-devtools` MCP against the production/preview server: console
 errors, 404s, a11y critical, LCP, CLS.
 
@@ -62,7 +62,8 @@ Attach the screenshot paths. State each number. Do not say "looks good".
 
 - Invoke `reviewer` on the diff.
 - Address every blocking finding, or state why it is not applicable.
-- Security-relevant changes also go through `security-review` (global skill).
+- Security-relevant changes also go through the `reviewer` agent (it covers
+  security findings alongside code review).
 
 ## 7. Report
 

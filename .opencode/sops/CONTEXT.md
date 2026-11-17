@@ -22,10 +22,13 @@ project work. Tool errors: `.opencode/sops/context/TROUBLESHOOTING.md`.
 `rtk` filters output (60-90%) and passes through when it has no filter.
 
 ```bash
-rtk git status   rtk git diff   rtk git log   rtk grep <pattern>
-rtk find <path>  rtk read <file>  rtk tsc   rtk lint
-rtk pytest tests/   rtk npm run <script>   rtk gh pr view <n>
+rtk git status   rtk git diff   rtk git log   rtk rg <pattern>
+rtk find <path>  rtk read <file>  rtk wc <file>  rtk npm run <script>
+rtk pytest tests/   rtk gh pr view <n>   rtk json <file>
 ```
+
+Use `rtk rg`, not `rtk grep`, for a recursive directory search: `rtk grep`
+proxies GNU grep, which is not recursive. `rtk grep` is fine on one file.
 
 Shell is Windows PowerShell 5.1: no `&&`. Use one call per command, or `;` when
 the next step may run after a failure. Use the raw command only when debugging
@@ -33,9 +36,9 @@ rtk, or `rtk proxy <cmd>` for unfiltered but tracked.
 
 **Scope `rtk find`**: prefer a path (`rtk find src -name *.tsx`). A root scan is
 allowed only with a depth bound (`rtk find . -maxdepth 2 -name *.toml`); never an
-unbounded `rtk find .` from the repo root. `-maxdepth N` works. No `-not`,
-`-exec`, or compound predicates. `0 for '<pattern>'` is a valid "no match", not
-proof a file is absent when the path is relative.
+unbounded `rtk find .` from the repo root. `-maxdepth N` works, and
+`-not -path` is passed through to GNU find. No `-exec`. `0 for '<pattern>'` is a
+valid "no match", not proof a file is absent when the path is relative.
 
 **cwd is not guaranteed to be the project root.** `ctx_*` and shell run from the
 session cwd. Use absolute paths when cwd is uncertain, or `cd <project-root>`
@@ -164,16 +167,18 @@ session, not an excuse to prompt.
 
 | Need | Entry |
 |---|---|
-| Non-trivial feature | `feature-dev` (global skill) or `/new-feature` |
+| Non-trivial feature | `/new-feature` (the `develop` agent runs it) |
 | New UI, page, redesign | `.opencode/skills/hallmark` or `/build-ui` |
 | Existing UI is off | `.opencode/skills/refactoring-ui` or `/ui-audit` |
 | Design bans and craft | `.opencode/skills/design-taste` |
-| Architecture survey | `improve-codebase-architecture` (global) |
-| Skill by description | `find-skills` (global) |
+| Architecture survey | the `planner` subagent |
+| Deep codebase exploration | the `explore` subagent |
+| Review before handoff | the `reviewer` agent |
+| Skill by description | list `.opencode/skills/` (project-local) |
 
 Vendored: `hallmark`, `refactoring-ui`, `design-taste`, `i-have-adhd`. Do not
-stack two orchestrators in one turn; `feature-dev` and `to-spec` both plan, pick
-one.
+stack two orchestrators in one turn; `/new-feature` and the `planner` subagent
+both plan, pick one.
 
 ## 7. Context budget
 

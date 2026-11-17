@@ -1,16 +1,27 @@
-# Install the vendored skills into opencode so they are discoverable globally,
-# or into a project so they are local. Copies, never moves the source.
+# Install the vendored skills into a project so they are discoverable there.
+# Copies, never moves the source.
 #
 # Usage:
-#   powershell -NoProfile -File .opencode\scripts\install-skills.ps1                 # global
 #   powershell -NoProfile -File .opencode\scripts\install-skills.ps1 -Project "C:\path\to\app"
 #   powershell -NoProfile -File .opencode\scripts\install-skills.ps1 -List
 #
-# global   -> ~/.config/opencode/skills/<name>/SKILL.md
-# project  -> <project>/.opencode/skills/<name>/SKILL.md
+# Why project-local and not global:
+#   Every agent and command in this SOP references the skills by a project
+#   relative path, for example ".opencode/skills/hallmark/scripts/sloplint.mjs",
+#   and that file is executed directly. A global copy cannot satisfy a relative
+#   path, so a global install is a duplicate that is never used. The only
+#   global skills are the ones owned by the tools themselves (graphify,
+#   playwright-cli), which those tools install on their own.
+#
+# The global always-on rules are handled separately: they live in
+# ~/.config/opencode/AGENTS.md and are written by bootstrap-windows.ps1 and
+# copy-to-project.ps1.
+#
+# ASCII only. PowerShell 5.1 reads a BOM-less file as ANSI, and a stray
+# non-ASCII byte becomes a quote that breaks the parser.
 
 param(
-  [string]$Project,
+  [string]$Project = '',
   [switch]$Force,
   [switch]$List
 )
@@ -42,13 +53,19 @@ if ($List) {
   exit 0
 }
 
-if ($Project) {
-  if (-not (Test-Path $Project)) { Write-Host "Project path not found: $Project" -ForegroundColor Red; exit 1 }
-  $target = Join-Path (Resolve-Path $Project).Path '.opencode\skills'
-} else {
-  $target = Join-Path $env:USERPROFILE '.config\opencode\skills'
+if (-not $Project) {
+  Write-Host "install-skills.ps1 needs a destination project." -ForegroundColor Red
+  Write-Host "  powershell -NoProfile -File .opencode\scripts\install-skills.ps1 -Project `"C:\path\to\app`"" -ForegroundColor Red
+  Write-Host "  powershell -NoProfile -File .opencode\scripts\install-skills.ps1 -List" -ForegroundColor Red
+  exit 1
 }
 
+if (-not (Test-Path $Project)) {
+  Write-Host "Project path not found: $Project" -ForegroundColor Red
+  exit 1
+}
+
+$target = Join-Path (Resolve-Path $Project).Path '.opencode\skills'
 if (-not (Test-Path $target)) { New-Item -ItemType Directory -Path $target -Force | Out-Null }
 
 foreach ($n in $names) {
@@ -63,4 +80,5 @@ foreach ($n in $names) {
 }
 
 Write-Host "`nInstalled to: $target"
-Write-Host "Restart opencode, then verify with: ask it to list its skills."
+Write-Host "These skills stay project-local on purpose. Every agent and command"
+Write-Host "in this SOP references them by a project relative path."

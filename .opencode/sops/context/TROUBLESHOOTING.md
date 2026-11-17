@@ -3,18 +3,31 @@
 Load only when a tool fails, output floods, or a command behaves unexpectedly.
 Normal work uses `.opencode/sops/CONTEXT.md` only.
 
-## rtk limits on Windows (verified against rtk 0.40.0)
+## rtk limits on Windows (verified against rtk 1.2.0)
+
+`rtk` proxies real binaries. Anything it shells out to must exist on PATH.
+This machine gets them from `C:\Program Files\Git\usr\bin` (Git for Windows
+ships `grep`, `wc`, `ls`, `find`, `sed`, `awk`) and from ripgrep
+(`%LOCALAPPDATA%\Programs\ripgrep\...\rg.exe`). Both are on the user PATH.
+If a new machine lacks them, `bootstrap-windows.ps1` adds them.
 
 | Do not write | Why | Write instead |
 |---|---|---|
-| `rtk ls <path>` | proxies native `ls`, absent on Windows | `rtk find <path> -maxdepth 1` |
-| `rtk find ... -not -path ...` | rtk rejects compound predicates | scope the path: `rtk find docs ...` |
-| `rtk find ... -exec ...` | same | run the action as its own command |
+| `rtk ls <path>` | resolves native `ls`; absent without Git's usr\bin on PATH | `rtk find <path> -maxdepth 1` (always works) |
+| `rtk grep <pattern> <dir>` | GNU grep is not recursive; `grep: .: Is a directory` | `rtk rg <pattern> <dir>` (ripgrep, recursive) |
+| `rtk rg <pattern>` without ripgrep on PATH | `Binary 'rg' not found on PATH` | `rtk rg` after adding ripgrep to PATH |
+| `rtk tree <path>` | resolves the Windows `tree.exe`, which takes different args | `rtk find <path> -maxdepth 2` |
+| `rtk find ... -exec ...` | the proxied `find` rejects it | run the action as its own command |
 | `-name '*.md'` in bash | bash expands the glob first | quote it in bash; PowerShell passes it literally |
 | `rtk json pyproject.toml` | `rtk json` parses JSON only | `rtk read pyproject.toml` |
 
-`rtk find` prints `0 for <pattern>` when nothing matches. Valid result, not a
-failed command. Do not retry with different flags.
+Verified working on this machine: `rtk find`, `rtk read`, `rtk rg`, `rtk grep`
+(on a single file), `rtk wc`, `rtk ls`, `rtk git`, `rtk json` (on JSON),
+`rtk tree` (needs `tree.exe`).
+
+`rtk find` supports `-not -path` (it passes through to GNU find) — it is not
+rejected. `-maxdepth N` works. `0 for '<pattern>'` when nothing matches is a
+valid empty result, not a failed command. Do not retry with different flags.
 
 ## cwd and path failures
 

@@ -2,4 +2,6 @@ MATT POCOCK SKILL: https://github.com/mattpocock/skills
 I HAVE ADHD: https://github.com/ayghri/i-have-adhd
 CONTEXT MODE: https://github.com/mksglu/context-mode
 GRAPHIFY: https://github.com/Graphify-Labs/graphify
-
+RTK: https://github.com/rtk-ai/rtk
+PLAYWRIGHT-CLI: https://github.com/microsoft/playwright-cli
+HALLMARK: https://github.com/nutlope/hallmark

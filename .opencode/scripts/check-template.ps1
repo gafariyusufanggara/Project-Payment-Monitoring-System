@@ -25,6 +25,7 @@ Write-Host "`n=== Layout ===" -ForegroundColor Cyan
 
 $required = @(
   'AGENTS.md',
+  '.gitignore',
   '.opencode/sops/WEB_DEV.md','.opencode/sops/DESIGN.md','.opencode/sops/QUALITY_GATE.md',
   '.opencode/sops/CONTEXT.md','.opencode/sops/STACKS.md',
   '.opencode/sops/context/TROUBLESHOOTING.md',
@@ -36,6 +37,7 @@ $required = @(
   '.opencode/commands/ui-audit.md','.opencode/commands/ship.md','.opencode/commands/i-have-adhd.md',
   '.opencode/scripts/bootstrap-windows.ps1','.opencode/scripts/copy-to-project.ps1',
   '.opencode/scripts/install-skills.ps1','.opencode/scripts/lib-jsonc.ps1',
+  '.opencode/scripts/setup-menu.ps1',
   '.opencode/skills/hallmark/SKILL.md','.opencode/skills/hallmark/scripts/sloplint.mjs',
   '.opencode/skills/refactoring-ui/SKILL.md','.opencode/skills/design-taste/SKILL.md',
   '.opencode/skills/i-have-adhd/SKILL.md',
@@ -141,13 +143,29 @@ if ($SkipAgents) {
 } elseif (-not (Get-Command opencode -ErrorAction SilentlyContinue)) {
   Warn 'opencode not on PATH; skipped'
 } else {
-  $list = & opencode agent list 2>&1 | Out-String
-  foreach ($name in @('develop','ui-designer','reviewer','planner')) {
-    if ($list -match "(?m)^$([regex]::Escape($name)) \((primary|subagent)\)\s*$") {
-      Ok "agent loaded: $name"
-    } else {
-      Bad "agent not loaded: $name"
+  # opencode 2.x dropped `opencode agent list`; the CLI now exposes the agent
+  # registry as JSON under `opencode debug agents`.
+  $raw = & opencode debug agents 2>&1 | Out-String
+  $ids = @()
+  try {
+    $parsed = $raw | ConvertFrom-Json
+    foreach ($a in $parsed) {
+      if ($a.PSObject.Properties.Name -contains 'id') { $ids += [string]$a.id }
+      elseif ($a.PSObject.Properties.Name -contains 'name') { $ids += [string]$a.name }
     }
+  } catch {
+    Warn "could not parse 'opencode debug agents' output: $raw"
+  }
+  if ($ids.Count -gt 0) {
+    foreach ($name in @('develop','ui-designer','reviewer','planner')) {
+      if ($ids -contains $name) {
+        Ok "agent loaded: $name"
+      } else {
+        Bad "agent not loaded: $name"
+      }
+    }
+  } else {
+    Warn "'opencode debug agents' returned no agent ids; skipped"
   }
 }
 

@@ -37,7 +37,7 @@ would choose if the user says nothing. Then stop asking. If the user answers
 
 ## Step 3 — Write the spec
 
-Use `to-spec` (global skill) conventions. Keep it short:
+Use the spec shape below. Keep it short:
 
 ```markdown
 # <Feature>
@@ -70,7 +70,7 @@ Numbered, each with the default chosen.
 
 ## Step 4 — Slice into tickets
 
-Use `to-tickets` (global skill) conventions. Each ticket is a tracer bullet: it touches
+Use the ticket shape below. Each ticket is a tracer bullet: it touches
 every layer it needs (type -> logic -> UI -> test) rather than being a
 horizontal slice of one layer.
 

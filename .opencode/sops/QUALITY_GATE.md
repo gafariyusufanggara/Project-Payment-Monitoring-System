@@ -61,7 +61,7 @@ declines, record `WAIVED G5/G6` and state "UI not visually verified"; never clai
 it passed.
 
 - [ ] User approved browser verification.
-- [ ] Screenshots at 320 / 768 / 1280 / 1440 from `playwright` MCP.
+- [ ] Screenshots at 320 / 768 / 1280 / 1440 from the `playwright-cli` CLI.
 - [ ] No horizontal scrollbar at 320.
 - [ ] Hero headline + one sentence + primary action visible at 1280x800.
 - [ ] Keyboard Tab reaches every control; focus ring visible.
@@ -83,9 +83,9 @@ it passed.
 
 ## Gate 7 — Review (any change > 1 file)
 
-- [ ] `code-review` (global skill) run; blockers addressed.
-- [ ] `security-review` (global skill) when auth, input parsing, network, file
-      I/O, or dependencies changed.
+- [ ] The `reviewer` agent run; blockers addressed.
+- [ ] Security checked when auth, input parsing, network, file I/O, or
+      dependencies changed (the `reviewer` agent covers this).
 - [ ] Diff is one concern. Unrelated refactors split out or dropped.
 
 ## Gate 8 — Handoff quality

@@ -113,11 +113,15 @@
     <p class="kpr-section-title" style="margin-bottom:6px">Pemeriksaan No PO / Kontrak</p>
     <p class="kpr-note">
       Halaman ini membandingkan kolom <strong>NO PO / KONTRAK</strong> pada invoice dengan nomor kontrak
-      di registri procurement. Sebuah nomor ditandai <em>kandidat typo</em> hanya bila
-      kemiripannya &ge; <strong>{{ (threshold * 100)|round|int }}%</strong> <strong>dan vendor/rekanannya
-      sama</strong> (setelah normalisasi, mis. “PT. ARLISCO” = “PT ARLISCO”). Semua temuan bersifat
-      <strong>indikatif</strong> — <strong>tidak ada penghubungan otomatis</strong>; periksa manual lalu
-      perbaiki nomor kontrak atau No PO di sumbernya.
+      di registri procurement. Nomor dibandingkan setelah <strong>dinormalisasi</strong> (beda pemisah
+      &middot; beda nol depan dianggap sama, mis. “PB.021” = “PB.21”, “064” = “64”). Sebuah nomor ditandai
+      <em>kandidat typo</em> hanya bila kemiripannya &ge; <strong>{{ (threshold * 100)|round|int }}%</strong>,
+      <strong>serial depannya sama</strong> (mis. sama-sama “PB.038”), dan <strong>vendor/rekanannya sama</strong>
+      (nama dibandingkan dengan mengabaikan titik/tanda baca &amp; toleran varian ejaan kecil, mis.
+      “PT. ARLISCO” = “PT ARLISCO”, “SYSTEM” = “SYSTEMS”). Nomor dengan serial depan berbeda
+      (mis. PB.038 vs PB.039) atau vendornya berbeda sengaja <strong>tidak ditampilkan</strong> agar tidak
+      menjadi noise. Semua temuan bersifat <strong>indikatif</strong> — <strong>tidak ada penghubungan
+      otomatis</strong>; periksa manual lalu perbaiki nomor kontrak atau No PO di sumbernya.
     </p>
   </div>
 
@@ -158,6 +162,7 @@
       <div class="kpr-head">
         <h2><i class="bi bi-shuffle"></i> Mirip &amp; vendor sama — kandidat typo</h2>
         <span class="pill pill--warn">{{ mirip|length }}</span>
+        {% if mirip_invoice %}<span class="pill">{{ mirip_invoice }} invoice</span>{% endif %}
       </div>
       {% if mirip %}
       <div class="kpr-scroll">

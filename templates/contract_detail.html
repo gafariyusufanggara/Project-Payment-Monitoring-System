@@ -75,6 +75,10 @@
   .kd-table tbody td { padding: 9px 14px; border-bottom: 1px solid #eef0f2; vertical-align: middle; color: #333333; }
   .kd-table tbody tr:last-child td { border-bottom: none; }
   .kd-table tbody tr:hover td { background: #f7f8f9; }
+  /* Baris invoice bisa diklik → buka modal detail read-only (sama seperti
+     halaman Data Invoice). */
+  .kd-inv-table tbody tr.kd-inv-row { cursor: pointer; }
+  .kd-inv-table tbody tr.kd-inv-row:focus-visible { outline: 2px solid var(--dt-accent); outline-offset: -2px; }
   .kd-table .cell-money { font-family: "JetBrains Mono", "SF Mono", monospace; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; font-size: 0.78rem; white-space: nowrap; }
   .kd-table .cell-dim { font-family: "JetBrains Mono", monospace; font-size: 0.78rem; color: #4d5766; font-variant-numeric: tabular-nums; }
   .kd-table .cell-desc { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
@@ -464,7 +468,7 @@
       </p>
       {% if invoices %}
       <div class="kd-scroll">
-        <table class="kd-table" style="min-width:1240px">
+        <table class="kd-table kd-inv-table" style="min-width:1240px">
           <thead>
             <tr>
               <th>No. Invoice</th>
@@ -487,7 +491,7 @@
             {% for inv in invoices %}
             {% set sisa_inv = (inv.harga or 0) - (inv.bayar or 0) %}
             {% set sisa_ppn_inv = (inv.nilai_ppn or 0) - (inv.bayar_ppn or 0) %}
-            <tr>
+            <tr class="kd-inv-row" data-row-idx="{{ inv._row }}" tabindex="0" title="Klik untuk lihat detail invoice">
               <td class="cell-dim"><div class="cell-desc cell-invno" data-full="{{ inv.no_invoice or '' }}">{{ inv.no_invoice or '-' }}</div>{% if inv.excluded %}<span class="kd-excl-flag" title="Kategori/rekanan di-exclude dari perhitungan (Exclude Invoice)"><i class="bi bi-eye-slash"></i></span>{% endif %}</td>
               <td>{{ inv.tgl_terima|tgl2 }}</td>
               <td>{{ inv.jth_tempo|tgl2 }}</td>
@@ -562,6 +566,31 @@
   function sync() { if (window.refreshPoBadge) window.refreshPoBadge(); }
   if (window.onPageReady) onPageReady(sync);
   else document.addEventListener('DOMContentLoaded', sync);
+})();
+// Klik baris invoice → modal detail read-only (viewRow, shared di base.html).
+// Hanya memicu bila klik BUKAN pada sel teks yang bisa di-expand (cell-expand.js
+// memakai data-full untuk popover teks panjang) agar tidak dobel aksi.
+(function () {
+  var table = document.querySelector('.kd-inv-table');
+  if (!table) return;
+  function openDetail(tr) {
+    var idx = tr && tr.getAttribute('data-row-idx');
+    if (idx && typeof window.viewRow === 'function') {
+      window.viewRow(parseInt(idx, 10));
+    }
+  }
+  table.addEventListener('click', function (e) {
+    if (e.target.closest('[data-full].cx-on')) return; // biarkan popover teks
+    openDetail(e.target.closest('tr.kd-inv-row'));
+  });
+  table.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    var tr = e.target.closest('tr.kd-inv-row');
+    if (!tr) return;
+    if (e.target.closest('[data-full].cx-on')) return;
+    e.preventDefault();
+    openDetail(tr);
+  });
 })();
 </script>
 {% endblock %}

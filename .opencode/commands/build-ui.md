@@ -42,7 +42,7 @@ Fix every FAIL. Fix or waive every REFLEX with real evidence in the CSS stamp.
 **Ask the user before the browser pass.** If declined, record `WAIVED G5/G6` and
 state "UI not visually verified".
 
-- Screenshots at 320 / 768 / 1280 / 1440 via `playwright` MCP.
+- Screenshots at 320 / 768 / 1280 / 1440 via the `playwright-cli` CLI.
 - `chrome-devtools` MCP against the production/preview server: console, network,
   a11y critical, LCP, CLS.
 - Keyboard pass: Tab reaches every control, focus visible.

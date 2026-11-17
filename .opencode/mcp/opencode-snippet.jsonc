@@ -1,14 +1,15 @@
 // MCP snippet — paste the "mcp" block below into
-// C:\Users\Administrator\.config\opencode\opencode.json
+// C:\Users\<you>\.config\opencode\opencode.json
 // (or ~/.config/opencode/opencode.jsonc on a fresh machine).
 // Merge into the existing "mcp" object; do not replace the whole file.
+//
+// Browser automation is split on purpose:
+//   - chrome-devtools  -> MCP, for perf/a11y/console/network inspection
+//   - playwright-cli    -> CLI + skill, for interaction (token-efficient)
+// Do NOT add @playwright/mcp: it injects large accessibility snapshots and
+// tool schemas into the model context. The CLI does the same work for less.
 {
   "mcp": {
-    "playwright": {
-      "type": "local",
-      "command": ["npx", "-y", "@playwright/mcp@latest"],
-      "enabled": true
-    },
     "chrome-devtools": {
       "type": "local",
       "command": ["npx", "-y", "chrome-devtools-mcp@latest"],
@@ -16,3 +17,8 @@
     }
   }
 }
+
+// If Chrome is not installed system-wide, add "--executablePath" with the
+// Chrome for Testing binary that bootstrap-windows.ps1 downloads:
+//   "command": ["npx","-y","chrome-devtools-mcp@latest","--executablePath",
+//               "C:\\Users\\<you>\\AppData\\Local\\chrome-for-testing\\chrome\\win64-<version>\\chrome-win64\\chrome.exe"]

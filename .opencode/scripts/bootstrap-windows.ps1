@@ -9,7 +9,11 @@
 #   powershell -NoProfile -File .opencode\scripts\bootstrap-windows.ps1 -DryRun
 #   powershell -NoProfile -File .opencode\scripts\bootstrap-windows.ps1 -TavilyKey "tvly-..."
 #   powershell -NoProfile -File .opencode\scripts\bootstrap-windows.ps1 -SkipBrowsers -SkipSkills
+#   powershell -NoProfile -File .opencode\scripts\bootstrap-windows.ps1 -Project "C:\dev\my-app"
 #
+# -Project copies the SOP into that folder and sets it up in one pass.
+# -SkipProject leaves the project copy for later.
+# -Force overwrites the SOP folders in an existing project.
 # Safe to re-run: every step checks first and skips what already exists.
 # Every config edit is backed up next to the original file.
 
@@ -17,13 +21,23 @@ param(
   [switch]$DryRun,
   [switch]$SkipBrowsers,
   [switch]$SkipSkills,
-  [string]$TavilyKey
+  [switch]$SkipProject,
+  [switch]$Force,
+  [string]$TavilyKey,
+  [string]$Project
 )
 
 $ErrorActionPreference = 'Continue'
 $agentsDir = Split-Path -Parent $PSScriptRoot
 $root = Split-Path -Parent $agentsDir
-$cfgDir = Join-Path $env:USERPROFILE '.config\opencode'
+
+# USERPROFILE can be empty in some child-process contexts, and Join-Path then
+# fails with "cannot bind argument to parameter 'Path' because it is null".
+$userHome = $env:USERPROFILE
+if (-not $userHome) { $userHome = $HOME }
+if (-not $userHome) { $userHome = [Environment]::GetFolderPath('UserProfile') }
+
+$cfgDir = Join-Path $userHome '.config\opencode'
 . (Join-Path $PSScriptRoot 'lib-jsonc.ps1')
 
 $fail = 0
@@ -34,6 +48,14 @@ function Bad($m)   { Write-Host "[FAIL] $m" -ForegroundColor Red; $script:fail++
 function Warn($m)  { Write-Host "[WARN] $m" -ForegroundColor Yellow; $script:warn++ }
 function Info($m)  { Write-Host "       $m" -ForegroundColor DarkGray }
 function Step($m)  { Write-Host "`n=== $m ===" -ForegroundColor Cyan }
+
+# The opencode config directory is the target of several steps (global AGENTS.md,
+# graphify's plugin, the context-mode package, the playwright skill). Create it
+# once, up front, so no step depends on an earlier one having run first.
+if (-not (Test-Path $cfgDir)) {
+  if ($DryRun) { Write-Host "       DRY: create $cfgDir" -ForegroundColor DarkGray }
+  else { New-Item -ItemType Directory -Path $cfgDir -Force | Out-Null }
+}
 
 function Run($exe, $argsArr) {
   if ($DryRun) { Write-Host "       DRY: $exe $($argsArr -join ' ')" -ForegroundColor DarkGray; return 0 }
@@ -46,7 +68,7 @@ function Refresh-Path {
   $user    = [Environment]::GetEnvironmentVariable('Path','User')
   $extra   = @(
     (Join-Path $env:LOCALAPPDATA 'Programs\rtk'),
-    (Join-Path $env:USERPROFILE '.local\bin'),
+    (Join-Path $userHome '.local\bin'),
     (Join-Path $env:APPDATA 'npm')
   )
   $parts = @()
@@ -74,8 +96,44 @@ function Chrome-Present {
     "$env:ProgramFiles\Google\Chrome\Application\chrome.exe",
     "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe",
     "$env:LOCALAPPDATA\Google\Chrome\Application\chrome.exe"
-  ) | Where-Object { Test-Path $_ }
-  return [bool]$c
+  ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+  if ($c) { return $c }
+  return $null
+}
+
+function Chrome-For-Testing-Exe {
+  $root = Join-Path $env:LOCALAPPDATA 'chrome-for-testing\chrome'
+  if (-not (Test-Path $root)) { return $null }
+  # Pick the newest version folder. The folder name carries the version
+  # (win64-<version>), so sort descending instead of taking an arbitrary one:
+  # a stale path in opencode.json breaks the chrome-devtools MCP.
+  $hit = Get-ChildItem $root -Directory -ErrorAction SilentlyContinue |
+         Sort-Object Name -Descending |
+         ForEach-Object { Join-Path $_.FullName 'chrome-win64\chrome.exe' } |
+         Where-Object { Test-Path $_ } | Select-Object -First 1
+  return $hit
+}
+
+function Ensure-Chrome {
+  if (Chrome-Present) { Ok 'Chrome present'; return (Chrome-Present) }
+  if (Has-Cmd 'winget') {
+    Write-Host "       installing Chrome via winget"
+    Run 'winget' @('install','--id','Google.Chrome.EXE','-e','--source','winget','--accept-package-agreements','--accept-source-agreements','--silent') | Out-Null
+    if (-not (Chrome-Present)) {
+      Run 'winget' @('install','--id','Google.Chrome','-e','--source','winget','--accept-package-agreements','--accept-source-agreements','--silent') | Out-Null
+    }
+    if (Chrome-Present) { Ok 'Chrome installed'; return (Chrome-Present) }
+  }
+  $cft = Chrome-For-Testing-Exe
+  if ($cft) { Ok "Chrome for Testing present: $cft"; return $cft }
+  if (-not (Has-Cmd 'npx')) { Warn 'npx missing; install Chrome manually'; return $null }
+  $dest = Join-Path $env:LOCALAPPDATA 'chrome-for-testing'
+  Write-Host "       downloading Chrome for Testing to $dest"
+  Run 'npx' @('-y','@puppeteer/browsers','install','chrome@stable','--path',$dest) | Out-Null
+  $cft = Chrome-For-Testing-Exe
+  if ($cft) { Ok "Chrome for Testing installed: $cft"; return $cft }
+  Warn 'Chrome not available; chrome-devtools MCP needs it'
+  return $null
 }
 
 function Save-Json($path, $obj) {
@@ -114,19 +172,7 @@ Install-Winget 'OpenJS.NodeJS.LTS' 'Node.js LTS' 'node'
 Install-Winget 'Git.Git' 'Git' 'git'
 Install-Winget 'astral-sh.uv' 'uv' 'uv'
 
-if (Chrome-Present) {
-  Ok 'Chrome present'
-} elseif (Has-Cmd 'winget') {
-  Write-Host "       installing Chrome"
-  Run 'winget' @('install','--id','Google.Chrome.EXE','-e','--source','winget','--accept-package-agreements','--accept-source-agreements','--silent') | Out-Null
-  if (-not (Chrome-Present)) {
-    Run 'winget' @('install','--id','Google.Chrome','-e','--source','winget','--accept-package-agreements','--accept-source-agreements','--silent') | Out-Null
-  }
-  if (Chrome-Present) { Ok 'Chrome installed' } else { Warn 'Chrome not detected; chrome-devtools MCP needs it' }
-} else {
-  Warn 'winget missing; install Chrome manually'
-}
-
+$chromeExe = Ensure-Chrome
 Refresh-Path
 
 # ------------------------------------------------------------------ opencode
@@ -168,6 +214,51 @@ if (Has-Cmd 'rtk') {
   }
 }
 
+# rtk proxies real binaries. On Windows it needs Git's usr\bin (grep, wc, ls,
+# find) and ripgrep (rg) on PATH, or several subcommands fail with
+# "Binary 'rg' not found on PATH".
+Step 'rtk helper binaries'
+
+$helperDirs = @()
+$gitUsrBin = "$env:ProgramFiles\Git\usr\bin"
+if (Test-Path $gitUsrBin) { $helperDirs += $gitUsrBin }
+elseif (Test-Path "${env:ProgramFiles(x86)}\Git\usr\bin") { $helperDirs += "${env:ProgramFiles(x86)}\Git\usr\bin" }
+
+$rgDir = Get-ChildItem (Join-Path $env:LOCALAPPDATA 'Programs\ripgrep') -Directory -ErrorAction SilentlyContinue |
+         ForEach-Object { $_.FullName } | Where-Object { Test-Path (Join-Path $_ 'rg.exe') } | Select-Object -First 1
+if ($rgDir) { $helperDirs += $rgDir }
+elseif (-not (Has-Cmd 'rg')) {
+  Write-Host "       installing ripgrep"
+  Run 'winget' @('install','--id','BurntSushi.ripgrep.MSVC','-e','--source','winget','--accept-package-agreements','--accept-source-agreements','--silent') | Out-Null
+  $rgDir = Get-ChildItem (Join-Path $env:LOCALAPPDATA 'Programs\ripgrep') -Directory -ErrorAction SilentlyContinue |
+           ForEach-Object { $_.FullName } | Where-Object { Test-Path (Join-Path $_ 'rg.exe') } | Select-Object -First 1
+  if ($rgDir) { $helperDirs += $rgDir } else { Warn 'ripgrep install failed; rtk rg will not work' }
+}
+
+if ($helperDirs.Count -gt 0) {
+  $userPath = [Environment]::GetEnvironmentVariable('Path','User')
+  $parts = @($userPath -split ';' | Where-Object { $_ })
+  $added = @()
+  foreach ($d in $helperDirs) {
+    if (-not ($parts | Where-Object { $_.TrimEnd('\') -ieq $d.TrimEnd('\') })) {
+      $parts += $d
+      $added += $d
+    }
+  }
+  if ($added.Count -gt 0) {
+    if ($DryRun) { Write-Host "       DRY: add to user PATH: $($added -join ', ')" -ForegroundColor DarkGray }
+    else {
+      [Environment]::SetEnvironmentVariable('Path', (($parts -join ';') + ';'), 'User')
+      Ok "user PATH += $($added -join ', ')"
+    }
+  } else {
+    Ok 'rtk helper binaries already on user PATH'
+  }
+  Refresh-Path
+} else {
+  Warn 'no rtk helper binaries found (Git usr\bin, ripgrep); rtk rg / rtk wc / rtk ls will fail'
+}
+
 # ------------------------------------------------------------------ graphify
 Step 'graphify (codebase graph)'
 
@@ -186,6 +277,21 @@ if (Has-Cmd 'graphify') {
   if (Has-Cmd 'uv') {
     if ($DryRun) { Write-Host '       DRY: uv tool update-shell' -ForegroundColor DarkGray }
     else { Run 'uv' @('tool','update-shell') | Out-Null }
+  }
+  # graphify install writes the global reminder plugin
+  # (~/.config/opencode/plugins/graphify.js) and the global graphify skill.
+  # Without it the plugin is missing on a fresh machine.
+  $gPlugin = Join-Path $cfgDir 'plugins\graphify.js'
+  if (Test-Path $gPlugin) {
+    Ok 'graphify global plugin present'
+  } else {
+    Write-Host '       installing the graphify global plugin'
+    if ($DryRun) { Write-Host '       DRY: graphify install' -ForegroundColor DarkGray }
+    else {
+      Run 'graphify' @('install') | Out-Null
+      if (Test-Path $gPlugin) { Ok 'graphify global plugin installed' }
+      else { Warn 'graphify install did not create the global plugin; run: graphify install' }
+    }
   }
   $gv = & graphify --version 2>&1 | Out-String
   if ($gv -match 'warning: skill .* is from graphify') {
@@ -208,13 +314,32 @@ if ($current -eq $shellExe) {
   Ok "SHELL -> $shellExe"
 }
 
+# ------------------------------------------------------- global always-on rules
+# opencode auto-loads ~/.config/opencode/AGENTS.md in every session, in every
+# project. It is the only global instruction path that works reliably: a
+# relative "instructions" entry in the global config is skipped because the
+# file is resolved against the workspace, not the config directory.
+Step 'global always-on rules'
+
+$alwaysOnSrc = Join-Path (Split-Path -Parent $PSScriptRoot) 'instructions\ALWAYS-ON.md'
+$alwaysOnDst = Join-Path $cfgDir 'AGENTS.md'
+
+if (-not (Test-Path $alwaysOnSrc)) {
+  Warn "ALWAYS-ON.md not found at $alwaysOnSrc; skipping global AGENTS.md"
+} elseif (Test-Path $alwaysOnDst) {
+  $same = ((Get-Content $alwaysOnSrc -Raw) -eq (Get-Content $alwaysOnDst -Raw))
+  if ($same) { Ok 'global AGENTS.md already current' }
+  else {
+    if ($DryRun) { Write-Host "       DRY: refresh $alwaysOnDst" -ForegroundColor DarkGray }
+    else { Copy-Item $alwaysOnSrc $alwaysOnDst -Force; Ok "global AGENTS.md refreshed" }
+  }
+} else {
+  if ($DryRun) { Write-Host "       DRY: write $alwaysOnDst" -ForegroundColor DarkGray }
+  else { Copy-Item $alwaysOnSrc $alwaysOnDst -Force; Ok "global AGENTS.md written" }
+}
+
 # --------------------------------------------------------------- opencode config
 Step 'opencode config (plugins + MCP)'
-
-if (-not (Test-Path $cfgDir)) {
-  if ($DryRun) { Write-Host "       DRY: create $cfgDir" -ForegroundColor DarkGray }
-  else { New-Item -ItemType Directory -Path $cfgDir -Force | Out-Null }
-}
 
 $jsonPath  = Join-Path $cfgDir 'opencode.json'
 $jsoncPath = Join-Path $cfgDir 'opencode.jsonc'
@@ -229,9 +354,17 @@ if (-not $jsoncRead.Ok) { $parseErrors += "opencode.jsonc: $($jsoncRead.Error)" 
 $configWritable = ($parseErrors.Count -eq 0)
 
 $targetPath = $null
-if ((Get-Prop $jsoncObj 'plugin') -or (Get-Prop $jsonObj 'plugin')) {
-  if (Get-Prop $jsoncObj 'plugin') { $targetPath = $jsoncPath }
-  else { $targetPath = $jsonPath }
+# Prefer the file that already carries the machine layer (mcp / plugins).
+# Both files are loaded by opencode, so writing to the wrong one duplicates
+# the same MCP server under two files.
+$jsonHasMachine = (Get-Prop $jsonObj 'mcp') -or (Get-Prop $jsonObj 'plugins') -or (Get-Prop $jsonObj 'plugin')
+$jsoncHasMachine = (Get-Prop $jsoncObj 'mcp') -or (Get-Prop $jsoncObj 'plugins') -or (Get-Prop $jsoncObj 'plugin')
+if ($jsonHasMachine -and -not $jsoncHasMachine) {
+  $targetPath = $jsonPath
+} elseif ($jsoncHasMachine -and -not $jsonHasMachine) {
+  $targetPath = $jsoncPath
+} elseif ($jsonHasMachine -and $jsoncHasMachine) {
+  $targetPath = $jsonPath
 } elseif (Test-Path $jsoncPath) {
   $targetPath = $jsoncPath
 } else {
@@ -251,17 +384,18 @@ if (-not $configWritable) {
 } else {
 
 $desiredPlugins = @(
-  'opencode-power-pack@git+https://github.com/waybarrios/opencode-power-pack.git',
   'context-mode'
 )
 $otherPath = if ($targetPath -eq $jsoncPath) { $jsonPath } else { $jsoncPath }
 $otherObj = (Read-JsonFile -Path $otherPath).Value
 $otherPlugins = @()
-$op = Get-Prop $otherObj 'plugin'
+$op = Get-Prop $otherObj 'plugins'
+if (-not $op) { $op = Get-Prop $otherObj 'plugin' }
 if ($op) { $otherPlugins = @($op) }
 
 $pluginList = @()
-$existingPlugins = Get-Prop $cfg 'plugin'
+$existingPlugins = Get-Prop $cfg 'plugins'
+if (-not $existingPlugins) { $existingPlugins = Get-Prop $cfg 'plugin' }
 if ($existingPlugins) { $pluginList = @($existingPlugins) }
 $changed = $false
 foreach ($p in $desiredPlugins) {
@@ -271,7 +405,15 @@ foreach ($p in $desiredPlugins) {
   elseif ($inOther) { Ok "plugin present in the other config file: $p" }
   else { $pluginList += $p; $changed = $true; Ok "plugin added: $p" }
 }
-if (-not $DryRun -and $pluginList.Count -gt 0) { Set-Prop $cfg 'plugin' $pluginList }
+# drop any retired plugin entries (opencode-power-pack) that are still listed
+foreach ($stale in @('opencode-power-pack')) {
+  if ($pluginList | Where-Object { $_ -like "*$stale*" }) {
+    $pluginList = @($pluginList | Where-Object { $_ -notlike "*$stale*" })
+    $changed = $true
+    Ok "plugin removed: $stale"
+  }
+}
+if (-not $DryRun -and $pluginList.Count -gt 0) { Set-Prop $cfg 'plugins' $pluginList }
 
 $mcp = Get-Prop $cfg 'mcp'
 if (-not $mcp) {
@@ -279,19 +421,59 @@ if (-not $mcp) {
   if (-not $DryRun) { Set-Prop $cfg 'mcp' $mcp }
 }
 
-$otherMcp = Get-Prop $otherObj 'mcp'
-$mcpWanted = @{
-  'playwright'      = [pscustomobject]@{ type = 'local'; command = @('npx','-y','@playwright/mcp@latest'); enabled = $true }
-  'chrome-devtools' = [pscustomobject]@{ type = 'local'; command = @('npx','-y','chrome-devtools-mcp@latest'); enabled = $true }
-}
-foreach ($k in $mcpWanted.Keys) {
-  if (Get-Prop $mcp $k) { Ok "MCP present: $k" }
-  elseif (Get-Prop $otherMcp $k) { Ok "MCP present in the other config file: $k" }
-  elseif ($DryRun) { Write-Host "       DRY: add MCP $k" -ForegroundColor DarkGray }
-  else { Set-Prop $mcp $k $mcpWanted[$k]; $changed = $true; Ok "MCP added: $k" }
+# opencode accepts both shapes: "mcp": { "<name>": {...} } and
+# "mcp": { "servers": { "<name>": {...} } }. Detect the one already in use so
+# a second copy of the same server is not written under the other shape.
+$mcpServers = Get-Prop $mcp 'servers'
+if (-not $mcpServers) {
+  $mcpServers = [pscustomobject]@{}
+  if (-not $DryRun) { Set-Prop $mcp 'servers' $mcpServers }
 }
 
-$tavilyPresent = (Get-Prop $mcp 'tavily') -or (Get-Prop $otherMcp 'tavily')
+$otherMcp = Get-Prop $otherObj 'mcp'
+$otherMcpServers = Get-Prop $otherMcp 'servers'
+if (-not $otherMcpServers) { $otherMcpServers = $otherMcp }
+
+$cdtArgs = @('npx','-y','chrome-devtools-mcp@latest')
+if ($chromeExe) { $cdtArgs += @('--executablePath', $chromeExe) }
+$mcpWanted = @{
+  'chrome-devtools' = [pscustomobject]@{ type = 'local'; command = $cdtArgs; enabled = $true }
+}
+foreach ($k in $mcpWanted.Keys) {
+  $existing = Get-Prop $mcpServers $k
+  if ($existing) {
+    # Repair a stale --executablePath. The path names a versioned Chrome
+    # folder, so it breaks as soon as Chrome updates and the MCP then fails
+    # to start. Rewrite it with the browser that is on disk right now.
+    $existingCmd = @(Get-Prop $existing 'command')
+    $exIdx = [array]::IndexOf($existingCmd, '--executablePath')
+    if ($exIdx -ge 0 -and ($exIdx + 1) -lt $existingCmd.Count) {
+      $curPath = $existingCmd[$exIdx + 1]
+      if (-not (Test-Path $curPath)) {
+        if ($chromeExe) {
+          if ($DryRun) { Write-Host "       DRY: repoint chrome-devtools to $chromeExe" -ForegroundColor DarkGray }
+          else {
+            $existingCmd[$exIdx + 1] = $chromeExe
+            Set-Prop $existing 'command' $existingCmd
+            $changed = $true
+            Ok "repaired stale Chrome path: $curPath -> $chromeExe"
+          }
+        } else {
+          Warn "chrome-devtools points at a missing Chrome path ($curPath) and no replacement was found"
+        }
+      } else {
+        Ok "MCP present: $k"
+      }
+    } else {
+      Ok "MCP present: $k"
+    }
+  }
+  elseif (Get-Prop $otherMcpServers $k) { Ok "MCP present in the other config file: $k" }
+  elseif ($DryRun) { Write-Host "       DRY: add MCP $k" -ForegroundColor DarkGray }
+  else { Set-Prop $mcpServers $k $mcpWanted[$k]; $changed = $true; Ok "MCP added: $k" }
+}
+
+$tavilyPresent = (Get-Prop $mcpServers 'tavily') -or (Get-Prop $otherMcpServers 'tavily')
 if ($TavilyKey) {
   if ($DryRun) {
     Write-Host "       DRY: set TAVILY_API_KEY and add remote MCP tavily" -ForegroundColor DarkGray
@@ -305,7 +487,7 @@ if ($TavilyKey) {
       enabled = $true
       headers = [pscustomobject]@{ Authorization = 'Bearer {env:TAVILY_API_KEY}' }
     }
-    Set-Prop $mcp 'tavily' $tavily
+    Set-Prop $mcpServers 'tavily' $tavily
     $changed = $true
     Ok 'MCP added: tavily (key stored in user env, not in config)'
   }
@@ -323,67 +505,199 @@ if ($changed -or -not (Test-Path $targetPath)) {
 
 }
 
-# ---------------------------------------------- context-mode package in config dir
+# ------------------------------------------------------- context-mode package
+# opencode resolves a package plugin from its own npm cache at
+# ~/.cache/opencode/npm/<package>@latest and installs it on first use. No npm
+# install is needed here, and installing it elsewhere only creates a copy that
+# is never loaded.
 Step 'context-mode package'
 
-$pkgJson = Join-Path $cfgDir 'package.json'
-if (-not (Test-Path $pkgJson)) {
-  if ($DryRun) { Write-Host "       DRY: npm init -y in $cfgDir" -ForegroundColor DarkGray }
-  else {
-    Push-Location $cfgDir
-    Run 'npm' @('init','-y') | Out-Null
-    Pop-Location
-  }
-}
-if (Has-Cmd 'npm') {
-  if ($DryRun) {
-    Write-Host "       DRY: npm i context-mode@latest in $cfgDir" -ForegroundColor DarkGray
-  } else {
-    Write-Host "       installing context-mode"
-    Push-Location $cfgDir
-    & npm i context-mode@latest --no-fund --no-audit 2>&1 | Out-Null
-    $code = $LASTEXITCODE
-    Pop-Location
-    if ($code -eq 0) { Ok 'context-mode installed in config dir' } else { Warn 'npm install context-mode failed' }
-  }
+$cmCache = Join-Path $userHome '.cache\opencode\npm\context-mode@latest'
+if (Test-Path $cmCache) {
+  Ok "context-mode available in the opencode npm cache ($cmCache)"
+} elseif ($DryRun) {
+  Write-Host "       DRY: opencode downloads context-mode on first use" -ForegroundColor DarkGray
 } else {
-  Bad 'npm missing; context-mode plugin will not load'
+  Info 'context-mode is not cached yet; opencode downloads it on first use'
 }
 
-# --------------------------------------------------------------- playwright browsers
-Step 'Playwright browsers'
+# Remove copies that opencode never loads. A package in the global npm root
+# or in the config directory is not what opencode resolves, so those are dead
+# weight that only confuse the next reader.
+$deadCopies = @(
+  (Join-Path (Join-Path $env:APPDATA 'npm\node_modules') 'context-mode'),
+  (Join-Path $cfgDir 'node_modules\context-mode')
+)
+foreach ($dead in $deadCopies) {
+  if (Test-Path $dead) {
+    if ($DryRun) { Write-Host "       DRY: remove $dead" -ForegroundColor DarkGray }
+    else {
+      Remove-Item -LiteralPath $dead -Recurse -Force
+      Ok "removed the unused context-mode copy at $dead"
+    }
+  }
+}
+
+# The npm init in the config directory was only there to host that copy.
+# Without it the directory holds a package.json that installs nothing.
+$cfgPkg = Join-Path $cfgDir 'package.json'
+if (Test-Path $cfgPkg) {
+  $pkgRaw = Get-Content $cfgPkg -Raw
+  $onlyContextMode = $false
+  try {
+    $pkgObj = $pkgRaw | ConvertFrom-Json
+    $deps = $pkgObj.dependencies
+    if ($deps) {
+      $names = @($deps.PSObject.Properties | ForEach-Object { $_.Name })
+      $onlyContextMode = ($names.Count -eq 1 -and $names[0] -eq 'context-mode')
+    }
+  } catch { $onlyContextMode = $false }
+  if ($onlyContextMode) {
+    if ($DryRun) { Write-Host "       DRY: remove $cfgPkg" -ForegroundColor DarkGray }
+    else {
+      Remove-Item -LiteralPath $cfgPkg -Force
+      $cfgLock = Join-Path $cfgDir 'package-lock.json'
+      if (Test-Path $cfgLock) { Remove-Item -LiteralPath $cfgLock -Force }
+      $cfgBin = Join-Path $cfgDir 'node_modules\.bin'
+      if (Test-Path $cfgBin) { Remove-Item -LiteralPath $cfgBin -Recurse -Force }
+      Ok 'removed the leftover package.json in the config dir (it only held context-mode)'
+    }
+  }
+}
+
+# --------------------------------------------------- playwright CLI + browsers
+Step 'Playwright CLI'
 
 if ($SkipBrowsers) {
   Warn 'skipped (-SkipBrowsers)'
-} elseif (-not (Has-Cmd 'npx')) {
-  Warn 'npx missing; run: npx -y playwright install chromium'
+} elseif (-not (Has-Cmd 'npm')) {
+  Warn 'npm missing; run: npm install -g @playwright/cli@latest'
 } else {
+  if (Has-Cmd 'playwright-cli') {
+    Ok 'playwright-cli present'
+  } else {
+    Write-Host "       installing @playwright/cli"
+    Run 'npm' @('install','-g','@playwright/cli@latest') | Out-Null
+    Refresh-Path
+    if (Has-Cmd 'playwright-cli') { Ok 'playwright-cli installed' } else { Warn 'playwright-cli not on PATH yet; reopen the terminal after this script' }
+  }
+
   $cache = Join-Path $env:LOCALAPPDATA 'ms-playwright'
   if (Test-Path $cache) {
     $n = (Get-ChildItem $cache -Directory -ErrorAction SilentlyContinue).Count
     Ok "cache present: $n item(s)"
   } else {
     Write-Host "       downloading chromium"
-    Run 'npx' @('-y','playwright','install','chromium') | Out-Null
+    Run 'playwright-cli' @('install-browser') | Out-Null
     if (Test-Path $cache) { Ok 'chromium installed' } else { Warn 'chromium install did not complete' }
+  }
+
+  $pwSkillSrc = Join-Path $userHome '.agents\skills\playwright-cli'
+  $pwSkillDst = Join-Path $cfgDir 'skills\playwright-cli'
+
+  $pwCfg = Join-Path $userHome '.playwright\cli.config.json'
+  if (Test-Path $pwCfg) {
+    Ok 'playwright-cli global config present'
+  } else {
+    if ($DryRun) { Write-Host "       DRY: write $pwCfg" -ForegroundColor DarkGray }
+    else {
+      New-Item -ItemType Directory -Path (Split-Path -Parent $pwCfg) -Force | Out-Null
+      Set-Content -Path $pwCfg -Value (@{ browser = @{ browserName = 'chromium' } } | ConvertTo-Json -Depth 5) -Encoding UTF8
+      Ok 'playwright-cli global config written (chromium)'
+    }
+  }
+  if (Test-Path $pwSkillDst) {
+    Ok 'playwright-cli skill present'
+  } else {
+    if (Test-Path $pwSkillSrc) {
+      if ($DryRun) { Write-Host "       DRY: copy playwright-cli skill to $pwSkillDst" -ForegroundColor DarkGray }
+      else {
+        New-Item -ItemType Directory -Path (Split-Path -Parent $pwSkillDst) -Force | Out-Null
+        Copy-Item $pwSkillSrc $pwSkillDst -Recurse -Force
+        Ok 'playwright-cli skill installed'
+      }
+    } else {
+      Write-Host "       installing playwright-cli skill"
+      Run 'playwright-cli' @('install','--skills','agents','--global') | Out-Null
+      if (Test-Path $pwSkillSrc) {
+        if ($DryRun) { Write-Host "       DRY: copy playwright-cli skill to $pwSkillDst" -ForegroundColor DarkGray }
+        else {
+          New-Item -ItemType Directory -Path (Split-Path -Parent $pwSkillDst) -Force | Out-Null
+          Copy-Item $pwSkillSrc $pwSkillDst -Recurse -Force
+          Ok 'playwright-cli skill installed'
+        }
+      } else {
+        Warn 'playwright-cli skill not found at ~/.agents/skills; run: playwright-cli install --skills agents --global'
+      }
+    }
   }
 }
 
 # ------------------------------------------------------------------- skills
-Step 'Global skills'
+# The vendored skills are project-local on purpose: every agent and command in
+# this SOP references them by a project relative path, and hallmark's
+# sloplint.mjs is executed directly from that path. A global copy would be a
+# duplicate that is never used. The global always-on rules live in
+# ~/.config/opencode/AGENTS.md, written by the "global always-on rules" step
+# above. The only global skills are the ones owned by the tools themselves
+# (graphify, playwright-cli), installed by those tools.
+Step 'Skills'
 
 if ($SkipSkills) {
   Warn 'skipped (-SkipSkills)'
 } else {
-  $installer = Join-Path $PSScriptRoot 'install-skills.ps1'
-  if (-not (Test-Path $installer)) {
-    Warn 'install-skills.ps1 not found'
-  } elseif ($DryRun) {
-    Write-Host "       DRY: install-skills.ps1 -Force" -ForegroundColor DarkGray
+  Write-Host '       skills are project-local; nothing to install globally' -ForegroundColor DarkGray
+  $globalSkillDir = Join-Path $userHome '.config\opencode\skills'
+  if (Test-Path $globalSkillDir) {
+    $vendored = @('design-taste', 'hallmark', 'i-have-adhd', 'refactoring-ui')
+    $stale = @()
+    foreach ($v in $vendored) {
+      if (Test-Path (Join-Path $globalSkillDir $v)) { $stale += $v }
+    }
+    if ($stale.Count -gt 0) {
+      if ($DryRun) {
+        Write-Host "       DRY: remove stale global skill copies: $($stale -join ', ')" -ForegroundColor DarkGray
+      } else {
+        foreach ($v in $stale) {
+          Remove-Item -Recurse -Force (Join-Path $globalSkillDir $v)
+        }
+        Ok "removed $($stale.Count) stale global skill copy/copies: $($stale -join ', ')"
+      }
+    } else {
+      Ok 'no stale global skill copies'
+    }
   } else {
-    & powershell -NoProfile -ExecutionPolicy Bypass -File $installer -Force
-    if ($LASTEXITCODE -eq 0) { Ok 'skills installed globally' } else { Warn 'skill install returned a non-zero exit code' }
+    Ok 'no global skills folder to clean'
   }
+}
+
+# ------------------------------------------------------------- first project
+# One command to lay down the SOP in a fresh project folder. Optional: skip it
+# with -SkipProject, or pass -Project "C:\dev\my-app" to do it automatically.
+Step 'First project'
+
+if ($SkipProject) {
+  Warn 'skipped (-SkipProject)'
+} elseif ($Project) {
+  if (-not (Test-Path $Project)) {
+    if ($DryRun) { Write-Host "       DRY: create $Project" -ForegroundColor DarkGray }
+    else { New-Item -ItemType Directory -Path $Project -Force | Out-Null }
+  }
+  $copier = Join-Path $PSScriptRoot 'copy-to-project.ps1'
+  if (-not (Test-Path $copier)) {
+    Warn 'copy-to-project.ps1 not found'
+  } elseif ($DryRun) {
+    Write-Host "       DRY: copy-to-project.ps1 -Destination `"$Project`"" -ForegroundColor DarkGray
+  } else {
+    $copyArgs = @('-Destination', $Project)
+    if ($Force) { $copyArgs += '-Force' }
+    & powershell -NoProfile -ExecutionPolicy Bypass -File $copier @copyArgs
+    if ($LASTEXITCODE -eq 0) { Ok "SOP copied to $Project" }
+    else { Warn "copy-to-project.ps1 returned a non-zero exit code" }
+  }
+} else {
+  Info 'no -Project given; skipping the project copy'
+  Info 'run it later: powershell -NoProfile -File copy-to-project.ps1 -Destination "C:\dev\my-app"'
 }
 
 # --------------------------------------------------------------------- verify

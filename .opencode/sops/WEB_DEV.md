@@ -68,16 +68,18 @@ import style, error handling, and state management.
 
 **Exit:** a concrete spec with user-approved scope.
 
-- `to-spec` (global skill); `to-tickets` when it should become tickets.
+- The `planner` subagent writes the spec; its ticket shape applies when it
+  should become tickets.
 - Ambiguity means ask **once**, in a short numbered list, then proceed.
-- Design-heavy feature: short `grill-me` (global skill) first.
+- Design-heavy feature: short `grill-me` style interrogation first — the
+  questions that must be answered before any code is written.
 - One-file bug fix: skip and say so.
 
 ## Phase 3 — Plan
 
 **Exit:** ordered steps, each naming a file.
 
-- `code-architect` (global skill) for a new module or non-obvious data flow.
+- The `planner` subagent for a new module or non-obvious data flow.
 - Otherwise 3-7 numbered steps inline.
 
 ## Phase 4 — Build
@@ -141,8 +143,8 @@ Never tick a checklist without evidence. Full gate items:
 
 **Exit:** an independent review pass found nothing blocking.
 
-- `code-review` (global skill) for logic and convention bugs.
-- `security-review` (global skill) for auth, input, network, or files.
+- The `reviewer` agent for logic, convention, and security bugs (auth, input,
+  network, or files).
 - Report: what now works, how to see it, what is deliberately not done, open
   risks, next action.
 

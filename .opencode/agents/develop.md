@@ -36,7 +36,7 @@ Read in this order when starting work:
 - **Detect, never assume.** No framework is assumed. If there is no manifest,
   stop and ask.
 - **UI work is not done without visual evidence.** Screenshots at 320/768/1280/1440
-  via the `playwright` MCP, plus `sloplint` clean.
+  via the `playwright-cli` CLI, plus `sloplint` clean.
 - **`rtk` prefix on every shell command.** Context-mode routing per
   `.opencode/sops/CONTEXT.md`. `graphify query` before bulk grep.
 - **No comments in code unless the user asked.** No commit unless asked.
@@ -55,9 +55,8 @@ Read in this order when starting work:
 
 ## Delegation
 
-- Architecture questions -> `code-architect` subagent or
-  `code-architect` (global skill).
-- Codebase exploration -> `code-explorer` subagent.
+- Architecture questions -> the `planner` subagent.
+- Codebase exploration -> the `explore` subagent.
 - Review before handoff -> `reviewer` agent.
 - Design direction -> `ui-designer` agent.
 

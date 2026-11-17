@@ -4,8 +4,8 @@ agent: develop
 subtask: false
 ---
 
-Use the `feature-dev` skill (power-pack) as the workflow spine. Do not duplicate
-its phases here; this command only pins the project-specific gates.
+Use the local `/new-feature` sequence below as the workflow spine. Do not add
+another orchestrator on top of it.
 
 ## Sequence
 
@@ -15,12 +15,12 @@ its phases here; this command only pins the project-specific gates.
 3. `.opencode/STACK.md` — create if missing (`.opencode/sops/STACKS.md` phase 0b),
    then load one `.opencode/sops/stacks/*.md`.
 4. Exploration phase: `graphify query "<feature area>"` first, then read the
-   nearest siblings and tests. Invoke the `code-explorer` subagent for depth.
+   nearest siblings and tests. Use the `explore` subagent for depth.
 5. Clarify: one numbered list of at most 5 questions with defaults.
-6. Architecture phase: invoke `code-architect` when the change adds a module or
-   a non-obvious data flow.
+6. Architecture phase: use the `planner` subagent when the change adds a module
+   or a non-obvious data flow.
 7. Implementation: phases 4-6 of `.opencode/sops/WEB_DEV.md`.
-8. Review: `reviewer` agent, then `code-review` (global skill).
+8. Review: `reviewer` agent (it covers code and security review).
 
 ## Project gates that always apply
 

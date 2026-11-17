@@ -10,7 +10,7 @@ Project SOP template. Layout:
 Fill PROJECT_NAME, then run /stack.
 -->
 
-# PROJECT_NAME — Agent Instructions
+# PROJECT PAYMENT MONITORING SYSTEM — Agent Instructions
 
 Routing table. Detailed procedures live in `.opencode/sops/`.
 
@@ -20,7 +20,7 @@ Routing table. Detailed procedures live in `.opencode/sops/`.
 2. This file.
 3. `.opencode/sops/*.md`.
 4. `.opencode/skills/*/SKILL.md`.
-5. Global `~/.config/opencode/AGENTS.md` and `instructions/ALWAYS-ON.md`.
+5. Global `~/.config/opencode/AGENTS.md` (machine-wide always-on rules).
 
 Lowest number wins. When a skill conflicts with `.opencode/sops/DESIGN.md`, the
 SOP wins.
@@ -44,7 +44,7 @@ Load a SOP when its trigger fires. Do not preload all of them.
 - **Output style is `i-have-adhd` on every response.** First line = next action,
   command, path, or answer. Number multi-step work. Restate state each turn.
   No preamble, recap, or closers. Persist until the user says "stop adhd mode".
-  Full ruleset: `.opencode/instructions/ADHD.md`.
+  Full ruleset: `.opencode/skills/i-have-adhd/SKILL.md`.
 - **After every file edit or write, run `graphify update .`.** The
   `graphify-auto-update` plugin runs it automatically (debounced, flushed on
   idle). Run it manually if the plugin did not. Skip only when
@@ -61,7 +61,8 @@ Load a SOP when its trigger fires. Do not preload all of them.
   `graphify query "<question>"` precedes `grep`.
 - **Detect, never assume, the stack.**
 - **UI is not done without evidence.** `sloplint` clean; screenshots at
-  320/768/1280/1440 via playwright only after the user approves the browser pass.
+  320/768/1280/1440 via the Playwright CLI only after the user approves the
+  browser pass.
 - **No code comments unless the user asks.**
 - **No commit, no push, no PR unless the user asks.**
 - **Shell is Windows PowerShell 5.1.** No `&&`. Use separate calls or `;`.
@@ -80,10 +81,10 @@ Load a SOP when its trigger fires. Do not preload all of them.
 | New page, landing, redesign | `/build-ui` (Hallmark) |
 | Existing UI looks off | `/ui-audit` |
 | Small fix, one file | Just do it, follow `QUALITY_GATE.md` |
-| Architecture question | `code-architect` subagent or global skill |
-| Understand a feature | `code-explorer` subagent, or `graphify query` |
+| Architecture question | the `planner` subagent |
+| Understand a feature | the `explore` subagent, or `graphify query` |
 | Review before handoff | `reviewer` agent |
-| Need a skill by description | `find-skills` (global skill) |
+| Need a skill by description | list `.opencode/skills/` (project-local) |
 
 Tool routing, `rtk` limits, and degraded-mode fallbacks:
 `.opencode/sops/CONTEXT.md` and `.opencode/sops/context/TROUBLESHOOTING.md`.
@@ -116,7 +117,7 @@ See `.opencode/sops/QUALITY_GATE.md`. Summarised:
 
 Shaped by `i-have-adhd`: answer first, numbered steps, state restated, concrete
 estimates, visible wins, no preamble or closer. Full ruleset in
-`.opencode/instructions/ADHD.md`; invoke `/i-have-adhd` to reload it.
+`.opencode/skills/i-have-adhd/SKILL.md`; invoke `/i-have-adhd` to reload it.
 
 ## Where things live
 
@@ -126,11 +127,10 @@ estimates, visible wins, no preamble or closer. Full ruleset in
 | `.opencode/agents/` | `develop`, `ui-designer`, `reviewer`, `planner` |
 | `.opencode/commands/` | `/ship`, `/new-feature`, `/ui-audit`, `/build-ui`, `/stack` |
 | `.opencode/skills/` | hallmark, refactoring-ui, design-taste, i-have-adhd |
-| `.opencode/instructions/` | `ADHD.md`, `ALWAYS-ON.md` |
+| `.opencode/instructions/` | `ALWAYS-ON.md` (source for the global always-on file) |
 | `.opencode/plugins/` | `graphify-auto-update.js` |
 | `.opencode/mcp/` | MCP rationale, snippet, install steps |
 | `.opencode/scripts/` | Setup, copy, install helpers |
-| `.opencode/README.md` | Full setup guide |
 | `.opencode/STACK.md` | Written by `/stack` |
 
 Project documents live in `docs/` and are authoritative.

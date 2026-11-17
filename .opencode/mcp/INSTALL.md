@@ -1,4 +1,4 @@
-# MCP Install — step by step
+# MCP + browser install — step by step
 
 All commands are PowerShell 5.1. Run as the same user that runs opencode.
 `~` means `C:\Users\<you>`.
@@ -19,52 +19,77 @@ understand what the script changed.
 | Git | `git --version` | https://git-scm.com |
 | opencode | `opencode --version` | `npm i -g opencode-ai` |
 
-Chromium for Playwright is downloaded in step 5; Chrome is used by
+Chromium for the Playwright CLI is downloaded in step 4; Chrome is used by
 chrome-devtools.
 
 ## 1. Back up the config
 
 ```powershell
 $c = "$env:USERPROFILE\.config\opencode"
-Copy-Item "$c\opencode.json" "$c\opencode.json.bak" -Force
+$stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+Copy-Item "$c\opencode.json" "$c\opencode.json.bak-$stamp" -Force
 if (Test-Path "$c\opencode.jsonc") {
-  Copy-Item "$c\opencode.jsonc" "$c\opencode.jsonc.bak" -Force
+  Copy-Item "$c\opencode.jsonc" "$c\opencode.jsonc.bak-$stamp" -Force
 }
 ```
+`bootstrap-windows.ps1` uses the same `<file>.bak-bootstrap-<timestamp>` naming
+when it rewrites the config, so both kinds of backup are restored the same way.
 
 ## 2. Merge the MCP block
 
-Read `.opencode/mcp/opencode-snippet.jsonc` in this folder. Add its `"mcp"` entries into
-the existing `"mcp"` object of `$env:USERPROFILE\.config\opencode\opencode.json`.
-Keep any server already present (do not delete `tavily` etc.).
+Read `.opencode/mcp/opencode-snippet.jsonc` in this folder. Add its `"mcp"`
+entries into the existing `"mcp"` object of
+`$env:USERPROFILE\.config\opencode\opencode.json`. Keep any server already
+present (do not delete `tavily` etc.).
 
-The two entries:
+The entry:
 
 ```json
-"playwright":      { "type": "local", "command": ["npx","-y","@playwright/mcp@latest"], "enabled": true },
 "chrome-devtools": { "type": "local", "command": ["npx","-y","chrome-devtools-mcp@latest"], "enabled": true }
 ```
+
+There is deliberately **no** `playwright` MCP server. Browser interaction runs
+through the Playwright CLI (step 3) so the agent does not carry a large tool
+schema and accessibility snapshots in every turn.
 
 Validate the JSON before restarting opencode:
 
 ```powershell
-node -e "const a=require('$env:USERPROFILE/.config/opencode/opencode.json'.replace(/\\/g,'/')); console.log('OK', Object.keys(a.mcp))"
+node -e "const a=require('$env:USERPROFILE/.config/opencode/opencode.json'.replace(/\\/g,'/')); console.log('OK', Object.keys(a.mcp.servers))"
 ```
 
-## 3. Install Chromium for Playwright
+## 3. Install the Playwright CLI and its skill
 
 ```powershell
-npx -y playwright install chromium
+npm install -g @playwright/cli@latest
+playwright-cli install-browser
+playwright-cli install --skills agents --global
 ```
 
-~150 MB on first run. Skip only if you will never take screenshots (you will).
-
-## 4. Warm both servers
-
-First run of each downloads the package, so run them once outside opencode:
+`install-browser` downloads Chromium (~150 MB, first run only).
+`install --skills agents --global` writes the skill to `~\.agents\skills`;
+copy it into opencode's global skills folder so the agent picks it up:
 
 ```powershell
-npx -y @playwright/mcp@latest --help
+Copy-Item "$env:USERPROFILE\.agents\skills\playwright-cli" `
+          "$env:USERPROFILE\.config\opencode\skills\playwright-cli" -Recurse -Force
+```
+
+The CLI also needs a browser choice. `playwright-cli install` writes
+`~\.playwright\cli.config.json`; if it is missing, the CLI fails with
+"Chromium distribution 'chrome' is not found". Fix it with:
+
+```powershell
+New-Item -ItemType Directory -Path "$env:USERPROFILE\.playwright" -Force | Out-Null
+'{"browser":{"browserName":"chromium"}}' |
+  Set-Content "$env:USERPROFILE\.playwright\cli.config.json" -Encoding UTF8
+```
+
+## 4. Warm the MCP server
+
+First run downloads the package, so run it once outside opencode:
+
+```powershell
 npx -y chrome-devtools-mcp@latest --help
 ```
 
@@ -82,11 +107,20 @@ Expected tool families:
 
 | Server | Tool names you should see |
 |---|---|
-| playwright | `browser_navigate`, `browser_resize`, `browser_take_screenshot`, `browser_snapshot`, `browser_click`, `browser_type` |
-| chrome-devtools | `navigate_page`, `take_snapshot`, `performance_start_trace`, `performance_stop_trace`, `list_console_messages`, `list_network_requests` |
+| chrome-devtools | `navigate_page`, `take_snapshot`, `performance_start_trace`, `performance_stop_trace`, `list_console_messages`, `list_network_requests`, `take_screenshot` |
 
-If one is missing, check the opencode log for the server start error, then rerun
-the matching `--help` command from step 4.
+The Playwright CLI is not an MCP server, so it does not appear in that list.
+Verify it separately from a shell:
+
+```powershell
+playwright-cli --version
+playwright-cli open https://example.com
+playwright-cli snapshot
+playwright-cli close-all
+```
+
+If the MCP server is missing, check the opencode log for the server start
+error, then rerun the `--help` command from step 4.
 
 ---
 
@@ -107,6 +141,12 @@ project's `.opencode/opencode.json` or the global config:
 
 ## Uninstall
 
-Remove the `playwright`, `chrome-devtools`, and optional `tavily` entries from
-the `"mcp"` object and restart opencode. The packages live in the npm cache;
-nothing else needs cleaning.
+Remove the `chrome-devtools` and optional `tavily` entries from the `"mcp"`
+object and restart opencode. Then:
+
+```powershell
+npm uninstall -g @playwright/cli
+Remove-Item "$env:USERPROFILE\.config\opencode\skills\playwright-cli" -Recurse -Force
+```
+
+The npm packages live in the npm cache; nothing else needs cleaning.
