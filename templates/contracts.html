@@ -152,9 +152,10 @@
       <div class="kpi-ico kpi-ico--blue"><i class="bi bi-percent"></i></div>
       <div><div class="ds-kpi__label">PPN Kontrak</div><div class="ds-kpi__value">{{ summary.total_ppn|money }}</div><div class="ds-kpi__hint">Ditagihkan: {{ summary.total_tertagih_ppn|money }}</div></div>
     </div>
-    <div class="ds-kpi ds-kpi--compact{% if summary.belum_invoice > 0 %} ds-kpi--warn{% endif %}" tabindex="0">
+    <div class="ds-kpi ds-kpi--compact{% if summary.belum_invoice > 0 %} ds-kpi--warn{% endif %}" tabindex="0" title="Jumlah kontrak yang belum ada invoice-nya, dan yang sudah ada invoice.">
       <div class="kpi-ico kpi-ico--rose"><i class="bi bi-exclamation-triangle"></i></div>
-      <div><div class="ds-kpi__label">Belum Ada Invoice</div><div class="ds-kpi__value">{{ summary.belum_invoice }}</div></div>
+      <div><div class="ds-kpi__label">Belum Ada Invoice</div><div class="ds-kpi__value">{{ summary.belum_invoice }}</div>
+        <div class="ds-kpi__hint">Ada invoice: {{ summary.ada_invoice }}</div></div>
     </div>
     <div class="ds-kpi ds-kpi--compact" tabindex="0">
       <div class="kpi-ico kpi-ico--green"><i class="bi bi-cash-stack"></i></div>

@@ -1382,6 +1382,7 @@ def get_summary(project_id=None):
     known_keys = {_norm_kontrak(c.get('no_kontrak')) for c in contracts}
     belum_lunas, jatuh_tempo = _linked_invoice_counts(project_id, known_keys)
     belum = sum(1 for c in contracts if c.get('status_invoice') == 'Belum Ada Invoice')
+    ada = sum(1 for c in contracts if c.get('status_invoice') == 'Ada Invoice')
     return {
         'total_kontrak': len(contracts),
         'total_dpp': total_dpp,
@@ -1402,6 +1403,7 @@ def get_summary(project_id=None):
         'belum_lunas': belum_lunas,
         'jatuh_tempo': jatuh_tempo,
         'belum_invoice': belum,
+        'ada_invoice': ada,
     }
 
 

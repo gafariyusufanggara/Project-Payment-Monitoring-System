@@ -82,7 +82,7 @@ def render_sisa(sisa):
             'total_sisa_hutang': sisa, 'total_sisa_hutang_ppn': sisa,
             'total_belum_ditagih': 0.0, 'total_belum_ditagih_ppn': 0.0,
             'total_belum_dibayar': sisa, 'total_belum_dibayar_ppn': sisa,
-            'jatuh_tempo': 0, 'belum_invoice': 0}
+            'jatuh_tempo': 0, 'belum_invoice': 0, 'ada_invoice': 1}
     with app.test_request_context('/'):
         html = render_template('contracts.html', contracts=[c], summary=summ,
                                project_labels={}, project_list=[])
@@ -134,7 +134,7 @@ _summ_belum = {'total_kontrak': 1, 'total_dpp': 220.0, 'total_ppn': 24.2,
                'total_sisa_hutang': 44.0, 'total_sisa_hutang_ppn': 4.84,
                'total_belum_ditagih': 176.0, 'total_belum_ditagih_ppn': 19.36,
                'total_belum_dibayar': 44.0, 'total_belum_dibayar_ppn': 4.84,
-               'jatuh_tempo': 0, 'belum_invoice': 0}
+               'jatuh_tempo': 0, 'belum_invoice': 0, 'ada_invoice': 1}
 with app.test_request_context('/'):
     _h_belum = render_template('contracts.html', contracts=[_c_belum],
                                summary=_summ_belum,
