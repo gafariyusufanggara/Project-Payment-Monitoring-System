@@ -1379,6 +1379,21 @@ def get_summary(project_id=None):
     total_sisa_ppn = sum(float(c.get('sisa_tagihan_ppn') or 0) for c in contracts)
     total_belum_dibayar = total_sisa_hutang
     total_belum_dibayar_ppn = total_sisa_hutang_ppn
+    # Hitungan kontrak untuk konteks KPI "Sisa Hutang": berapa kontrak yang
+    # benar-benar masih punya utang (utang > 0) vs sudah lunas (sudah ditagih
+    # tapi tak ada sisa). Ini yang membuat angka Rupiah jadi actionable.
+    kontrak_ada_utang = sum(1 for c in contracts
+                            if float(c.get('sisa_hutang') or 0) > 0)
+    kontrak_ada_utang_ppn = sum(1 for c in contracts
+                                if float(c.get('sisa_hutang_ppn') or 0) > 0)
+    kontrak_ditagih_lunas = sum(
+        1 for c in contracts
+        if float(c.get('tertagih') or 0) > 0
+        and float(c.get('sisa_hutang') or 0) <= 0)
+    kontrak_ditagih_lunas_ppn = sum(
+        1 for c in contracts
+        if float(c.get('tertagih_ppn') or 0) > 0
+        and float(c.get('sisa_hutang_ppn') or 0) <= 0)
     known_keys = {_norm_kontrak(c.get('no_kontrak')) for c in contracts}
     belum_lunas, jatuh_tempo = _linked_invoice_counts(project_id, known_keys)
     belum = sum(1 for c in contracts if c.get('status_invoice') == 'Belum Ada Invoice')
@@ -1400,6 +1415,10 @@ def get_summary(project_id=None):
         'total_belum_ditagih_ppn': total_belum_ditagih_ppn,
         'total_belum_dibayar': total_belum_dibayar,
         'total_belum_dibayar_ppn': total_belum_dibayar_ppn,
+        'kontrak_ada_utang': kontrak_ada_utang,
+        'kontrak_ada_utang_ppn': kontrak_ada_utang_ppn,
+        'kontrak_ditagih_lunas': kontrak_ditagih_lunas,
+        'kontrak_ditagih_lunas_ppn': kontrak_ditagih_lunas_ppn,
         'belum_lunas': belum_lunas,
         'jatuh_tempo': jatuh_tempo,
         'belum_invoice': belum,

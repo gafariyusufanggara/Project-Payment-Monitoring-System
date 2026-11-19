@@ -12,7 +12,7 @@
   Kontrak Vendor — registri kontrak procurement.
   Tabel memakai tema .dt-invoice yang sama dengan halaman Data Invoice
   (partials/_dt_theme.html) agar tampilan seragam; override kc-page hanya
-  mengatur lebar kolom sticky & min-width (14 kolom vs 19).
+  mengatur lebar kolom sticky & min-width (18 kolom vs 19).
 -->
 {% include "partials/_dt_theme.html" %}
 {% include "partials/_search_box.html" %}
@@ -26,6 +26,20 @@
      min-width: 0 mencegah grid KPI meluber saat sidebar terbuka. */
   .kc-wrap { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
   .kc-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  /* Bar pelunasan tagihan di kartu Sisa Hutang.
+     Segmen 1 (hijau) = sudah dibayar, segmen 2 (merah) = belum dibayar —
+     dua ini 100% dari "yang sudah ditagih", jadi langsung terbaca berapa
+     bagian tagihan yang belum dibayar. Segmen 3 (abu) = belum ditagih
+     (pipeline, BUKAN utang), ditampilkan terpisah agar tidak mengaburkan. */
+  .kc-kpi-split { margin-top: 6px; max-width: 240px; }
+  .kc-kpi-split__bar { display: flex; height: 7px; border-radius: 6px; overflow: hidden; background: #e8ecf1; }
+  .kc-kpi-split__seg { display: block; height: 100%; }
+  .kc-kpi-split__seg--dibayar { background: #5a9e7d; }
+  .kc-kpi-split__seg--belum { background: #d9776b; }
+  .kc-kpi-split__seg--pipeline { background: #ccd6e2; }
+  .kc-kpi-split__legend { display: block; margin-top: 3px; font-size: 0.62rem; color: #667080; line-height: 1.2; }
+  .kc-kpi-pipe { display: flex; align-items: center; gap: 5px; margin-top: 5px; font-size: 0.62rem; color: #7a8494; line-height: 1.2; }
+  .kc-kpi-pipe__dot { width: 8px; height: 8px; border-radius: 2px; background: #ccd6e2; flex: none; }
   .kc-page { --c1w: 300px; }
   .kc-page #kcTable { min-width: 1720px; }
   .kc-page #kcTable thead th.col-sticky-left,
@@ -69,31 +83,40 @@
      Warna = penanda KELOMPOK, bukan status pembayaran:
        netral=identitas, biru=DPP, ungu=PPN, amber=sisa/utang, teal=status.
      Label grup sengaja pendek; penjelasan lengkap ada di title agar tidak
-     ambigu dengan istilah "Sisa Tagihan" pada KPI. */
+     ambigu dengan angka KPI. */
   .kc-page #kcTable thead tr.kc-grp-row th.kc-grp {
     padding: 4px 10px; font-size: 0.58rem; letter-spacing: 0.7px;
     text-align: center; vertical-align: middle;
     border-bottom: 1px solid rgba(36, 72, 102, 0.14);
   }
-  .kc-page #kcTable thead tr.kc-grp-row th.kc-grp-label { text-align: left; }
+  /* Label grup kini seragam di tengah (regroup 4/4/4/4/2). */
   .kc-grp-id { background: #e8eef4 !important; color: #3d4b5c !important; }
   .kc-grp-dpp { background: #d9e8f7 !important; color: #1d4d78 !important; }
   .kc-grp-ppn { background: #e6e0f6 !important; color: #4a3785 !important; }
   .kc-grp-sisa { background: #fbeac4 !important; color: #6f5200 !important; }
   .kc-grp-stat { background: #d7ece6 !important; color: #12594f !important; }
   /* Tint badan tabel sangat tipis: angka tetap dominan, dan tint status
-     (kc-owe) sengaja menang lewat specificity lebih tinggi. */
-  #kcTable tbody td:nth-child(-n+3) { background: #f8fafc; }
-  #kcTable tbody td:nth-child(n+4):nth-child(-n+7) { background: #f5f9fd; }
-  #kcTable tbody td:nth-child(n+8):nth-child(-n+12) { background: #f9f7fe; }
+     (kc-owe) sengaja menang lewat specificity lebih tinggi.
+     Grup 4/4/4/4/2: Identitas (1-4) | DPP (5-8) | PPN (9-12) |
+     Sisa & Hutang (13-16) | Status (17-18). */
+  #kcTable tbody td:nth-child(-n+4) { background: #f8fafc; }
+  #kcTable tbody td:nth-child(n+5):nth-child(-n+8) { background: #f5f9fd; }
+  #kcTable tbody td:nth-child(n+9):nth-child(-n+12) { background: #f9f7fe; }
   #kcTable tbody td:nth-child(n+13):nth-child(-n+16) { background: #fffdf5; }
   #kcTable tbody td:nth-child(n+17) { background: #f5fbf9; }
-  /* Batas kelompok ikut turun sampai baris terakhir. */
-  #kcTable thead th:nth-child(4), #kcTable tbody td:nth-child(4),
-  #kcTable thead th:nth-child(8), #kcTable tbody td:nth-child(8),
-  #kcTable thead th:nth-child(13), #kcTable tbody td:nth-child(13),
-  #kcTable thead th:nth-child(17), #kcTable tbody td:nth-child(17) {
+  /* Garis pemisah antar-grup: turun sampai baris terakhir, plus di baris
+     label header. Batas = awal tiap grup (kolom 5, 9, 13, 17). */
+  #kcTable tbody td:nth-child(5), #kcTable tbody td:nth-child(9),
+  #kcTable tbody td:nth-child(13), #kcTable tbody td:nth-child(17),
+  #kcTable thead tr:last-child th:nth-child(5),
+  #kcTable thead tr:last-child th:nth-child(9),
+  #kcTable thead tr:last-child th:nth-child(13),
+  #kcTable thead tr:last-child th:nth-child(17) {
     border-left: 2px solid #d5dce4;
+  }
+  /* Pemisah halus pada sel header grup (semua kecuali yang pertama). */
+  #kcTable thead tr.kc-grp-row th.kc-grp + th.kc-grp {
+    border-left: 1px solid rgba(36, 72, 102, 0.18);
   }
   /* Pencocokan termin: pill "ditagih/total" dengan warna per status.
      Warna hanya menandai KONDISI (pas / berjalan / perlu diperiksa / belum
@@ -167,15 +190,41 @@
       <div><div class="ds-kpi__label">Terbayar PPN</div><div class="ds-kpi__value">{{ summary.total_dibayar_ppn|money }}</div>
         <div class="ds-kpi__hint">{% if summary.total_tertagih_ppn > 0 %}{{ (summary.total_dibayar_ppn / summary.total_tertagih_ppn * 100)|round(1) }}{% else %}0{% endif %}% dari yang ditagihkan</div></div>
     </div>
-    <div class="ds-kpi ds-kpi--compact{% if summary.total_sisa_dpp|has_sisa %} ds-kpi--warn{% endif %}" tabindex="0" title="Sisa Tagihan (DPP) = Nilai Kontrak (DPP) − Terbayar DPP. Sama dengan Belum Ditagih (DPP) + Sisa Hutang (DPP).">
+    {# --- Sisa Hutang (utang nyata) — diukur terhadap YANG SUDAH DITAGIH ---
+       Kartu menonjolkan Sisa Hutang = tagihan yang sudah ditagih tapi belum
+       dibayar (utang nyata). Persentase dihitung dari "yang sudah ditagih"
+       (bukan dari total belum dibayar yang mayoritas masih pipeline), jadi
+       terbaca jujur: berapa bagian tagihan yang belum dilunasi. Bar = Dibayar
+       vs Belum dibayar (100% dari yang ditagih). Pipeline "Belum ditagih"
+       ditampilkan terpisah sebagai info kecil, BUKAN utang. Warna peringatan
+       hanya menyala bila ada utang nyata. --- #}
+    {% set _tagih_dpp = summary.total_tertagih %}
+    {% set _pct_bayar_dpp = ((summary.total_dibayar / _tagih_dpp * 100)|round(1)) if _tagih_dpp > 0 else 0 %}
+    {% set _pct_belum_dpp = ((summary.total_sisa_hutang / _tagih_dpp * 100)|round(1)) if _tagih_dpp > 0 else 0 %}
+    {% set _tagih_ppn = summary.total_tertagih_ppn %}
+    {% set _pct_bayar_ppn = ((summary.total_dibayar_ppn / _tagih_ppn * 100)|round(1)) if _tagih_ppn > 0 else 0 %}
+    {% set _pct_belum_ppn = ((summary.total_sisa_hutang_ppn / _tagih_ppn * 100)|round(1)) if _tagih_ppn > 0 else 0 %}
+    <div class="ds-kpi ds-kpi--compact{% if summary.total_sisa_hutang|has_sisa %} ds-kpi--warn{% endif %}" tabindex="0">
       <div class="kpi-ico kpi-ico--rose"><i class="bi bi-wallet2"></i></div>
-      <div><div class="ds-kpi__label">Sisa Tagihan (DPP)</div><div class="ds-kpi__value">{{ summary.total_sisa_dpp|money }}</div>
-        <div class="ds-kpi__hint">Belum ditagih: {{ summary.total_belum_ditagih|money }} &middot; Sisa hutang: {{ summary.total_sisa_hutang|money }}</div></div>
+      <div><div class="ds-kpi__label">Sisa Hutang (DPP)</div><div class="ds-kpi__value">{{ summary.total_sisa_hutang|money }}</div>
+        <div class="kc-kpi-split">
+          <span class="kc-kpi-split__bar">
+            <span class="kc-kpi-split__seg kc-kpi-split__seg--dibayar" style="width:{{ _pct_bayar_dpp }}%"></span><span class="kc-kpi-split__seg kc-kpi-split__seg--belum" style="width:{{ _pct_belum_dpp }}%"></span>
+          </span>
+          <span class="kc-kpi-split__legend">{{ _pct_belum_dpp }}% dari {{ summary.total_tertagih|money }} yang sudah ditagih belum dibayar</span>
+        </div>
+        <div class="kc-kpi-pipe"><span class="kc-kpi-pipe__dot"></span>Belum ditagih: {{ summary.total_belum_ditagih|money }}</div></div>
     </div>
-    <div class="ds-kpi ds-kpi--compact{% if summary.total_sisa_ppn|has_sisa or summary.jatuh_tempo > 0 %} ds-kpi--warn{% endif %}" tabindex="0" title="Sisa Tagihan (PPN) = PPN Kontrak − Terbayar PPN. Sama dengan Belum Ditagih (PPN) + Sisa Hutang (PPN).">
+    <div class="ds-kpi ds-kpi--compact{% if summary.total_sisa_hutang_ppn|has_sisa %} ds-kpi--warn{% endif %}" tabindex="0">
       <div class="kpi-ico kpi-ico--rose"><i class="bi bi-hourglass-split"></i></div>
-      <div><div class="ds-kpi__label">Sisa Tagihan (PPN)</div><div class="ds-kpi__value">{{ summary.total_sisa_ppn|money }}</div>
-        <div class="ds-kpi__hint">Belum ditagih: {{ summary.total_belum_ditagih_ppn|money }} &middot; Sisa hutang: {{ summary.total_sisa_hutang_ppn|money }}</div></div>
+      <div><div class="ds-kpi__label">Sisa Hutang (PPN)</div><div class="ds-kpi__value">{{ summary.total_sisa_hutang_ppn|money }}</div>
+        <div class="kc-kpi-split">
+          <span class="kc-kpi-split__bar">
+            <span class="kc-kpi-split__seg kc-kpi-split__seg--dibayar" style="width:{{ _pct_bayar_ppn }}%"></span><span class="kc-kpi-split__seg kc-kpi-split__seg--belum" style="width:{{ _pct_belum_ppn }}%"></span>
+          </span>
+          <span class="kc-kpi-split__legend">{{ _pct_belum_ppn }}% dari {{ summary.total_tertagih_ppn|money }} yang sudah ditagih belum dibayar</span>
+        </div>
+        <div class="kc-kpi-pipe"><span class="kc-kpi-pipe__dot"></span>Belum ditagih: {{ summary.total_belum_ditagih_ppn|money }}</div></div>
     </div>
   </div>
 
@@ -239,34 +288,31 @@
         <table class="table dt-table" id="kcTable" data-enhance="kontrak">
           <thead>
             <tr class="kc-grp-row">
-              <th colspan="1" scope="colgroup" class="col-sticky-left kc-grp kc-grp-id" data-gstart="0" data-gspan="1" title="Nomor urut tampilan"></th>
-              <th colspan="1" scope="colgroup" class="col-sticky-left-2 kc-grp kc-grp-id kc-grp-label" data-gstart="1" data-gspan="1" title="Nomor, vendor/rekanan, dan item pekerjaan">Identitas</th>
-              <th colspan="1" scope="colgroup" class="kc-grp kc-grp-id" data-gstart="2" data-gspan="1"></th>
-              <th colspan="4" scope="colgroup" class="kc-grp kc-grp-dpp kc-grp-label" data-gstart="3" data-gspan="4" title="Nilai DPP kontrak, yang sudah ditagih, dan yang sudah dibayar.">DPP</th>
-              <th colspan="5" scope="colgroup" class="kc-grp kc-grp-ppn kc-grp-label" data-gstart="7" data-gspan="5" title="Nilai PPN kontrak, yang sudah ditagih, pembayaran, dan metode bayar PPN.">PPN</th>
-              <th colspan="4" scope="colgroup" class="kc-grp kc-grp-sisa kc-grp-label" data-gstart="12" data-gspan="4" title="Belum Ditagih = pekerjaan yang belum ada invoice-nya (bukan utang). Sisa Hutang = sudah ditagih tapi belum dibayar (utang nyata).">Sisa &amp; Hutang</th>
-              <th colspan="1" scope="colgroup" class="kc-grp kc-grp-stat kc-grp-label" data-gstart="16" data-gspan="1" title="Kecocokan invoice ke jadwal termin dan jumlah invoice aktif.">Status</th>
-              <th colspan="1" scope="colgroup" class="col-sticky-right kc-grp kc-grp-stat" data-gstart="17" data-gspan="1"></th>
+              <th colspan="4" scope="colgroup" class="kc-grp kc-grp-id" data-gstart="0" data-gspan="4" title="Identitas kontrak: nomor urut, vendor/rekanan, item pekerjaan, dan metode bayar PPN.">Identitas</th>
+              <th colspan="4" scope="colgroup" class="kc-grp kc-grp-dpp" data-gstart="4" data-gspan="4" title="Nilai DPP kontrak, yang sudah ditagih, yang sudah dibayar (Rp), dan progres pembayarannya (%).">DPP</th>
+              <th colspan="4" scope="colgroup" class="kc-grp kc-grp-ppn" data-gstart="8" data-gspan="4" title="Nilai PPN kontrak, yang sudah ditagih, yang sudah dibayar (Rp), dan progres pembayarannya (%).">PPN</th>
+              <th colspan="4" scope="colgroup" class="kc-grp kc-grp-sisa" data-gstart="12" data-gspan="4" title="Belum Ditagih = pekerjaan yang belum ada invoice-nya (bukan utang). Sisa Hutang = sudah ditagih tapi belum dibayar (utang nyata). Dipisah per DPP &amp; PPN.">Sisa &amp; Hutang</th>
+              <th colspan="2" scope="colgroup" class="kc-grp kc-grp-stat" data-gstart="16" data-gspan="2" title="Kecocokan invoice ke jadwal termin dan jumlah invoice aktif.">Status</th>
             </tr>
             <tr>
               <th class="col-sticky-left text-center" style="width: 48px">No.</th>
               <th class="col-sticky-left-2">Vendor / Rekanan</th>
               <th>Item Pekerjaan</th>
-              <th class="text-end">DPP Kontrak</th>
-              <th class="text-end">Tagihan DPP</th>
-              <th class="text-end" title="Jumlah DPP yang sudah dibayar">Bayar DPP (Rp)</th>
-              <th title="Persentase DPP yang sudah dibayar terhadap DPP Kontrak">Bayar DPP (%)</th>
-              <th class="text-end">PPN Kontrak</th>
-              <th class="text-end">Tagihan PPN</th>
-              <th class="text-end" title="Jumlah PPN yang sudah dibayar">Bayar PPN (Rp)</th>
-              <th title="Persentase PPN yang sudah dibayar terhadap PPN Kontrak">Bayar PPN (%)</th>
               <th class="text-center" title="PPN Include: PPN sudah termasuk dalam nilai kontrak. PPN Reimburse: PPN ditagih terpisah.">Metode Bayar</th>
-              <th class="text-end" title="Nilai kontrak DPP yang belum ditagih ke vendor = DPP Kontrak − Tagihan DPP. Ini pekerjaan yang belum ada invoice-nya, BUKAN utang.">Belum Ditagih (DPP)</th>
-              <th class="text-end" title="DPP yang sudah ditagih tapi belum dibayar = Tagihan DPP − Bayar DPP. Inilah utang nyata ke vendor yang menunggu pembayaran.">Sisa Hutang (DPP)</th>
-              <th class="text-end" title="PPN kontrak yang belum ditagih = PPN Kontrak − Tagihan PPN. Bukan utang.">Belum Ditagih (PPN)</th>
-              <th class="text-end" title="PPN yang sudah ditagih tapi belum dibayar = Tagihan PPN − Bayar PPN. Inilah utang PPN nyata ke vendor.">Sisa Hutang (PPN)</th>
+              <th class="text-end" title="Nilai DPP kontrak — dasar penagihan DPP.">Nilai DPP</th>
+              <th class="text-end" title="DPP yang sudah ditagih lewat invoice.">Ditagih DPP</th>
+              <th class="text-end" title="Jumlah DPP yang sudah dibayar.">Dibayar DPP (Rp)</th>
+              <th class="text-end" title="Progres pembayaran DPP = Dibayar DPP ÷ Nilai DPP.">Progres DPP (%)</th>
+              <th class="text-end" title="Nilai PPN kontrak — dasar penagihan PPN.">Nilai PPN</th>
+              <th class="text-end" title="PPN yang sudah ditagih lewat invoice.">Ditagih PPN</th>
+              <th class="text-end" title="Jumlah PPN yang sudah dibayar.">Dibayar PPN (Rp)</th>
+              <th class="text-end" title="Progres pembayaran PPN = Dibayar PPN ÷ Nilai PPN.">Progres PPN (%)</th>
+              <th class="text-end" title="Nilai kontrak DPP yang belum ditagih ke vendor = Nilai DPP − Ditagih DPP. Ini pekerjaan yang belum ada invoice-nya, BUKAN utang.">Belum Ditagih (DPP)</th>
+              <th class="text-end" title="DPP yang sudah ditagih tapi belum dibayar = Ditagih DPP − Dibayar DPP. Inilah utang nyata ke vendor yang menunggu pembayaran.">Sisa Hutang (DPP)</th>
+              <th class="text-end" title="PPN kontrak yang belum ditagih = Nilai PPN − Ditagih PPN. Bukan utang.">Belum Ditagih (PPN)</th>
+              <th class="text-end" title="PPN yang sudah ditagih tapi belum dibayar = Ditagih PPN − Dibayar PPN. Inilah utang PPN nyata ke vendor.">Sisa Hutang (PPN)</th>
               <th class="text-center" title="Pencocokan invoice ke jadwal termin kontrak. Menampilkan berapa termin yang sudah ditagih penuh dari total termin.">Termin Ditagih</th>
-              <th class="text-center col-sticky-right">Invoice</th>
+              <th class="text-center col-sticky-right" title="Jumlah invoice aktif yang terhubung ke kontrak ini.">Jml Invoice</th>
             </tr>
           </thead>
           <tbody id="kcBody">
@@ -300,6 +346,7 @@
                 </div>
               </td>
               <td class="kc-item" title="{{ c.item_pekerjaan or '' }}">{{ c.item_pekerjaan or '—' }}</td>
+              <td class="text-center kc-metode">{{ c.metode_pembayaran or '—' }}</td>
               <td class="cell-money">{{ (c.nilai_dpp or 0)|money }}</td>
               <td class="cell-money">{{ c.tertagih|money }}</td>
               <td class="cell-money{% if (c.dibayar or 0) > eps %} text-danger{% endif %}"{% if (c.dibayar or 0) > eps %} style="font-weight:700"{% endif %}>{{ c.dibayar|money }}</td>
@@ -318,7 +365,6 @@
                            'Progres pembayaran PPN ' ~ c.no_kontrak,
                            'PPN Kontrak belum diisi.') }}
               </td>
-              <td class="text-center kc-metode">{{ c.metode_pembayaran or '—' }}</td>
               {# Belum ditagih: netral (abu). Ini pekerjaan yang belum ditagih,
                  bukan hutang, jadi tidak diberi warna peringatan. Nilai
                  negatif (menagih melebihi kontrak) tetap ditandai merah. #}

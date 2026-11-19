@@ -3,7 +3,7 @@
 {% block topbar_title %}Pemeriksaan No PO{% endblock %}
 {% block topbar_icon %}bi-search{% endblock %}
 {% block topbar_badges %}
-<span class="topbar-badge"><i class="bi bi-exclamation-triangle"></i> {{ total }} Perlu Ditinjau</span>
+<span class="topbar-badge kpr-tb"><i class="bi bi-exclamation-triangle"></i> {{ mirip|length + tanpa_invoice|length + missing|length }} Perlu Ditinjau</span>
 {% endblock %}
 
 {% block content %}
@@ -16,15 +16,41 @@
   Hanya MENAMPILKAN kandidat untuk diperiksa manusia — tidak menghubungkan
   otomatis, karena nomor berdekatan (PB.062 vs PB.064) sering merupakan
   kontrak berbeda, bukan typo.
+
+  Tata letak: ringkasan angka (KPI) dulu, lalu tab. Penjelasan panjang
+  dipindah ke <details> "Cara kerja" supaya tidak membanjiri halaman.
 -->
 <style>
-  .kpr-wrap { max-width: 1000px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
-  .kpr-card { background: #fff; border: 1px solid #e3e5e8; border-radius: 16px; box-shadow: 0 1px 3px rgba(51,51,51,.05); overflow: hidden; }
-  .kpr-head { padding: 14px 18px; border-bottom: 1px solid #eef0f2; display: flex; align-items: center; gap: 10px; }
-  .kpr-head h2 { font-size: 0.85rem; font-weight: 700; color: #333333; margin: 0; }
+  .kpr-tb { background: #fdf6d8; color: #8a6d00; }
+
+  .kpr-wrap { max-width: 1040px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+  /* ── Baris atas: tombol kembali + disclosure "Cara kerja" ── */
+  .kpr-topline { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .kpr-help { position: relative; max-width: 100%; }
+  .kpr-help > summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; font-weight: 600; color: #4d5766; padding: 7px 12px; border: 1px solid var(--border, #e3e5e8); border-radius: 10px; background: #fff; }
+  .kpr-help > summary::-webkit-details-marker { display: none; }
+  .kpr-help > summary:hover { border-color: #c9cdd3; color: #333333; }
+  .kpr-help[open] > summary { border-color: var(--ds-accent, #0f766e); color: #115e59; }
+  /* Panel penjelasan mengambang (overlay) supaya tidak mendorong tata letak
+     dan tidak pernah lebih lebar dari layar. */
+  .kpr-help__body { position: absolute; right: 0; top: calc(100% + 8px); z-index: 30; width: 560px; max-width: calc(100vw - 40px); background: #fff; border: 1px solid var(--border, #e3e5e8); border-radius: 12px; padding: 14px 16px; box-shadow: var(--ds-sh-2, 0 6px 20px rgba(51,51,51,.12)); font-size: 0.8rem; color: #526579; line-height: 1.55; }
+  .kpr-help__body p { margin: 0 0 8px; }
+  .kpr-help__body ul { margin: 6px 0 0; padding-left: 18px; }
+  .kpr-help__body li { margin: 3px 0; }
+  .kpr-help__body strong { color: #333333; }
+
+  /* ── Kartu ── */
+  .kpr-card { background: #fff; border: 1px solid var(--border, #e3e5e8); border-radius: 16px; box-shadow: var(--ds-sh-1, 0 1px 3px rgba(51,51,51,.05)); overflow: hidden; }
+  .kpr-head { padding: 13px 18px; border-bottom: 1px solid #eef0f2; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .kpr-head h2 { font-size: 0.9rem; font-weight: 700; color: #333333; margin: 0; display: flex; align-items: center; gap: 8px; }
+  .kpr-head h2 > i { color: var(--ds-accent, #0f766e); }
   .kpr-head .pill { font-size: 0.7rem; font-weight: 700; padding: 2px 9px; border-radius: 20px; background: #eef0f2; color: #4d5766; }
   .kpr-head .pill--warn { background: #fdf6d8; color: #8a6d00; }
   .kpr-head .pill--info { background: #eaf0f6; color: #16324f; }
+  .kpr-head .pill--right { margin-left: auto; }
+
+  /* ── Tabel ── */
   .kpr-table { width: 100%; font-size: 0.78rem; border-collapse: separate; border-spacing: 0; }
   .kpr-table thead th { background: #f7f8f9; color: #4d5766; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; padding: 10px 14px; border-bottom: 2px solid #e3e5e8; text-align: left; }
   .kpr-table thead th.num { text-align: right; }
@@ -37,10 +63,11 @@
   .kandidat { display: flex; flex-direction: column; gap: 3px; }
   .kandidat .k { font-size: 0.7rem; color: #4d5766; }
   .kandidat .k .s { color: #8a6d00; font-weight: 600; }
-  .kpr-note { font-size: 0.78rem; color: #667080; margin: 0; }
+  .kpr-note { font-size: 0.8rem; color: #667080; margin: 0; }
+  .kpr-hint { font-size: 0.8rem; color: #667080; margin: 0; padding: 12px 18px 0; }
   .kpr-empty { padding: 40px 20px; text-align: center; color: #667080; }
-  .kpr-empty i { font-size: 2.4rem; color: #0f766e; }
-  .kpr-section-title { font-size: 0.78rem; font-weight: 700; color: #333333; }
+  .kpr-empty i { font-size: 2.2rem; color: #0f766e; }
+  .kpr-empty p { margin-top: 8px; }
 
   /* ── Scroll internal + header kolom sticky (anti-scroll panjang) ── */
   .kpr-scroll { max-height: 520px; overflow: auto; border-top: 1px solid #eef0f2; scrollbar-width: thin; scrollbar-color: #c9ccd1 transparent; }
@@ -48,6 +75,13 @@
   .kpr-scroll::-webkit-scrollbar-thumb { background: #c9ccd1; border-radius: 4px; }
   .kpr-scroll::-webkit-scrollbar-thumb:hover { background: #a3a8af; }
   .kpr-scroll .kpr-table thead th { position: sticky; top: 0; z-index: 3; }
+
+  /* ── Callout (caveat nilai belum tercocok) ── */
+  .kpr-callout { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 11px 14px; border-radius: 12px; border: 1px solid #f0dca0; background: #fdf6d8; color: #6b5500; font-size: 0.8rem; }
+  .kpr-callout > i { font-size: 1rem; color: #8a6d00; }
+  .kpr-callout strong { color: #5c4a00; }
+  .kpr-callout a { color: #244866; font-weight: 700; text-decoration: none; white-space: nowrap; }
+  .kpr-callout a:hover { text-decoration: underline; }
 
   /* ── Tab ── */
   .kpr-tabs { display: flex; gap: 6px; }
@@ -60,7 +94,7 @@
   .kpr-panel.is-active { display: flex; }
 
   /* ── Aksi abaikan vendor (tab Tak Terdaftar) ── */
-  .ku-hint { font-size: 0.78rem; color: #667080; margin: 0; }
+  .ku-hint { font-size: 0.8rem; color: #667080; margin: 0; }
   .ku-ignore-btn { font-size: 0.7rem; padding: 3px 10px; border-radius: 8px; border: 1px solid #e3e5e8; background: #fff; color: #4d5766; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
   .ku-ignore-btn:hover { border-color: #E5B800; color: #7a6000; background: #fdf6d8; }
   .ku-ignored { font-size: 0.78rem; }
@@ -71,7 +105,6 @@
 
   /* ===== Tablet (<=1024) ===== */
   @media (max-width: 1024px) {
-    .kpr-head { flex-wrap: wrap; }
     .kpr-table thead th { padding: 9px 12px; }
     .kpr-table tbody td { padding: 8px 12px; }
   }
@@ -82,7 +115,6 @@
     .kpr-tabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 2px; }
     .kpr-tab { flex: 0 0 auto; padding: 9px 13px; }
     .kpr-head { padding: 12px 14px; gap: 8px; }
-    .kpr-head h2 { font-size: 0.85rem; }
     .kpr-card { border-radius: 14px; }
     .kpr-scroll { max-height: none; }
     .kpr-table { min-width: 620px; }
@@ -94,47 +126,81 @@
 
   /* ===== Small mobile (<=480) ===== */
   @media (max-width: 480px) {
-    .kpr-wrap .ds-btn { width: 100%; justify-content: center; }
+    .kpr-topline .ds-btn { width: 100%; justify-content: center; }
+    .kpr-help, .kpr-help > summary { width: 100%; justify-content: center; }
     .kpr-head { padding: 10px 12px; }
     .kpr-table { font-size: 0.78rem; }
     .kpr-table thead th { font-size: 0.66rem; letter-spacing: .4px; }
     .kpr-tab { font-size: 0.78rem; padding: 8px 11px; }
   }
-
 </style>
 
 <div class="kpr-wrap animate-in">
 
-  <div style="display:flex;gap:8px">
-    <a href="{{ url_for('contract.list_contracts') }}" class="ds-btn"><i class="bi bi-arrow-left"></i> Kembali ke Progress Kontrak</a>
+  {# ── Baris atas: kembali + cara kerja (disclosure) ── #}
+  <div class="kpr-topline">
+    <a href="{{ url_for('contract.list_contracts') }}" class="ds-btn ds-btn--sm"><i class="bi bi-arrow-left"></i> Kembali ke Progress Kontrak</a>
+    <details class="kpr-help">
+      <summary><i class="bi bi-info-circle"></i> Cara kerja &amp; kriteria</summary>
+      <div class="kpr-help__body">
+        <p>
+          Halaman ini membandingkan kolom <strong>NO PO / KONTRAK</strong> pada invoice dengan nomor
+          kontrak di registri procurement. Nomor dibandingkan setelah <strong>dinormalisasi</strong>:
+          beda pemisah dan beda nol depan dianggap sama (mis. “PB.021” = “PB.21”, “064” = “64”).
+        </p>
+        <p>Sebuah nomor ditandai <em>kandidat typo</em> hanya bila <strong>ketiganya</strong> terpenuhi:</p>
+        <ul>
+          <li>kemiripan nomor &ge; <strong>{{ (threshold * 100)|round|int }}%</strong>;</li>
+          <li><strong>serial depannya sama</strong> (mis. sama-sama “PB.038”);</li>
+          <li><strong>vendor/rekanannya sama</strong> — titik/tanda baca diabaikan dan varian ejaan kecil ditoleransi (mis. “PT. ARLISCO” = “PT ARLISCO”, “SYSTEM” = “SYSTEMS”).</li>
+        </ul>
+        <p>
+          Nomor dengan serial depan berbeda (PB.038 vs PB.039) atau vendor berbeda sengaja
+          <strong>tidak ditampilkan</strong> agar tidak menjadi noise. Semua temuan bersifat
+          <strong>indikatif</strong> — <strong>tidak ada penghubungan otomatis</strong>; periksa manual
+          lalu perbaiki nomor kontrak atau No PO di sumbernya.
+        </p>
+      </div>
+    </details>
   </div>
 
-  <div class="kpr-card" style="padding:16px 18px">
-    <p class="kpr-section-title" style="margin-bottom:6px">Pemeriksaan No PO / Kontrak</p>
-    <p class="kpr-note">
-      Halaman ini membandingkan kolom <strong>NO PO / KONTRAK</strong> pada invoice dengan nomor kontrak
-      di registri procurement. Nomor dibandingkan setelah <strong>dinormalisasi</strong> (beda pemisah
-      &middot; beda nol depan dianggap sama, mis. “PB.021” = “PB.21”, “064” = “64”). Sebuah nomor ditandai
-      <em>kandidat typo</em> hanya bila kemiripannya &ge; <strong>{{ (threshold * 100)|round|int }}%</strong>,
-      <strong>serial depannya sama</strong> (mis. sama-sama “PB.038”), dan <strong>vendor/rekanannya sama</strong>
-      (nama dibandingkan dengan mengabaikan titik/tanda baca &amp; toleran varian ejaan kecil, mis.
-      “PT. ARLISCO” = “PT ARLISCO”, “SYSTEM” = “SYSTEMS”). Nomor dengan serial depan berbeda
-      (mis. PB.038 vs PB.039) atau vendornya berbeda sengaja <strong>tidak ditampilkan</strong> agar tidak
-      menjadi noise. Semua temuan bersifat <strong>indikatif</strong> — <strong>tidak ada penghubungan
-      otomatis</strong>; periksa manual lalu perbaiki nomor kontrak atau No PO di sumbernya.
-    </p>
+  {# ── Ringkasan angka (at a glance) ── #}
+  <div class="ds-kpi-grid">
+    <div class="ds-kpi ds-kpi--compact">
+      <div class="ds-kpi__ico ds-kpi__ico--amber"><i class="bi bi-shuffle"></i></div>
+      <div>
+        <div class="ds-kpi__label">Kandidat Typo</div>
+        <div class="ds-kpi__value">{{ mirip|length }}</div>
+        <div class="ds-kpi__hint">{% if mirip %}{{ mirip|sum(attribute='jumlah') }} invoice mirip{% else %}Tidak ada{% endif %}</div>
+      </div>
+    </div>
+    <div class="ds-kpi ds-kpi--compact">
+      <div class="ds-kpi__ico ds-kpi__ico--blue"><i class="bi bi-file-earmark-x"></i></div>
+      <div>
+        <div class="ds-kpi__label">Kontrak Tanpa Invoice</div>
+        <div class="ds-kpi__value">{{ tanpa_invoice|length }}</div>
+        <div class="ds-kpi__hint">belum punya invoice</div>
+      </div>
+    </div>
+    <div class="ds-kpi ds-kpi--compact">
+      <div class="ds-kpi__ico ds-kpi__ico--violet"><i class="bi bi-question-circle"></i></div>
+      <div>
+        <div class="ds-kpi__label">No PO Tak Terdaftar</div>
+        <div class="ds-kpi__value">{{ missing|length }}</div>
+        <div class="ds-kpi__hint">nomor belum ada di registri</div>
+      </div>
+    </div>
   </div>
 
-  {# ── Ringkasan nilai belum tercocok (selalu tampil) ── #}
+  {# ── Caveat nilai invoice yang belum tercocok (ringkas, satu baris) ── #}
   {% if unmatched_count %}
-  <div class="kpr-card" style="padding:14px 18px;border-left:4px solid #E5B800">
-    <p class="kpr-note" style="font-size: 0.78rem;color:#333333">
-      <i class="bi bi-exclamation-triangle" style="color:#8a6d00"></i>
-      <strong>{{ unmatched_count }} invoice</strong> (senilai
-      <strong>{{ unmatched_value|money }}</strong>) memakai No PO yang <strong>tidak cocok</strong>
-      dengan kontrak mana pun di registri — nilainya belum ikut terhitung di Progress Kontrak.
-      Rinciannya per nomor ada di tab <strong>Tak Terdaftar</strong>.
-    </p>
+  <div class="kpr-callout">
+    <i class="bi bi-exclamation-triangle"></i>
+    <span>
+      <strong>{{ unmatched_count }} invoice</strong> (senilai <strong>{{ unmatched_value|money }}</strong>)
+      memakai No PO yang tidak cocok dengan kontrak mana pun — nilainya belum ikut terhitung di
+      Progress Kontrak. <a href="{{ url_for('contract.po_review', tab='tak-terdaftar') }}">Rincian di tab Tak Terdaftar <i class="bi bi-arrow-right"></i></a>
+    </span>
   </div>
   {% endif %}
 
@@ -162,7 +228,7 @@
       <div class="kpr-head">
         <h2><i class="bi bi-shuffle"></i> Mirip &amp; vendor sama — kandidat typo</h2>
         <span class="pill pill--warn">{{ mirip|length }}</span>
-        {% if mirip_invoice %}<span class="pill">{{ mirip_invoice }} invoice</span>{% endif %}
+        {% if mirip %}<span class="pill">{{ mirip|sum(attribute='jumlah') }} invoice</span>{% endif %}
       </div>
       {% if mirip %}
       <div class="kpr-scroll">
@@ -195,7 +261,7 @@
       {% else %}
       <div class="kpr-empty">
         <i class="bi bi-shield-check"></i>
-        <p class="kpr-note" style="margin-top:8px">Tidak ada No PO yang mirip <em>dan</em> vendornya sama dengan kontrak terdaftar.</p>
+        <p class="kpr-note">Tidak ada No PO yang mirip <em>dan</em> vendornya sama dengan kontrak terdaftar.</p>
       </div>
       {% endif %}
     </div>
@@ -226,7 +292,7 @@
       {% else %}
       <div class="kpr-empty">
         <i class="bi bi-shield-check"></i>
-        <p class="kpr-note" style="margin-top:8px">Semua kontrak terdaftar sudah punya invoice.</p>
+        <p class="kpr-note">Semua kontrak terdaftar sudah punya invoice.</p>
       </div>
       {% endif %}
     </div>
@@ -236,18 +302,15 @@
   {# ═══ PANEL 2: TAK TERDAFTAR ═══ #}
   <div class="kpr-panel{% if active_tab == 'tak-terdaftar' %} is-active{% endif %}" id="panel-tak-terdaftar" role="tabpanel">
 
-    <div class="kpr-card" style="padding:16px 18px">
-      <p class="kpr-section-title" style="margin-bottom:6px">
-        Nomor kontrak di invoice yang belum ada di registri
-      </p>
-      <p class="ku-hint">
-        Daftar ini berasal dari kolom <strong>NO PO / KONTRAK</strong> pada tabel invoice.
-        Jika nomor muncul di sini, berarti belum ada kontrak yang didaftarkan dengan nomor tersebut —
-        bisa karena belum diinput, atau nomor di invoice berbeda dengan dokumen procurement.
-      </p>
-    </div>
-
     <div class="kpr-card">
+      <div class="kpr-head">
+        <h2><i class="bi bi-question-circle"></i> Nomor kontrak di invoice yang belum ada di registri</h2>
+        <span class="pill pill--right">{{ missing|length }}</span>
+      </div>
+      <p class="kpr-hint ku-hint">
+        Nomor dari kolom <strong>NO PO / KONTRAK</strong> pada tabel invoice yang belum punya kontrak
+        terdaftar — bisa karena belum diinput, atau nomor di invoice berbeda dengan dokumen procurement.
+      </p>
       {% if missing %}
       <div class="kpr-scroll">
       <table class="kpr-table">
@@ -286,11 +349,12 @@
     </div>
 
     {% if ignored_vendors %}
-    <div class="kpr-card" style="padding:14px 18px">
-      <p class="kpr-section-title" style="margin-bottom:6px">
-        <i class="bi bi-eye-slash"></i> Vendor diabaikan ({{ ignored_vendors|length }})
-      </p>
-      <div class="ku-ignored">
+    <div class="kpr-card">
+      <div class="kpr-head">
+        <h2><i class="bi bi-eye-slash"></i> Vendor diabaikan</h2>
+        <span class="pill">{{ ignored_vendors|length }}</span>
+      </div>
+      <div class="ku-ignored" style="padding:12px 18px">
         {% for v in ignored_vendors %}
         <span class="chip" title="{{ v.alasan or 'Tanpa alasan' }}">
           {{ v.vendor }}

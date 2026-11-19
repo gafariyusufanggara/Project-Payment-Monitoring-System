@@ -149,17 +149,21 @@ assert '.kc-page #kcTable tbody td.kc-belum { color: #667080; }' in _h_belum, \
 print(f'[3b] Belum Ditagih netral (bukan utang) OK: {_belum_tds[:2]}')
 
 
-# --- 4. Label kolom: total tetap "Sisa Tagihan", pecahannya dua kolom ---
+# --- 4. Label KPI: Sisa Hutang (utang nyata) vs Belum Ditagih (pipeline) ---
 with app.test_request_context('/'):
     html = render_template('contracts.html', contracts=contracts, summary=summary,
                            project_labels={}, project_list=[])
-assert 'Sisa Tagihan (DPP)' in html and 'Sisa Tagihan (PPN)' in html, \
-    "label KPI 'Sisa Tagihan' tidak ditemukan"
-# "Belum Ditagih" dan "Sisa Hutang" kini kolom tersendiri (dipisah dari total).
+# KPI kini menonjolkan "Sisa Hutang" (utang nyata), bukan "Sisa Tagihan" gabungan.
+assert '<div class="ds-kpi__label">Sisa Hutang (DPP)</div>' in html \
+    and '<div class="ds-kpi__label">Sisa Hutang (PPN)</div>' in html, \
+    "label KPI 'Sisa Hutang (DPP/PPN)' tidak ditemukan"
+assert 'Sisa Tagihan (DPP)</div>' not in html, \
+    "label KPI lama 'Sisa Tagihan (DPP)' masih ada"
+# Kolom tabel "Belum Ditagih" & "Sisa Hutang" tetap ada (dipisah dari total).
 assert 'Belum Ditagih (DPP)' in html and 'Sisa Hutang (DPP)' in html, \
     "kolom 'Belum Ditagih (DPP)' / 'Sisa Hutang (DPP)' tidak ditemukan"
 assert 'Sisa Tagih (' not in html, "label lama 'Sisa Tagih' masih ada"
-print('[4] label kolom OK: Sisa Tagihan (total) + Belum Ditagih/Sisa Hutang (rincian)')
+print('[4] label KPI OK: Sisa Hutang (utang nyata) + Belum Ditagih (pipeline)')
 
 # --- 4b. Urutan kolom: blok DPP, blok PPN, sisa di akhir ---
 # Header kini 2 baris (baris grup + baris label). Yang menentukan urutan
@@ -170,15 +174,14 @@ _leaf_row = _trows[-1]
 _hdr = [re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', ' ', th)).strip() for th in
         re.findall(r'<th[^>]*>(.*?)</th>', _leaf_row, re.S)]
 _hdr = [_h for _h in _hdr if _h][:18]
-_expected = ['No.', 'Vendor / Rekanan', 'Item Pekerjaan',
-             'DPP Kontrak', 'Tagihan DPP', 'Bayar DPP (Rp)', 'Bayar DPP (%)',
-             'PPN Kontrak', 'Tagihan PPN', 'Bayar PPN (Rp)', 'Bayar PPN (%)',
-             'Metode Bayar',
+_expected = ['No.', 'Vendor / Rekanan', 'Item Pekerjaan', 'Metode Bayar',
+             'Nilai DPP', 'Ditagih DPP', 'Dibayar DPP (Rp)', 'Progres DPP (%)',
+             'Nilai PPN', 'Ditagih PPN', 'Dibayar PPN (Rp)', 'Progres PPN (%)',
              'Belum Ditagih (DPP)', 'Sisa Hutang (DPP)',
              'Belum Ditagih (PPN)', 'Sisa Hutang (PPN)',
-             'Termin Ditagih', 'Invoice']
+             'Termin Ditagih', 'Jml Invoice']
 assert _hdr == _expected, f'urutan kolom salah:\n{_hdr}\n!=\n{_expected}'
-print('[4b] urutan kolom OK: DPP -> PPN, Belum Ditagih + Sisa Hutang per pajak')
+print('[4b] urutan kolom OK: Identitas (4) -> DPP (4) -> PPN (4) -> Sisa (4) -> Status (2)')
 
 # --- 4b1. Baris grup kolom: label + rentang span harus menutup 18 kolom ---
 _grow = _trows[0]
@@ -186,16 +189,18 @@ _gtxt = [htmlmod.unescape(re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', ' ', th)).strip
          for th in re.findall(r'<th[^>]*>(.*?)</th>', _grow, re.S)]
 _gspans = [(int(a), int(b)) for a, b in
            re.findall(r'data-gstart="(\d+)"\s+data-gspan="(\d+)"', _grow)]
-assert _gtxt == ['', 'Identitas', '', 'DPP', 'PPN', 'Sisa & Hutang', 'Status', ''], \
+assert _gtxt == ['Identitas', 'DPP', 'PPN', 'Sisa & Hutang', 'Status'], \
     f'label grup kolom salah: {_gtxt}'
-assert [a for a, _ in _gspans] == [0, 1, 2, 3, 7, 12, 16, 17], \
+assert [a for a, _ in _gspans] == [0, 4, 8, 12, 16], \
     f'data-gstart grup salah: {_gspans}'
+assert [b for _, b in _gspans] == [4, 4, 4, 4, 2], \
+    f'data-gspan grup salah: {_gspans}'
 assert sum(b for _, b in _gspans) == 18, \
     f'total span grup {sum(b for _, b in _gspans)} != 18 kolom'
 assert all(re.search(r'class="[^"]*kc-grp-(id|dpp|ppn|sisa|stat)', th)
            for th in re.findall(r'<th[^>]*data-gspan[^>]*>', _grow)), \
     'setiap sel grup harus punya kelas warna kc-grp-*'
-print('[4b1] grup kolom OK: Identitas | DPP | PPN | Sisa & Hutang | Status (18 kolom)')
+print('[4b1] grup kolom OK: Identitas | DPP | PPN | Sisa & Hutang | Status (4/4/4/4/2 = 18)')
 
 # --- 4b2. Urut ALAMIAH menurut No. PO/Kontrak ---
 # Regresi: ORDER BY teks membuat "PB.10" < "PB.9" dan "PB.100" < "PB.2",
@@ -548,21 +553,40 @@ for c in contracts:
 with app.test_request_context('/'):
     _html9 = render_template('contracts.html', contracts=contracts, summary=summary,
                              project_labels={}, project_list=[])
-assert 'Sisa Tagihan (DPP)</div>' in _html9 and 'Sisa Tagihan (PPN)</div>' in _html9, \
-    'label KPI Sisa Tagihan (DPP/PPN) tidak ditemukan'
+assert '<div class="ds-kpi__label">Sisa Hutang (DPP)</div>' in _html9 \
+    and '<div class="ds-kpi__label">Sisa Hutang (PPN)</div>' in _html9, \
+    'label KPI Sisa Hutang (DPP/PPN) tidak ditemukan'
+assert 'Sisa Tagihan (DPP)</div>' not in _html9, \
+    'label KPI lama Sisa Tagihan (DPP) masih ada'
 for _lbl in ('DPP', 'PPN'):
     for _nm in ('Belum Ditagih', 'Sisa Hutang'):
         assert f'{_nm} ({_lbl})</th>' in _html9, \
             f'kolom "{_nm} ({_lbl})" tidak ditemukan'
 assert 'Sisa Hutang DPP</div>' not in _html9, 'label lama Sisa Hutang DPP masih ada'
 _money9 = appmod.app.jinja_env.filters['money']
-for _lbl, _val in (('DPP', summary['total_sisa_dpp']),
-                   ('PPN', summary['total_sisa_ppn'])):
-    assert f'Sisa Tagihan ({_lbl})</div><div class="ds-kpi__value">{_money9(_val)}</div>' \
-        in _html9, f'nilai KPI Sisa Tagihan {_lbl} tidak sesuai summary'
-# Hint KPI menyebut "Sisa hutang", bukan lagi "Sudah ditagih belum dibayar".
-assert 'Sisa hutang: ' in _html9, 'hint KPI harus menyebut "Sisa hutang"'
-print(f'[9] Sisa Tagihan = Belum Ditagih + Sisa Hutang OK: '
+# Nilai KPI = Sisa Hutang (utang nyata), bukan angka gabungan "Sisa Tagihan".
+for _lbl, _val in (('DPP', summary['total_sisa_hutang']),
+                   ('PPN', summary['total_sisa_hutang_ppn'])):
+    assert f'Sisa Hutang ({_lbl})</div><div class="ds-kpi__value">{_money9(_val)}</div>' \
+        in _html9, f'nilai KPI Sisa Hutang {_lbl} tidak sesuai summary'
+# Hint memisahkan "Belum ditagih" (pipeline) dari utang, dan menyebut jumlah
+# kontrak supaya angka Rupiah actionable. Persentase diukur dari YANG SUDAH
+# DITAGIH (bukan dari total belum dibayar yang mayoritas pipeline).
+for _lbl, _tertagih, _sisa in (
+        ('DPP', summary['total_tertagih'], summary['total_sisa_hutang']),
+        ('PPN', summary['total_tertagih_ppn'], summary['total_sisa_hutang_ppn'])):
+    _pct = round(_sisa / _tertagih * 100, 1) if _tertagih > 0 else 0
+    assert f'{_pct}% dari {_money9(_tertagih)} yang sudah ditagih belum dibayar' in _html9, \
+        f'rasio "belum dibayar dari yang sudah ditagih" {_lbl} tidak sesuai'
+# Hint "X kontrak masih ada utang · Y sudah lunas" sudah DIHAPUS (membuat
+# kartu KPI melebar). Pastikan tidak muncul lagi.
+assert 'kontrak masih ada utang' not in _html9 and 'sudah lunas' not in _html9, \
+    'hint "kontrak masih ada utang / sudah lunas" seharusnya sudah dihapus dari kartu KPI'
+assert 'Belum ditagih: ' in _html9, \
+    'pipeline "Belum ditagih" harus tampil terpisah di kartu KPI'
+assert 'Total belum dibayar: ' not in _html9, \
+    'teks lama "Total belum dibayar" (angka gabungan) masih ada di kartu KPI'
+print(f'[9] KPI Sisa Hutang (utang nyata) OK: '
       f'hutang DPP {summary["total_sisa_hutang"]:,.0f}, '
       f'PPN {summary["total_sisa_hutang_ppn"]:,.0f}')
 

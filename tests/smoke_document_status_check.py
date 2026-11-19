@@ -199,4 +199,27 @@ assert 'event.ctrlKey' in base and 'event.metaKey' in base, \
     "handler sidebar harus membiarkan Ctrl/Cmd+klik membuka tab baru"
 print("[6] sidebar: menu 'Status Dokumen' di grup Ringkasan setelah Dashboard OK")
 
+
+# --- 7. Modal detail saat baris diklik — memakai modal viewRow (sama dgn Daftar Invoice) ---
+assert 'class="ds-rowlink"' in html and 'data-row=' in html, \
+    "baris tabel harus bisa diklik (class ds-rowlink + data-row)"
+assert 'viewRow(' in html, "handler klik baris harus memanggil viewRow (modal Daftar Invoice)"
+assert 'id="viewModal"' in html, "modal #viewModal (detail baris) tidak ada di halaman"
+assert 'id="vmFinbar"' in html and 'id="vmBody"' in html, "struktur modal detail baris tidak lengkap"
+# Modal lama kustom harus sudah tidak ada.
+assert 'id="dsDetailModal"' not in html, "modal kustom lama #dsDetailModal masih ada"
+# Endpoint data yang dipakai viewRow: /edit/<row> mengembalikan field lengkap.
+if rows:
+    with app.test_client() as c:
+        with c.session_transaction() as s:
+            s[_auth.SESSION_KEY] = True
+        rd = c.get('/edit/%s' % rows[0]['row_idx'])
+        rd404 = c.get('/edit/999999999')
+    assert rd.status_code == 200, f"/edit/<row> -> {rd.status_code}"
+    dj = rd.get_json()
+    for k in ('NAMA LEVELANSIR / REKANAN', 'HARGA (EXLD)', 'PEMBAYARAN DPP', 'SISA HUTANG DPP'):
+        assert k in dj, f"/edit/<row> tak memuat field '{k}'"
+    assert rd404.status_code == 404, "row_idx tak dikenal harus 404"
+print("[7] modal detail baris (klik) via viewRow (sama dgn Daftar Invoice) OK")
+
 print("\nALL CHECKS PASSED")

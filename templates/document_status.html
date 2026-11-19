@@ -47,16 +47,28 @@
   }
   .ds-note i { font-size: 1rem; flex-shrink: 0; }
   .ds-note strong { color: #6b5500; }
-  .ds-kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
-  .ds-kpi .ds-kpi__value.ds-val-money { white-space: nowrap; }
-  .ds-kpi .ds-kpi__value.dsm-val-sm { font-size: 0.85rem; }
-  .ds-kpi .ds-kpi__value.dsm-val-xs { font-size: 0.7rem; }
+  .ds-kpis {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px;
+    container-type: inline-size; container-name: dskpis;
+  }
+  .ds-kpi--compact > div:last-child { flex: 1; min-width: 0; }
+  .ds-kpi .ds-kpi__value.ds-kpi__value { white-space: nowrap; }
+  /* Angka KPI diskalakan ke lebar kartu (container query), SAMA PERSIS dgn
+     Progress Invoice Cicilan — bukan trik ganti class per-panjang-angka —
+     supaya ukuran angka seragam antar halaman dan tidak meluber saat menyempit.
+     Ambang dikalibrasi ke lebar efektif (dengan --ui-zoom 0.9). */
+  @container dskpis (max-width: 1800px) { .ds-kpi .ds-kpi__value.ds-kpi__value { font-size: 1.35rem; } }
+  @container dskpis (max-width: 1290px) { .ds-kpi .ds-kpi__value.ds-kpi__value { font-size: 1.2rem; } }
+  @container dskpis (max-width: 1200px) { .ds-kpi .ds-kpi__value.ds-kpi__value { font-size: 1.05rem; } }
+  @container dskpis (max-width: 1020px) { .ds-kpi .ds-kpi__value.ds-kpi__value { font-size: 0.95rem; } }
+  @container dskpis (max-width: 800px)  { .ds-kpi .ds-kpi__value.ds-kpi__value { font-size: 0.85rem; } }
+  @container dskpis (max-width: 600px)  { .ds-kpi .ds-kpi__value.ds-kpi__value { font-size: 0.72rem; } }
   .ds-toolbar {
     display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
     padding: 12px 18px; background: #f7f8f9; border-bottom: 1px solid #e3e5e8;
   }
   /* .ds-search lebar/geometri diatur oleh partials/_search_box.html (.ft-search). */
-  .ds-toolbar-info { margin-left: auto; font-size: 0.7rem; font-weight: 600; color: #4d5766; }
+  .ds-toolbar-info { margin-left: auto; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: #667080; }
 
   .ds-table-card { overflow-x: auto; }
   .ds-table { width: 100%; min-width: 1290px; border-collapse: separate; border-spacing: 0; font-size: 0.78rem; }
@@ -83,6 +95,21 @@
   .ds-table tbody tr:last-child td { border-bottom: none; }
   .ds-table tbody tr:nth-child(even) td { background: #f7f8f9; }
   .ds-table tbody tr:hover td { background: #eaf0f6; }
+  /* Baris bisa diklik → buka modal detail (pola sama dgn Daftar Invoice).
+     Pakai kelas unik .ds-rowlink (BUKAN .ds-row) supaya tidak bentrok dgn
+     .ds-row global di app.css yang ber-display:flex (merusak layout tabel). */
+  .ds-table tbody tr.ds-rowlink { cursor: pointer; }
+  .ds-table tbody tr.ds-rowlink:focus-visible { outline: none; }
+  .ds-table tbody tr.ds-rowlink:focus-visible td { background: #eaf0f6; box-shadow: inset 0 0 0 2px #16324f; }
+  /* Footer TOTAL — nilai yang tertahan revisi, sejajar kolom nominal.
+     Gaya mengikuti pita footer tabel Data Invoice (navy, border atas tebal). */
+  .ds-tfoot td {
+    background: #f7f8f9; border-top: 2px solid #16324f; border-bottom: none;
+    padding: 10px 10px; font-size: 0.78rem; font-weight: 700; color: #16324f;
+    white-space: nowrap; font-variant-numeric: tabular-nums;
+  }
+  .ds-tfoot td.ds-td-num { font-family: "JetBrains Mono", ui-monospace, monospace; }
+  .ds-foot-lbl { display: inline-block; font-size: 0.7rem; font-weight: 800; letter-spacing: .7px; text-transform: uppercase; color: #16324f; }
   .ds-table td.ds-td-num {
     text-align: right; white-space: nowrap;
     font-family: "JetBrains Mono", ui-monospace, monospace;
@@ -107,13 +134,9 @@
   .ds-empty p { color: #667080; font-size: 0.85rem; margin-top: 4px; }
 
   @media (max-width: 1024px) { .ds-kpis { grid-template-columns: repeat(3, 1fr); } }
-  @media (max-width: 768px) {
-    .ds-kpis { grid-template-columns: repeat(2, 1fr); }
-    .ds-kpi .ds-kpi__value.ds-val-money { font-size: 0.85rem; }
-    .ds-kpi .ds-kpi__value.dsm-val-sm { font-size: 0.78rem; }
-    .ds-kpi .ds-kpi__value.dsm-val-xs { font-size: 0.7rem; }
-  }
+  @media (max-width: 768px) { .ds-kpis { grid-template-columns: repeat(2, 1fr); } }
   @media (prefers-reduced-motion: reduce) { .ds-kpi { transition: none; } }
+
 </style>
 
 <div class="ds-wrap animate-in">
@@ -133,19 +156,19 @@
     </div>
     <div class="ds-kpi ds-kpi--compact">
       <div class="kpi-ico kpi-ico--blue"><i class="bi bi-cash-stack"></i></div>
-      <div><div class="ds-kpi__label">Nilai DPP</div><div class="ds-kpi__value ds-val-money ds-money {{ 'dsm-val-xs' if summary.dpp|money|length > 17 else ('dsm-val-sm' if summary.dpp|money|length > 12 else '') }}" data-val="{{ summary.dpp }}">{{ summary.dpp|money }}</div></div>
+      <div><div class="ds-kpi__label">Nilai DPP</div><div class="ds-kpi__value ds-money" data-val="{{ summary.dpp }}">{{ summary.dpp|money }}</div></div>
     </div>
     <div class="ds-kpi ds-kpi--compact">
       <div class="kpi-ico kpi-ico--violet"><i class="bi bi-percent"></i></div>
-      <div><div class="ds-kpi__label">Nilai PPN</div><div class="ds-kpi__value ds-val-money ds-money {{ 'dsm-val-xs' if summary.ppn|money|length > 17 else ('dsm-val-sm' if summary.ppn|money|length > 12 else '') }}" data-val="{{ summary.ppn }}">{{ summary.ppn|money }}</div></div>
+      <div><div class="ds-kpi__label">Nilai PPN</div><div class="ds-kpi__value ds-money" data-val="{{ summary.ppn }}">{{ summary.ppn|money }}</div></div>
     </div>
     <div class="ds-kpi ds-kpi--compact">
       <div class="kpi-ico kpi-ico--slate"><i class="bi bi-scissors"></i></div>
-      <div><div class="ds-kpi__label">Pot. PPh</div><div class="ds-kpi__value ds-val-money ds-money {{ 'dsm-val-xs' if summary.pph|money|length > 17 else ('dsm-val-sm' if summary.pph|money|length > 12 else '') }}" data-val="{{ summary.pph }}">{{ summary.pph|money }}</div></div>
+      <div><div class="ds-kpi__label">Pot. PPh</div><div class="ds-kpi__value ds-money" data-val="{{ summary.pph }}">{{ summary.pph|money }}</div></div>
     </div>
     <div class="ds-kpi ds-kpi--compact">
       <div class="kpi-ico kpi-ico--green"><i class="bi bi-cash-coin"></i></div>
-      <div><div class="ds-kpi__label">Nilai Retensi</div><div class="ds-kpi__value ds-val-money ds-money {{ 'dsm-val-xs' if summary.retensi|money|length > 17 else ('dsm-val-sm' if summary.retensi|money|length > 12 else '') }}" data-val="{{ summary.retensi }}">{{ summary.retensi|money }}</div></div>
+      <div><div class="ds-kpi__label">Nilai Retensi</div><div class="ds-kpi__value ds-money" data-val="{{ summary.retensi }}">{{ summary.retensi|money }}</div></div>
     </div>
   </div>
 
@@ -201,6 +224,11 @@
       <tbody>
         {% for row in rows %}
         <tr
+          class="ds-rowlink"
+          data-row="{{ row.row_idx }}"
+          tabindex="0"
+          role="button"
+          aria-label="Lihat detail dokumen {{ row.rekanan or '-' }}"
           data-search="{{ (row.rekanan or '') + ' ' + (row.no_invoice or '') + ' ' + (row.no_po or '') + ' ' + (row.deskripsi or '') }}"
         >
           <td><span class="ds-rnum">{{ row.r }}</span></td>
@@ -221,6 +249,16 @@
         </tr>
         {% endfor %}
       </tbody>
+      <tfoot class="ds-tfoot">
+        <tr>
+          <td colspan="7"><span class="ds-foot-lbl">Total Nilai Tertahan Revisi</span></td>
+          <td class="ds-td-num ds-money" data-val="{{ summary.dpp }}">{{ summary.dpp|money }}</td>
+          <td class="ds-td-num ds-money" data-val="{{ summary.ppn }}">{{ summary.ppn|money }}</td>
+          <td class="ds-td-num ds-money" data-val="{{ summary.pph }}">{{ summary.pph|money }}</td>
+          <td class="ds-td-num ds-money" data-val="{{ summary.retensi }}">{{ summary.retensi|money }}</td>
+          <td class="ds-td-num ds-money" data-val="{{ summary.total }}">{{ summary.total|money }}</td>
+        </tr>
+      </tfoot>
     </table>
     </div>
     {% else %}
@@ -246,27 +284,56 @@
   document.querySelectorAll('.ds-money').forEach(function (el) {
     el.textContent = fmt(el.dataset.val);
   });
+  // Skala font angka KPI diskalakan lewat container query (CSS) — tidak perlu
+  // lagi menghapus penanda ukuran dari JS.
 
-  // ── Pencarian baris ──
+  // ── Pencarian baris (footer TOTAL ikut menyesuaikan hasil filter) ──
   var searchEl = document.getElementById('dsSearch');
   var table = document.getElementById('dsTable');
   var countEl = document.getElementById('dsCount');
   if (searchEl && table) {
     var rows = Array.prototype.slice.call(table.querySelectorAll('tbody tr'));
     var total = rows.length;
+    var footCells = table.querySelectorAll('tfoot .ds-money');
+    // Jumlahkan 5 kolom nominal dari baris yang sedang tampil, tulis ke footer.
+    function updateFoot(visibleRows) {
+      var sums = [0, 0, 0, 0, 0];
+      visibleRows.forEach(function (tr) {
+        var cells = tr.querySelectorAll('.ds-td-num.ds-money');
+        cells.forEach(function (td, i) {
+          if (i < 5) sums[i] += Number(td.dataset.val || 0);
+        });
+      });
+      footCells.forEach(function (td, i) {
+        if (i < 5) td.textContent = fmt(sums[i]);
+      });
+    }
     function applyFilter() {
       var q = (searchEl.value || '').toLowerCase().trim();
-      var visible = 0;
+      var shown = [];
       rows.forEach(function (tr) {
         var hay = (tr.dataset.search || '').toLowerCase();
         var match = !q || hay.indexOf(q) !== -1;
         tr.style.display = match ? '' : 'none';
-        if (match) visible++;
+        if (match) shown.push(tr);
       });
-      if (countEl) countEl.textContent = q ? (visible + ' dari ' + total + ' dokumen') : (total + ' dokumen');
+      updateFoot(shown);
+      if (countEl) countEl.textContent = q ? (shown.length + ' dari ' + total + ' dokumen') : (total + ' dokumen');
     }
     searchEl.addEventListener('input', applyFilter);
     applyFilter();
+  }
+
+  // ── Detail dokumen: pakai modal "viewRow" yang SAMA PERSIS dengan Daftar
+  // Invoice (definisi global di base.html: #viewModal + viewRow()). Karena
+  // Status Dokumen itu per baris invoice, satu baris = satu invoice di modal.
+  if (table) {
+    table.querySelectorAll('tbody tr.ds-rowlink').forEach(function (tr) {
+      tr.addEventListener('click', function () { viewRow(parseInt(tr.dataset.row, 10)); });
+      tr.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); viewRow(parseInt(tr.dataset.row, 10)); }
+      });
+    });
   }
 })();
 </script>
