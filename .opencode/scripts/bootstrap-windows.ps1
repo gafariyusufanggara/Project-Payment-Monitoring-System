@@ -175,6 +175,32 @@ Install-Winget 'astral-sh.uv' 'uv' 'uv'
 $chromeExe = Ensure-Chrome
 Refresh-Path
 
+# ------------------------------------------------------------------ sloplint render
+# sloplint --render (Hallmark) needs puppeteer-core (global npm root) and a Chrome
+# binary via CHROME_PATH. Without them the gate silently drops to the static tier.
+Step 'sloplint render deps'
+if (Has-Cmd 'npm') {
+  $groot = (& npm root -g 2>$null); if ($groot) { $groot = "$groot".Trim() }
+  if ($groot -and (Test-Path (Join-Path $groot 'puppeteer-core'))) { Ok 'puppeteer-core present' }
+  elseif ($DryRun) { Write-Host '       DRY: npm install -g puppeteer-core' -ForegroundColor DarkGray }
+  else {
+    Write-Host '       installing puppeteer-core'
+    Run 'npm' @('install','-g','puppeteer-core') | Out-Null
+    $g2 = (& npm root -g 2>$null); if ($g2) { $g2 = "$g2".Trim() }
+    if ($g2 -and (Test-Path (Join-Path $g2 'puppeteer-core'))) { Ok 'puppeteer-core installed' } else { Warn 'puppeteer-core install did not resolve; sloplint --render stays static' }
+  }
+} else { Warn 'npm missing; sloplint --render stays static until puppeteer-core is installed' }
+if ($chromeExe) {
+  $curChrome = [Environment]::GetEnvironmentVariable('CHROME_PATH','User')
+  if ($curChrome -eq $chromeExe) { Ok "CHROME_PATH already set" }
+  elseif ($DryRun) { Write-Host "       DRY: set user CHROME_PATH=$chromeExe" -ForegroundColor DarkGray }
+  else {
+    [Environment]::SetEnvironmentVariable('CHROME_PATH', $chromeExe, 'User')
+    $env:CHROME_PATH = $chromeExe
+    Ok "CHROME_PATH -> $chromeExe"
+  }
+} else { Warn 'Chrome not resolved; CHROME_PATH not set, sloplint --render stays static' }
+
 # ------------------------------------------------------------------ opencode
 Step 'opencode'
 

@@ -54,14 +54,18 @@ Never read raw output into context when a derivation is possible.
 
 | Situation | Wrong | Right |
 |---|---|---|
-| Analyze/parse/filter data | `Read` the file | `ctx_execute_file(path, lang, code)` |
-| Multi-step investigation | 20 shell calls | `ctx_batch_execute([{label, command}...], queries)` |
+| Analyze/parse/filter data | `Read` the file | `ctx_execute(lang, code, file: path)` |
+| Multi-step investigation | 20 shell calls | `ctx_batch({commands:["cmd1","cmd2"], queries})` |
 | Search across many results | `Grep` then read | `ctx_execute` with a filter, print counts |
-| Fetch a web page | `Invoke-WebRequest` | `ctx_fetch_and_index` then `ctx_search` |
+| Fetch a web page | `Invoke-WebRequest` | `ctx_index(url: "…")` then `ctx_search` |
 | Two questions about same data | two calls | one `ctx_search(queries: ["q1","q2"])` |
 
-`ctx_batch_execute` with 3+ I/O commands: `concurrency: 4-8`. Keep `concurrency:
-1` for CPU-bound (build, test, lint) or state-sharing commands. Cap `gh` at 4.
+`ctx_batch` `commands` is a list of raw shell strings (there is no `label` field
+and no `concurrency` parameter — the tool runs them in one sandbox call).
+`queries` are **FTS keywords over the command output**: use words that actually
+appear in that output (e.g. `"version"`, `"dependencies"`, `"script"`). A keyword
+that does not match the output falls back to searching the whole session and
+returns noise, so keep them output-specific.
 Blocked constructs (`curl`, `wget`, inline HTTP): do not retry — see
 `context/TROUBLESHOOTING.md`.
 
@@ -102,7 +106,7 @@ Project documents win over upstream docs and over your assumptions.
 Do not assume filenames. Discover, then read only what maps to the task:
 
 ```js
-ctx_batch_execute(commands: [
+ctx_batch(commands: [
   {label:"docs-tree", command:"rtk find docs -name *.md"},
   {label:"docs-root", command:"rtk find . -maxdepth 1 -name *.md"}
 ], queries: ["requirements","stack","features","design system","decisions"])
@@ -116,13 +120,13 @@ ctx_batch_execute(commands: [
 | `DESIGN.md` / `docs/DESIGN.md` | Locked design system |
 | `docs/adr/*.md` | Decisions and rationale |
 
-Rules: list large `docs/` first; `ctx_execute_file` for files over ~200 lines;
+Rules: list large `docs/` first; `ctx_execute(file: path)` for files over ~200 lines;
 never edit docs unless asked; report code-vs-doc conflicts; quote the requirement.
 
 ### External library documentation
 
 ```
-ctx_fetch_and_index(<official docs URL>, source: "docs-<lib>")
+ctx_index(url: "<official docs URL>", source: "docs-<lib>")
 ctx_search(queries: [...], source: "docs-<lib>")
 ```
 
@@ -140,7 +144,7 @@ tools know nothing about this repo. Never substitute one for the other.
 | Question | Tool |
 |---|---|
 | "Where is auth verified here?" / "Who calls this?" | `graphify` |
-| "What is the current API of library X?" | `ctx_fetch_and_index` + `ctx_search` |
+| "What is the current API of library X?" | `ctx_index` + `ctx_search` |
 | "What does our PRD require?" | read `docs/` |
 
 ## 4. Session memory: search before asking
@@ -160,8 +164,11 @@ session, not an excuse to prompt.
 | Intent | Tool |
 |---|---|
 | You will `Edit` this file | `Read` (exact bytes needed) |
-| You will analyze/summarize it | `ctx_execute_file` |
+| You will analyze/summarize it | `ctx_execute(file: path)` |
 | You need one known line range | `Read` with `offset`/`limit` |
+
+Skill scripts (`sloplint.mjs`, `theme.mjs`, `capture.mjs`, …) are **executed, not
+Read**: run `node <script> …` and read only its stdout and exit code.
 
 ## 6. Skill routing
 
@@ -182,7 +189,7 @@ both plan, pick one.
 
 ## 7. Context budget
 
-- One `ctx_batch_execute` replaces roughly 30 shell calls; use 5-8 queries and do
+- One `ctx_batch` replaces roughly 30 shell calls; use 5-8 queries and do
   not re-run the same batch.
 - Tool output over ~100 lines or ~2k tokens: derive in the sandbox, print the
   answer, counts, or first N matches.

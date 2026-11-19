@@ -77,7 +77,7 @@ if ($shellVal -and (Test-Path $shellVal)) {
     Bad "SHELL basename '$base' is not allowlisted by context-mode (allowed: bash, sh, zsh, dash, pwsh, powershell, cmd)"
   }
 } else {
-  Gate "SHELL unset or missing. ctx_batch_execute fails on Windows with: Executable not found in PATH: pwsh"
+  Gate "SHELL unset or missing. ctx_batch fails on Windows with: Executable not found in PATH: pwsh"
   Warn "Fix: [Environment]::SetEnvironmentVariable('SHELL','C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe','User') then restart opencode"
 }
 
@@ -99,6 +99,19 @@ if (-not $chrome) {
 }
 
 if ($chrome) { Ok "Chrome -> $chrome" } else { Gate "Chrome not found (chrome-devtools MCP needs it)" }
+
+$puppeteerOk = $false
+if (Get-Command npm -ErrorAction SilentlyContinue) {
+  try {
+    $groot = (& npm root -g 2>$null)
+    if ($groot) { $groot = "$groot".Trim() }
+    if ($groot -and (Test-Path (Join-Path $groot 'puppeteer-core'))) { $puppeteerOk = $true }
+  } catch {}
+}
+if ($puppeteerOk) { Ok 'puppeteer-core present (sloplint --render enabled)' } else { Warn 'puppeteer-core missing; sloplint --render drops to static. Run: npm install -g puppeteer-core' }
+$chromePathEnv = [Environment]::GetEnvironmentVariable('CHROME_PATH','User')
+if ($chromePathEnv -and (Test-Path $chromePathEnv)) { Ok "CHROME_PATH -> $chromePathEnv" } else { Warn 'CHROME_PATH not set; sloplint --render needs it. bootstrap sets it to the detected Chrome path' }
+
 $pwCli = Get-Command playwright-cli -ErrorAction SilentlyContinue
 if ($pwCli) { Ok "playwright-cli -> $($pwCli.Source)" } else { Gate "playwright-cli missing. Run: npm install -g @playwright/cli@latest" }
 
@@ -140,7 +153,7 @@ if (Test-Path $cfgJson) {
     Ok "playwright MCP not declared (expected)"
   }
   if ($raw -match '"context7"') {
-    Warn "context7 is still declared. It was dropped from this setup: project docs/ + ctx_fetch_and_index cover library docs. See .opencode/mcp/README.md."
+    Warn "context7 is still declared. It was dropped from this setup: project docs/ + ctx_index cover library docs. See .opencode/mcp/README.md."
   } else {
     Ok "context7 not declared (expected)"
   }

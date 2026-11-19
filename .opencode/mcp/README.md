@@ -56,7 +56,7 @@ There is deliberately no documentation MCP. Two sources cover the need:
 | Source | Covers |
 |---|---|
 | `docs/` in the project | What to build, the chosen stack and versions |
-| `ctx_fetch_and_index` + `ctx_search` | How a third-party API works today |
+| `ctx_index` + `ctx_search` | How a third-party API works today |
 | `tavily` (remote MCP) | Finding the official docs URL when it is unknown |
 See `.opencode/sops/CONTEXT.md` → **External library documentation** for the
 procedure and the rule that an unverified library API call must not be written.
@@ -65,7 +65,7 @@ procedure and the rule that an unverified library API call must not be written.
 | MCP | Why not |
 |---|---|
 | `@playwright/mcp` | Removed 2026-11-16. Same capability as `playwright-cli` but MCP tool schemas and a11y snapshots cost more context than they return. |
-| `context7` | Free tier is 1.000 calls/month; anonymous is rate-limited. Duplicates what project `docs/` + `ctx_fetch_and_index` already cover, and adds a dependency and a second definition of "documentation" the agent has to disambiguate. Removed 2026-11-03. |
+| `context7` | Free tier is 1.000 calls/month; anonymous is rate-limited. Duplicates what project `docs/` + `ctx_index` already cover, and adds a dependency and a second definition of "documentation" the agent has to disambiguate. Removed 2026-11-03. |
 | `hangwin/mcp-chrome` | 12.5k stars, but extension-based and overlaps playwright. One browser tool is enough. |
 | shadcn MCP (`@jpisnice/shadcn-ui-mcp-server`) | Only useful with shadcn. Enable it per project when `components.json` exists. |
 | `headroom` | Not installed. It was a proxy MCP, not needed for this workflow. |

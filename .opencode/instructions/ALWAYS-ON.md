@@ -21,15 +21,15 @@
   else", and any sidebar.
 
 ## After every file edit or write
-- `graphify update .` must run (the plugin runs it automatically, debounced + on idle).
-- If the graph plugin did not run it, run it manually. Skip only when `graphify-out/graph.json` is absent.
+- The `graphify-auto-update` plugin runs `graphify update .` automatically (debounced + on idle).
+- Run it manually only if the plugin did not, and only when `graphify` is installed and `graphify-out/graph.json` exists.
 - Keep the update quiet; never print its output into chat.
 
 ## context-mode is mandatory
-- Analyze/parse/filter/count/summarize a file -> `ctx_execute_file`.
-- 3+ related shell reads -> one `ctx_batch_execute`.
+- Analyze/parse/filter/count/summarize a file -> `ctx_execute(file: path)`.
+- 3+ related shell reads -> one `ctx_batch`.
 - Command output you only need a fact from -> `ctx_execute`; print only the answer.
-- Web -> `ctx_fetch_and_index` then `ctx_search`; never `curl`/`wget`.
+- Web -> `ctx_index` then `ctx_search`; never `curl`/`wget`.
 - `Read` only when the file will be `Edit`ed. One known line range -> `Read` offset/limit.
 - On resume -> `ctx_search(sort:"timeline")` before asking the user.
 - Write artifacts to files, not inline.

@@ -27,7 +27,7 @@ node .opencode/skills/hallmark/scripts/sloplint.mjs <target> --render
 If the target is a dev-server route rather than a file:
 
 ```bash
-node .opencode/skills/hallmark/scripts/sloplint.mjs <url> --url
+node .opencode/skills/hallmark/scripts/sloplint.mjs --url <url> --render
 ```
 
 For exported HTML/CSS, add the independent second opinion:
@@ -56,7 +56,7 @@ In causal order, reading `.opencode/skills/refactoring-ui/references/`:
 `WAIVED G5/G6`, report the static findings only, and state "not visually
 verified".
 
-`playwright` MCP: 320 / 768 / 1280 / 1440, screenshot each. Look for horizontal
+`playwright-cli` CLI: 320 / 768 / 1280 / 1440, screenshot each. Look for horizontal
 scroll, heading overflow, hero not fitting, focus invisible, misaligned grid.
 
 `chrome-devtools` MCP against the production/preview server: console errors,

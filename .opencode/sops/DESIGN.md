@@ -93,8 +93,10 @@ node .opencode/skills/hallmark/scripts/sloplint.mjs <file-or-dir> --render
 - Exit `0` clean.
 - Exit `1` slop found. Fix every `FAIL`; fix or waive every `REFLEX` on record in
   the CSS stamp with real evidence.
-- Exit `2` no `.html` found. For a dev-server build, pass `--url`.
-- `--render` needs Chrome. Without Chrome the static tier still runs; say so.
+- Exit `2` no `.html` found. For a dev-server build, pass `--url <address> --render`.
+- `--render` needs `puppeteer-core` (resolvable from the global npm root) and a
+  Chrome binary via `CHROME_PATH` (bootstrap installs both). Without them the
+  static tier still runs; say so and record the waiver.
 
 HTML/CSS export second opinion:
 
@@ -105,8 +107,8 @@ npx -y @gessobuild/anti-slop check <file-or-dir> --json
 ### Real screenshots
 
 Ask the user before the browser pass. If declined, record `WAIVED G5/G6` and say
-"UI not visually verified"; never imply otherwise. Use `playwright` MCP, never
-imagination. A UI claim without a screenshot is a guess. Resize 320x800,
+"UI not visually verified"; never imply otherwise. Use the `playwright-cli` CLI,
+never imagination. A UI claim without a screenshot is a guess. Resize 320x800,
 768x1024, 1280x800, 1440x900 and screenshot each. Checklist:
 `.opencode/sops/QUALITY_GATE.md` gates 5-6.
 

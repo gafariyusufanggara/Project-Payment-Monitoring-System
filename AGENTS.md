@@ -41,19 +41,15 @@ Load a SOP when its trigger fires. Do not preload all of them.
 
 ## Hard rules (never violate)
 
-- **Output style is `i-have-adhd` on every response.** First line = next action,
-  command, path, or answer. Number multi-step work. Restate state each turn.
-  No preamble, recap, or closers. Persist until the user says "stop adhd mode".
-  Full ruleset: `.opencode/skills/i-have-adhd/SKILL.md`.
-- **After every file edit or write, run `graphify update .`.** The
-  `graphify-auto-update` plugin runs it automatically (debounced, flushed on
-  idle). Run it manually if the plugin did not. Skip only when
-  `graphify-out/graph.json` is absent. Keep the output quiet.
-- **`rtk` prefix on every shell command.** Unfiltered only when debugging rtk or
-  when the wrapper rejects the flags. Limits: `CONTEXT.md` and
-  `context/TROUBLESHOOTING.md`.
-- **context-mode is mandatory.** Analyse/parse/filter with `ctx_execute` /
-  `ctx_execute_file` / `ctx_batch_execute`; `Read` only when you will `Edit`.
+Machine-wide rules are owned by `~/.config/opencode/AGENTS.md` (source:
+`.opencode/instructions/ALWAYS-ON.md`) and load in every session. Follow them;
+they are not restated here to avoid drift: `i-have-adhd` output style (default
+on, until "stop adhd mode"), automatic `graphify update .`, `rtk` prefix on every
+shell command, context-mode routing, Windows PowerShell 5.1 shell rules. Full
+ruleset: `ALWAYS-ON.md` and `.opencode/skills/i-have-adhd/SKILL.md`.
+
+Project rules (owned here):
+
 - **`docs/` is the source of truth.** Quote the requirement before writing code.
 - **No library API from memory.** Verify against official docs fetched this
   session or existing repo code. If docs cannot be fetched, say so and stop.
@@ -65,7 +61,6 @@ Load a SOP when its trigger fires. Do not preload all of them.
   browser pass.
 - **No code comments unless the user asks.**
 - **No commit, no push, no PR unless the user asks.**
-- **Shell is Windows PowerShell 5.1.** No `&&`. Use separate calls or `;`.
 - **Never invent content.** No fake metrics, testimonials, logos, or images.
 - **cwd is not guaranteed to be the project root.** Use absolute paths in
   `ctx_*` and shell when you are not sure the session is at the project root.
@@ -102,22 +97,15 @@ The 16-item floor is non-waivable. The concrete ban table is match-and-refuse.
 
 ## Definition of done
 
-See `.opencode/sops/QUALITY_GATE.md`. Summarised:
-
-- Behaviour runs and is verified by running.
-- build / typecheck / lint (0 new) / test all pass.
-- UI: sloplint 0 FAIL; screenshots at 4 viewports (320/768/1280/1440) after user
-  approval; 0 critical a11y; LCP < 2.5 s; CLS < 0.1. Declined -> waived, not
-  verified.
-- Review passed, blocking findings addressed.
-- `graphify update .` run after the last edit.
-- Handoff states: what works, how to see it, what is not done, risks, next action.
+`.opencode/sops/QUALITY_GATE.md` is the single source of truth for every gate;
+do not restate thresholds elsewhere. Done = every applicable gate passed or
+explicitly waived with a user-accepted reason. Handoff order: what works, how to
+see it, what is not done, risks, next action.
 
 ## Communication
 
-Shaped by `i-have-adhd`: answer first, numbered steps, state restated, concrete
-estimates, visible wins, no preamble or closer. Full ruleset in
-`.opencode/skills/i-have-adhd/SKILL.md`; invoke `/i-have-adhd` to reload it.
+Shaped by `i-have-adhd` (default on, until "stop adhd mode"); the full ruleset
+lives in `.opencode/skills/i-have-adhd/SKILL.md`. Invoke `/i-have-adhd` to reload.
 
 ## Where things live
 

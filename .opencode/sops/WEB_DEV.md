@@ -26,17 +26,17 @@ Missing tools: fallback per `.opencode/sops/CONTEXT.md` and
 Discover, do not assume filenames:
 
 ```js
-ctx_batch_execute(commands: [
-  {label:"docs-tree", command:"rtk find docs -name *.md"},
-  {label:"docs-root", command:"rtk find . -maxdepth 1 -name *.md"}
-], queries: ["requirements","stack","features","design system"])
+ctx_batch(commands: [
+  "rtk find docs -name *.md",
+  "rtk find . -maxdepth 1 -name *.md"
+], queries: ["requirement","stack","feature","design","decision"])
 ```
 
 Read only files that map to the task. Common: `docs/PRD.md`, `docs/STACK.md`,
 `docs/features/*.md`, `DESIGN.md` / `docs/DESIGN.md`, `docs/adr/*.md`.
 
 Rules: docs are the source of truth and beat upstream docs and training data.
-Quote the requirement before writing code. `ctx_execute_file` for a doc over
+Quote the requirement before writing code. `ctx_execute(file: path)` for a doc over
 ~200 lines. Never edit docs unless asked. Report code-vs-doc conflicts; never
 silently pick a side. If `docs/` is absent, say so once and continue.
 
@@ -71,8 +71,8 @@ import style, error handling, and state management.
 - The `planner` subagent writes the spec; its ticket shape applies when it
   should become tickets.
 - Ambiguity means ask **once**, in a short numbered list, then proceed.
-- Design-heavy feature: short `grill-me` style interrogation first — the
-  questions that must be answered before any code is written.
+- Design-heavy feature: a short interrogation first (≤5 questions, each with a
+  default) — the questions that must be answered before any code is written.
 - One-file bug fix: skip and say so.
 
 ## Phase 3 — Plan
@@ -131,11 +131,11 @@ Never tick a visual gate without evidence.
 node .opencode/skills/hallmark/scripts/sloplint.mjs <path> --render
 ```
 
-Then `playwright` MCP: resize and screenshot 320 / 768 / 1280 / 1440. Then
+Then the `playwright-cli` CLI: resize and screenshot 320 / 768 / 1280 / 1440. Then
 `chrome-devtools` MCP against the production/preview server: console, network,
 a11y, performance trace.
 
-Browser MCP missing: stop and report "UI not verified, browser MCP missing".
+Browser tooling missing: stop and report "UI not verified, browser tooling missing".
 Never tick a checklist without evidence. Full gate items:
 `.opencode/sops/QUALITY_GATE.md` gates 4-6.
 

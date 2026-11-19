@@ -29,22 +29,24 @@ Read these signals with `ctx_execute` / `rtk read`; never dump whole files.
 | `go.mod` / `Cargo.toml` | Go / Rust |
 | `.env.example` | secret names only, never values |
 
-One batch, cwd-scoped. Use absolute paths or `cd <project-root>` first:
+One batch, cwd-scoped. Use absolute paths or `cd <project-root>` first.
+`commands` is a list of raw shell strings; `queries` are FTS keywords that must
+appear in that output:
 
 ```js
-ctx_batch_execute(commands: [
-  {label:"manifest-js", command:"rtk json package.json"},
-  {label:"manifest-py", command:"rtk find . -maxdepth 2 -name pyproject.toml"},
-  {label:"manifest-go", command:"rtk find . -maxdepth 2 -name go.mod"},
-  {label:"manifest-rs", command:"rtk find . -maxdepth 2 -name Cargo.toml"},
-  {label:"configs",     command:"rtk find . -maxdepth 2 -name *.config.*"},
-  {label:"locks",       command:"rtk find . -maxdepth 1 -name *lock*"}
-], queries: ["framework","package manager","styling","test runner","component library"])
+ctx_batch(commands: [
+  "rtk json package.json",
+  "rtk find . -maxdepth 2 -name pyproject.toml",
+  "rtk find . -maxdepth 2 -name go.mod",
+  "rtk find . -maxdepth 2 -name Cargo.toml",
+  "rtk find . -maxdepth 2 -name *.config.*",
+  "rtk find . -maxdepth 1 -name *lock*"
+], queries: ["version","dependencies","script","name","private"])
 ```
 
 Windows rules: no quotes around globs, no `-not` / `-exec`, `rtk json` for JSON
-only, `locks` stays at `-maxdepth 1`. A failing label or `0 for <pattern>` is
-information, not an error.
+only, `locks` stays at `-maxdepth 1`. A command that fails or prints
+`0 for <pattern>` is information, not an error.
 
 ### `.opencode/STACK.md`
 
@@ -54,17 +56,17 @@ Report differences; never overwrite either silently.
 
 ## 2. Load one stack file
 
-| Detected | Load | MCP | Skills |
+| Detected | Load | Browser / MCP | Skills |
 |---|---|---|---|
-| Next.js / React | `stacks/nextjs.md` | playwright, chrome-devtools, shadcn if `components.json` | hallmark, refactoring-ui, design-taste, frontend-design |
-| Vue / Nuxt | `stacks/vue.md` | playwright, chrome-devtools | hallmark, refactoring-ui, design-taste |
-| Svelte / SvelteKit | `stacks/svelte.md` | playwright, chrome-devtools | hallmark, refactoring-ui, design-taste |
-| Astro | `stacks/astro.md` | playwright, chrome-devtools | hallmark, refactoring-ui, design-taste |
-| Vite SPA | `stacks/vite.md` | playwright, chrome-devtools | hallmark, refactoring-ui, design-taste |
-| Plain HTML/CSS | this file + a framework row for design skills | none | hallmark, refactoring-ui, design-taste |
-| FastAPI / Django / Flask | `stacks/python.md` | none | design-patterns, code-quality |
-| Go | `stacks/go.md` | none | design-patterns, code-quality |
-| Rust | `stacks/rust.md` | none | design-patterns, code-quality |
+| Next.js / React | `stacks/nextjs.md` | `playwright-cli` CLI; chrome-devtools MCP; shadcn if `components.json` | hallmark, refactoring-ui, design-taste |
+| Vue / Nuxt | `stacks/vue.md` | `playwright-cli` CLI; chrome-devtools MCP | hallmark, refactoring-ui, design-taste |
+| Svelte / SvelteKit | `stacks/svelte.md` | `playwright-cli` CLI; chrome-devtools MCP | hallmark, refactoring-ui, design-taste |
+| Astro | `stacks/astro.md` | `playwright-cli` CLI; chrome-devtools MCP | hallmark, refactoring-ui, design-taste |
+| Vite SPA | `stacks/vite.md` | `playwright-cli` CLI; chrome-devtools MCP | hallmark, refactoring-ui, design-taste |
+| Plain HTML/CSS | this file + a framework row for design skills | `playwright-cli` CLI; chrome-devtools MCP | hallmark, refactoring-ui, design-taste |
+| FastAPI / Django / Flask | `stacks/python.md` | none | backend rules live in the stack file |
+| Go | `stacks/go.md` | none | backend rules live in the stack file |
+| Rust | `stacks/rust.md` | none | backend rules live in the stack file |
 
 No dedicated documentation server is required. Fetch library docs on demand via
 `.opencode/sops/CONTEXT.md` → **External library documentation** (whichever

@@ -73,7 +73,7 @@ if ($Force -and (Test-Path $agentsDst)) {
 
 
 $dirs = Get-ChildItem $agentsDir -Directory |
-  Where-Object { $_.Name -ne 'node_modules' }
+  Where-Object { $_.Name -ne 'node_modules' -and $_.Name -ne 'reference' }
 foreach ($d in $dirs) {
   Copy-Item -Path $d.FullName -Destination (Join-Path $agentsDst $d.Name) -Recurse -Force
   Write-Host "  .opencode/$($d.Name)"

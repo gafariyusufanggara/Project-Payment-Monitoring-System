@@ -13,17 +13,17 @@ Read `.opencode/sops/STACKS.md` and execute phase 0b only (stack detection).
    `cd <project-root>` first:
 
 ```js
-ctx_batch_execute(commands: [
-  {label:"manifest-js",  command:"rtk json package.json"},
-  {label:"manifest-py",  command:"rtk find . -maxdepth 2 -name pyproject.toml"},
-  {label:"manifest-go",  command:"rtk find . -maxdepth 2 -name go.mod"},
-  {label:"manifest-rs",  command:"rtk find . -maxdepth 2 -name Cargo.toml"},
-  {label:"configs",      command:"rtk find . -maxdepth 2 -name *.config.*"},
-  {label:"locks",        command:"rtk find . -maxdepth 1 -name *lock*"}
-], queries: ["framework","package manager","styling","test runner","component library"])
+ctx_batch(commands: [
+  "rtk json package.json",
+  "rtk find . -maxdepth 2 -name pyproject.toml",
+  "rtk find . -maxdepth 2 -name go.mod",
+  "rtk find . -maxdepth 2 -name Cargo.toml",
+  "rtk find . -maxdepth 2 -name *.config.*",
+  "rtk find . -maxdepth 1 -name *lock*"
+], queries: ["version","dependencies","script","name","private"])
 ```
 
-A failing label is information, not an error: `rtk json package.json` fails when
+A command that fails is information, not an error: `rtk json package.json` fails when
 the file is absent, and `rtk find` prints `0 for <pattern>` when nothing
 matches. Never re-run a failing label with different flags to "fix" it.
 

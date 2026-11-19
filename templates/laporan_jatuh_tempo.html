@@ -74,7 +74,7 @@ if s.rekanan not in all_rekanan %} {% set _ = all_rekanan.append(s.rekanan) %}
   >
     <div class="lp-sisa-card lp-hero ds-kpi {% if ns.sdpp|has_sisa %}pos ds-kpi--err{% else %}zero ds-kpi--ok{% endif %}" data-jt-hero>
       <div class="lp-hero-main">
-        <span class="kpi-lbl ds-kpi__label"><i class="bi bi-wallet2"></i> DPP Jatuh Tempo · {{ r.label }}</span>
+        <span class="kpi-lbl ds-kpi__label"><i class="bi bi-wallet2"></i> Sisa Hutang DPP Jatuh Tempo · {{ r.label }}</span>
         <span class="kpi-num ds-kpi__value" data-jt="hero-sisa">{{ ns.sdpp|money }}</span>
       </div>
       <div class="lp-hero-side">

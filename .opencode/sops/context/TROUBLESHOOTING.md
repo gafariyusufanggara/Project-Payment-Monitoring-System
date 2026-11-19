@@ -32,7 +32,10 @@ valid empty result, not a failed command. Do not retry with different flags.
 ## cwd and path failures
 
 - `ctx_*` and shell run from the session cwd, not necessarily the project root.
-- Use absolute paths in `ctx_batch_execute`, or `Set-Location <project>` first.
+- Use absolute paths in `ctx_batch`, or `Set-Location <project>` first.
+- `ctx_batch` runs each command through a bash-compatible shell: a Windows path
+  with backslashes is mangled (`C:\Users\...` loses its separators). Write
+  Windows paths with forward slashes (`C:/Users/...`) inside `ctx_batch`.
 - A relative `0 for '*'` usually means wrong cwd. Re-check with an absolute path
   before reporting "file missing".
 
@@ -44,7 +47,7 @@ valid empty result, not a failed command. Do not retry with different flags.
 | `ctx_*` tools | `Read`, `Grep`, `Glob`, direct shell | "context-mode tidak aktif, baca langsung." |
 | both | normal tool use, smaller batches | say once, then continue |
 | `graphify` | `rtk grep` / `rg`, then read 2-3 files | "graphify tidak terpasang." |
-| browser MCP | do the code work, then stop | "UI not verified — browser MCP missing." |
+| browser tooling | do the code work, then stop | "UI not verified — browser tooling missing." |
 
 Never retry a missing command, pretend it ran, or claim token savings you did not
 get. Install path: `.opencode/scripts/bootstrap-windows.ps1`.
@@ -55,22 +58,26 @@ get. Install path: `.opencode/scripts/bootstrap-windows.ps1`.
 - Inline HTTP in scripts: `fetch('http`, `requests.get(`, `requests.post(`.
 - Direct web fetch into context.
 
-Use `ctx_fetch_and_index(url, source)` then `ctx_search`, or `ctx_execute` with
+Use `ctx_index(url, source)` then `ctx_search`, or `ctx_execute` with
 `fetch` inside the sandbox.
 
-## Batch and concurrency
+## Batch
 
 ```js
-ctx_batch_execute(commands: [{label:"a", command:"..."}, ...],
-                  queries: ["q1","q2"], concurrency: 5)
+ctx_batch(commands: ["cmd one", "cmd two"],
+          queries: ["q1","q2"])
 ```
 
-- `concurrency: 4-8` for I/O-bound work (network, `gh`, API, multi-repo reads).
-- `concurrency: 1` for CPU-bound (build, test, lint) or shared-state commands
-  (ports, lock files, same-repo writes).
-- Cap `gh` at 4 for GitHub rate limits.
-- A failing label inside a batch is information, not a crash. Do not retry with
-  new flags.
+- `commands` is a list of raw shell strings; there is **no** `label` field and
+  **no** `concurrency` parameter. The tool runs them in one sandbox call and
+  returns the command output; `queries` are FTS keywords over that output (a
+  keyword absent from the output falls back to a whole-session search and returns
+  noise, so keep them output-specific).
+- For CPU-bound steps (build, test, lint) or shared-state commands (ports, lock
+  files, same-repo writes), run them as separate sequential calls rather than in
+  one batch.
+- A command that fails inside a batch is information, not a crash. Do not retry
+  with new flags.
 
 ## Exit codes and non-errors
 
@@ -83,6 +90,6 @@ ctx_batch_execute(commands: [{label:"a", command:"..."}, ...],
 
 ## When a tool floods output
 
-Move the command into `ctx_execute` / `ctx_execute_file` and print only the
+Move the command into `ctx_execute` and print only the
 answer (count, filenames, first N matches). Do not pipe the raw dump back into
 context to "see what happened".

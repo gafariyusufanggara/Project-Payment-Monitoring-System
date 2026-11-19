@@ -130,6 +130,7 @@ if ($SkipCopy) {
         if (Test-Path $p) { Ok "copied $f" } else { Bad "copy missing $f" }
       }
       if (Test-Path (Join-Path $tmpProj '.opencode\skills\vibe')) { Bad 'copy contains vibe' } else { Ok 'copy excludes vibe' }
+      if (Test-Path (Join-Path $tmpProj '.opencode\reference')) { Bad 'copy contains reference' } else { Ok 'copy excludes reference' }
     }
   } finally {
     if (-not $KeepTemp -and (Test-Path $tmpProj)) { Remove-Item -LiteralPath $tmpProj -Recurse -Force }

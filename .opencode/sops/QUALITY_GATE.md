@@ -34,8 +34,10 @@ passed.
 - [ ] Tests: `rtk npx vitest run` / `rtk pytest` / `rtk go test ./...` / `rtk cargo test`
 
 If a baseline cannot be captured, report the absolute count and list pre-existing
-warnings as `N/A pre-existing`. Never "fix" unrelated lint debt in the same
-change.
+warnings as `N/A pre-existing`. Capture the baseline before the change, e.g.
+`rtk npx eslint . -f json > .lint-baseline.json` (or
+`rtk ruff check --output-format json`), then compare counts after. Never "fix"
+unrelated lint debt in the same change.
 
 ## Gate 3 — Test coverage (when logic changed)
 
